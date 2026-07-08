@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Custom scrollbar and ambient styles */
+body {
+  background-color: #1e1e1e;
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Screen background theme */
+.screen-bg {
+  background: radial-gradient(circle at top left, #2e1065, #0f172a, #1e3a8a);
+}
+
+/* Frosted glass styles */
+.glass-glow-purple {
+  background: rgba(139, 92, 246, 0.15) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.glass-glow-blue {
+  background: rgba(59, 130, 246, 0.15) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.glass-glow-dark {
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Pulse animation for active data state */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-soft {
+  animation: soft-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
