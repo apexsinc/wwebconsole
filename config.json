@@ -1,0 +1,12 @@
+{
+  "wllIpAddress": "",
+  "useCloudApi": true,
+  "cloudDid": "001D0AC0AF0C",
+  "cloudPassword": "cyrhildwight123",
+  "cloudApiToken": "mj8njyi77cmjs5ur68dol30xyxgqieab",
+  "unitTemp": "C",
+  "unitWind": "kmh",
+  "unitBaro": "hPa",
+  "unitRain": "mm",
+  "isSimulationMode": false
+}

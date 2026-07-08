@@ -37,11 +37,20 @@ export interface WeatherData {
   
   // Status
   ts: number; // Unix timestamp
+  stationName?: string;
+  stationDid?: string;
 }
 
 export interface WLLConfig {
   wllIpAddress: string;
-  isSimulationMode: boolean;
+  useCloudApi?: boolean;
+  cloudDid?: string;
+  cloudPassword?: string;
+  cloudApiToken?: string;
+  unitTemp?: 'F' | 'C';
+  unitWind?: 'mph' | 'kmh' | 'kts' | 'ms';
+  unitBaro?: 'inHg' | 'hPa' | 'mmHg' | 'mb';
+  unitRain?: 'in' | 'mm';
 }
 
 export interface ConnectionState {

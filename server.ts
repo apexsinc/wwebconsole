@@ -7,42 +7,79 @@ import express from 'express';
 import path from 'path';
 import dgram from 'dgram';
 import axios from 'axios';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { WeatherData, WLLConfig } from './src/types.js';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 app.use(express.json());
 
-// In-memory config
-let config: WLLConfig = {
-  wllIpAddress: '192.168.1.100', // Default placeholder IP
-  isSimulationMode: true, // Default to true so it works out-of-the-box in the sandbox
-};
+const CONFIG_FILE = path.join(process.cwd(), 'config.json');
+
+// Load configuration from config.json if it exists, otherwise use defaults
+function loadConfig(): WLLConfig {
+  const defaults: WLLConfig = {
+    wllIpAddress: '',
+    useCloudApi: false,
+    cloudDid: '',
+    cloudPassword: '',
+    cloudApiToken: 'C65771F93D9342898619AA95AF37B89B',
+    unitTemp: 'C',
+    unitWind: 'kmh',
+    unitBaro: 'hPa',
+    unitRain: 'mm',
+  };
+
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const fileData = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      const parsed = JSON.parse(fileData);
+      console.log('Configuration loaded from config.json');
+      return { ...defaults, ...parsed };
+    }
+  } catch (err: any) {
+    console.error('Error loading config.json, using defaults:', err.message);
+  }
+  return defaults;
+}
+
+function saveConfig(cfg: WLLConfig) {
+  try {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf-8');
+    console.log('Configuration saved to config.json');
+  } catch (err: any) {
+    console.error('Error writing config.json:', err.message);
+  }
+}
+
+let config: WLLConfig = loadConfig();
 
 // Initial state matching the user's requested values exactly
 let weatherState: WeatherData = {
-  temp: 72.4,
-  feels_like: 70.1,
-  hum: 96.2,
-  dew_point: 71.3,
-  temp_in: 75.2,
-  hum_in: 64.1,
-  bar_sea_level: 29.875,
-  bar_trend: -0.046,
-  wind_speed_last: 2.4,
-  wind_dir_last: 225, // SW
-  wind_speed_avg_2_min: 3.1,
-  wind_speed_avg_10_min: 3.4,
-  rain_rate_last: 3.01,
-  rainfall_daily: 5.07,
-  high_rain_rate_today: 2.42,
-  high_rain_rate_time: '8:32 am',
-  sunrise: '7:15 am',
-  sunset: '4:50 pm',
-  moon_phase: 'waning crescent',
-  ts: Math.floor(Date.now() / 1000)
+  temp: 0,
+  feels_like: 0,
+  hum: 0,
+  dew_point: 0,
+  temp_in: 0,
+  hum_in: 0,
+  bar_sea_level: 0,
+  bar_trend: 0,
+  wind_speed_last: 0,
+  wind_dir_last: 0,
+  wind_speed_avg_2_min: 0,
+  wind_speed_avg_10_min: 0,
+  rain_rate_last: 0,
+  rainfall_daily: 0,
+  high_rain_rate_today: 0,
+  high_rain_rate_time: '--',
+  sunrise: '--',
+  sunset: '--',
+  moon_phase: '--',
+  ts: 0,
+  stationName: "Offline Console",
+  stationDid: "Unconfigured"
 };
 
 // Connection status tracked on server
@@ -53,14 +90,18 @@ let serverError: string | null = null;
 // List of connected SSE clients
 let sseClients: express.Response[] = [];
 
+function isSystemOnline() {
+  if (weatherState.ts === 0) return 'offline';
+  const threshold = config.useCloudApi ? 180000 : 30000;
+  return (Date.now() - (lastHttpReceived || 0) < threshold) ? 'online' : 'offline';
+}
+
 // Helper to broadcast update to all connected clients
 function broadcastState() {
   const payload = {
     weather: weatherState,
     connection: {
-      status: config.isSimulationMode 
-        ? 'online' 
-        : (Date.now() - (lastHttpReceived || 0) < 30000 ? 'online' : 'offline'),
+      status: isSystemOnline(),
       lastUdpReceived,
       lastHttpReceived,
       errorMessage: serverError
@@ -88,8 +129,8 @@ udpSocket.on('message', (msg, rinfo) => {
     const packet = JSON.parse(msg.toString());
     console.log(`UDP packet from ${rinfo.address}:${rinfo.port}`);
 
-    // If simulation is enabled, ignore real packets to avoid pollution
-    if (config.isSimulationMode) return;
+    // If cloud API mode is enabled, ignore real packets to avoid pollution
+    if (config.useCloudApi) return;
 
     lastUdpReceived = Date.now();
     serverError = null;
@@ -133,17 +174,155 @@ udpSocket.bind(22222, '0.0.0.0', () => {
 
 // 2. HTTP Proxy endpoint for WeatherLink current conditions (polled by React Query)
 app.get('/api/weatherlink-current', async (req, res) => {
-  if (config.isSimulationMode) {
-    return res.json({
+  if (!config.useCloudApi && !config.wllIpAddress) {
+    return res.status(503).json({
       weather: weatherState,
       connection: {
-        status: 'online',
+        status: 'offline',
         lastUdpReceived,
-        lastHttpReceived: Date.now(),
-        errorMessage: null
+        lastHttpReceived,
+        errorMessage: 'Connection unconfigured: IP Address or Cloud credentials not set.'
       },
       config
     });
+  }
+
+  if (config.useCloudApi) {
+    try {
+      if (!config.cloudDid || !config.cloudPassword || !config.cloudApiToken) {
+        throw new Error('Cloud API configuration is missing (DID, Password, or API Token)');
+      }
+      
+      console.log(`Polling WeatherLink Cloud API for DID ${config.cloudDid}...`);
+      const response = await axios.get(`https://api.weatherlink.com/v1/NoaaExt.json`, {
+        params: {
+          user: config.cloudDid,
+          pass: config.cloudPassword,
+          apiToken: config.cloudApiToken
+        },
+        timeout: 8000
+      });
+      
+      const data = response.data;
+      if (!data) {
+        throw new Error('WeatherLink Cloud API returned empty response');
+      }
+      if (data.error) {
+        throw new Error(`WeatherLink Cloud API error: ${data.error}`);
+      }
+
+      // Parse current observations from Cloud API
+      const davis = data.davis_current_observation || {};
+
+      weatherState.temp = data.temp_f !== undefined ? Number(data.temp_f) : weatherState.temp;
+      weatherState.hum = data.relative_humidity !== undefined ? Number(data.relative_humidity) : weatherState.hum;
+      weatherState.dew_point = data.dewpoint_f !== undefined ? Number(data.dewpoint_f) : weatherState.dew_point;
+
+      // Feels like mapping (windchill or heat index)
+      if (data.windchill_f !== undefined && Number(data.windchill_f) < weatherState.temp) {
+        weatherState.feels_like = Number(data.windchill_f);
+      } else if (data.heat_index_f !== undefined && Number(data.heat_index_f) > weatherState.temp) {
+        weatherState.feels_like = Number(data.heat_index_f);
+      } else {
+        weatherState.feels_like = weatherState.temp;
+      }
+
+      weatherState.temp_in = davis.temp_in_f !== undefined ? Number(davis.temp_in_f) : weatherState.temp_in;
+      weatherState.hum_in = davis.relative_humidity_in !== undefined ? Number(davis.relative_humidity_in) : weatherState.hum_in;
+
+      weatherState.bar_sea_level = data.pressure_in !== undefined ? Number(data.pressure_in) : weatherState.bar_sea_level;
+      
+      // Parse pressure trend
+      if (data.pressure_trend !== undefined) {
+        const trend = String(data.pressure_trend).toLowerCase();
+        if (trend.includes('fall') || trend.includes('down') || trend.includes('-')) {
+          weatherState.bar_trend = -0.02;
+        } else if (trend.includes('rise') || trend.includes('up') || trend.includes('+')) {
+          weatherState.bar_trend = 0.02;
+        } else {
+          weatherState.bar_trend = 0;
+        }
+      }
+
+      weatherState.wind_speed_last = data.wind_mph !== undefined ? Number(data.wind_mph) : weatherState.wind_speed_last;
+      weatherState.wind_dir_last = data.wind_degrees !== undefined ? Number(data.wind_degrees) : weatherState.wind_dir_last;
+
+      weatherState.wind_speed_avg_10_min = davis.wind_ten_min_ave_mph !== undefined 
+        ? Number(davis.wind_ten_min_ave_mph) 
+        : (davis.wind_ten_min_avg_mph !== undefined ? Number(davis.wind_ten_min_avg_mph) : weatherState.wind_speed_avg_10_min);
+      
+      // Set 2 min avg to last speed if avg not in json
+      weatherState.wind_speed_avg_2_min = weatherState.wind_speed_last;
+
+      weatherState.rain_rate_last = davis.rain_rate_in_per_hr !== undefined 
+        ? Number(davis.rain_rate_in_per_hr) 
+        : (davis.rain_rate_in !== undefined ? Number(davis.rain_rate_in) : weatherState.rain_rate_last);
+
+      weatherState.rainfall_daily = davis.rain_day_in !== undefined 
+        ? Number(davis.rain_day_in) 
+        : (data.rain_day_in !== undefined ? Number(data.rain_day_in) : weatherState.rainfall_daily);
+
+      weatherState.high_rain_rate_today = davis.rain_rate_day_high_in_per_hr !== undefined 
+        ? Number(davis.rain_rate_day_high_in_per_hr) 
+        : (davis.rain_rate_max_in_per_hr !== undefined ? Number(davis.rain_rate_max_in_per_hr) : weatherState.high_rain_rate_today);
+
+      weatherState.sunrise = davis.sunrise || weatherState.sunrise;
+      weatherState.sunset = davis.sunset || weatherState.sunset;
+
+      const ts = data.observation_time_rfc822 ? Math.floor(new Date(data.observation_time_rfc822).getTime() / 1000) : Math.floor(Date.now() / 1000);
+      weatherState.ts = ts;
+      
+      // Simple synodic month calculation. Cycle length: ~29.53059 days
+      // Known new moon: Jan 6, 2000 18:14 UTC (approx 947182440 seconds)
+      const knownNewMoon = 947182440;
+      const secondsInCycle = 29.53059 * 24 * 60 * 60;
+      let delta = ts - knownNewMoon;
+      if (delta < 0) delta = 0;
+      const phase = (delta % secondsInCycle) / secondsInCycle;
+
+      if (phase < 0.03 || phase > 0.97) weatherState.moon_phase = 'new moon';
+      else if (phase < 0.22) weatherState.moon_phase = 'waxing crescent';
+      else if (phase < 0.28) weatherState.moon_phase = 'first quarter';
+      else if (phase < 0.47) weatherState.moon_phase = 'waxing gibbous';
+      else if (phase < 0.53) weatherState.moon_phase = 'full moon';
+      else if (phase < 0.72) weatherState.moon_phase = 'waning gibbous';
+      else if (phase < 0.78) weatherState.moon_phase = 'last quarter';
+      else weatherState.moon_phase = 'waning crescent';
+
+      weatherState.stationName = davis.station_name || data.station_name || "WeatherLink Cloud";
+      weatherState.stationDid = data.DID || davis.DID || config.cloudDid || "Davis Station";
+
+      lastHttpReceived = Date.now();
+      serverError = null;
+      
+      broadcastState();
+
+      return res.json({
+        weather: weatherState,
+        connection: {
+          status: 'online',
+          lastUdpReceived,
+          lastHttpReceived,
+          errorMessage: null
+        },
+        config
+      });
+    } catch (error: any) {
+      console.error(`HTTP Polling Error from WeatherLink Cloud API:`, error.message);
+      serverError = `Cloud API Polling Error: ${error.message}`;
+      broadcastState();
+
+      return res.status(503).json({
+        weather: weatherState,
+        connection: {
+          status: 'offline',
+          lastUdpReceived,
+          lastHttpReceived,
+          errorMessage: serverError
+        },
+        config
+      });
+    }
   }
 
   try {
@@ -177,6 +356,8 @@ app.get('/api/weatherlink-current', async (req, res) => {
         }
       });
       weatherState.ts = data.data.ts || Math.floor(Date.now() / 1000);
+      weatherState.stationName = "Local WeatherLink Live";
+      weatherState.stationDid = config.wllIpAddress;
       broadcastState();
     }
 
@@ -216,14 +397,18 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/config', (req, res) => {
-  const { wllIpAddress, isSimulationMode } = req.body;
+  const { wllIpAddress, useCloudApi, cloudDid, cloudPassword, cloudApiToken, unitTemp, unitWind, unitBaro, unitRain } = req.body;
   if (wllIpAddress !== undefined) config.wllIpAddress = wllIpAddress;
-  if (isSimulationMode !== undefined) config.isSimulationMode = isSimulationMode;
+  if (useCloudApi !== undefined) config.useCloudApi = useCloudApi;
+  if (cloudDid !== undefined) config.cloudDid = cloudDid;
+  if (cloudPassword !== undefined) config.cloudPassword = cloudPassword;
+  if (cloudApiToken !== undefined) config.cloudApiToken = cloudApiToken;
+  if (unitTemp !== undefined) config.unitTemp = unitTemp;
+  if (unitWind !== undefined) config.unitWind = unitWind;
+  if (unitBaro !== undefined) config.unitBaro = unitBaro;
+  if (unitRain !== undefined) config.unitRain = unitRain;
   
-  if (config.isSimulationMode) {
-    serverError = null;
-  }
-  
+  saveConfig(config);
   broadcastState();
   res.json(config);
 });
@@ -241,7 +426,7 @@ app.get('/api/live-stream', (req, res) => {
   const initialPayload = {
     weather: weatherState,
     connection: {
-      status: config.isSimulationMode ? 'online' : (Date.now() - (lastHttpReceived || 0) < 30000 ? 'online' : 'offline'),
+      status: isSystemOnline(),
       lastUdpReceived,
       lastHttpReceived,
       errorMessage: serverError
@@ -255,83 +440,7 @@ app.get('/api/live-stream', (req, res) => {
   });
 });
 
-// 3. Mock Data Simulation Engine (Random walk variations for realistic dashboard updates)
-let lastWindSpeedTarget = 2.4;
-let lastWindDirTarget = 225; // SW
-
-setInterval(() => {
-  if (!config.isSimulationMode) return;
-
-  // Slowly drift values
-  // Temp: -0.05 to +0.05
-  weatherState.temp = parseFloat((weatherState.temp + (Math.random() * 0.1 - 0.05)).toFixed(1));
-  
-  // Keep feels like slightly lower than temp or aligned with humidity
-  weatherState.feels_like = parseFloat((weatherState.temp - 2.3 + (Math.random() * 0.06 - 0.03)).toFixed(1));
-
-  // Humidity: -0.1 to +0.1
-  weatherState.hum = parseFloat(Math.min(100, Math.max(0, weatherState.hum + (Math.random() * 0.2 - 0.1))).toFixed(1));
-
-  // Dew point tracks temp and humidity
-  weatherState.dew_point = parseFloat((weatherState.temp - (100 - weatherState.hum) / 5).toFixed(1));
-
-  // Inside Temp: slowly fluctuate
-  weatherState.temp_in = parseFloat((weatherState.temp_in + (Math.random() * 0.04 - 0.02)).toFixed(1));
-  weatherState.hum_in = parseFloat(Math.min(100, Math.max(0, weatherState.hum_in + (Math.random() * 0.1 - 0.05))).toFixed(1));
-
-  // Barometer: drift slowly
-  weatherState.bar_sea_level = parseFloat((weatherState.bar_sea_level + (Math.random() * 0.004 - 0.002)).toFixed(3));
-
-  // Wind speed & direction: quick wind gusts and angle variations
-  if (Math.random() > 0.8) {
-    lastWindSpeedTarget = parseFloat((Math.random() * 8 + 0.5).toFixed(1)); // New wind speed target
-  }
-  if (Math.random() > 0.7) {
-    lastWindDirTarget = (lastWindDirTarget + (Math.random() * 60 - 30) + 360) % 360; // Wind shift
-  }
-
-  // Smooth wind updates
-  weatherState.wind_speed_last = parseFloat((weatherState.wind_speed_last + (lastWindSpeedTarget - weatherState.wind_speed_last) * 0.25).toFixed(1));
-  
-  // Shortest path angle interpolation
-  let diff = lastWindDirTarget - weatherState.wind_dir_last;
-  if (diff > 180) diff -= 360;
-  if (diff < -180) diff += 360;
-  weatherState.wind_dir_last = Math.round((weatherState.wind_dir_last + diff * 0.2 + 360) % 360);
-
-  // Averages are rolling slow tracking
-  weatherState.wind_speed_avg_2_min = parseFloat((weatherState.wind_speed_avg_2_min + (weatherState.wind_speed_last - weatherState.wind_speed_avg_2_min) * 0.05).toFixed(1));
-  weatherState.wind_speed_avg_10_min = parseFloat((weatherState.wind_speed_avg_10_min + (weatherState.wind_speed_last - weatherState.wind_speed_avg_10_min) * 0.01).toFixed(1));
-
-  // Rain: occasionally change rain rate if it's high humidity
-  if (weatherState.hum > 95) {
-    if (Math.random() > 0.95) {
-      weatherState.rain_rate_last = parseFloat((Math.random() * 4).toFixed(2));
-    }
-  } else {
-    weatherState.rain_rate_last = parseFloat(Math.max(0, weatherState.rain_rate_last - 0.05).toFixed(2));
-  }
-
-  // Accumulate daily rain if raining
-  if (weatherState.rain_rate_last > 0) {
-    weatherState.rainfall_daily = parseFloat((weatherState.rainfall_daily + (weatherState.rain_rate_last / 1800)).toFixed(2)); // rate per hour added every 2 seconds
-  }
-
-  // Update high rain rate today
-  if (weatherState.rain_rate_last > weatherState.high_rain_rate_today) {
-    weatherState.high_rain_rate_today = weatherState.rain_rate_last;
-    const now = new Date();
-    let hours = now.getHours();
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12;
-    hours = hours ? hours : 12; // 0 is 12
-    weatherState.high_rain_rate_time = `${hours}:${minutes} ${ampm}`;
-  }
-
-  weatherState.ts = Math.floor(Date.now() / 1000);
-  broadcastState();
-}, 2000);
+// 3. (Mock Data Simulation Engine completely removed for pure telemetry-only Console)
 
 // Initialize Vite server for asset handling
 async function startServer() {

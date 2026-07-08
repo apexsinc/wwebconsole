@@ -81,12 +81,14 @@ export function useLiveStream() {
 // React Query hook for polling fallback & cache management
 export function useWeatherQuery() {
   const setAll = useWeatherStore((state) => state.setAll);
-  const isSimulationMode = useWeatherStore((state) => state.config.isSimulationMode);
+  const useCloudApi = useWeatherStore((state) => state.config.useCloudApi);
+
+  const pollInterval = useCloudApi ? 60000 : 10000; // 1 minute for cloud, 10 seconds for local WLL
 
   return useQuery({
     queryKey: ['weatherCurrent'],
     queryFn: fetchCurrentWeather,
-    refetchInterval: isSimulationMode ? false : 10000, // Poll every 10 seconds if real WLL
+    refetchInterval: pollInterval,
     retry: 2,
     staleTime: 5000,
   });

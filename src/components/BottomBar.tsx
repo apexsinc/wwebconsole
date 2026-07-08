@@ -16,7 +16,7 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   return (
-    <div className="w-full bg-[#05060a] border-t border-gray-900 px-4 py-3 flex items-center justify-between text-gray-400 text-xs md:text-sm font-sans select-none relative z-20">
+    <div className="w-full bg-[#030712]/90 border-t border-[#01497c]/30 px-4 py-3 flex items-center justify-between text-gray-400 text-xs md:text-sm font-sans select-none relative z-20">
       
       {/* Navigation Arrows */}
       <div className="flex items-center gap-1.5">
@@ -35,8 +35,8 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
       </div>
 
       {/* Ticker / Banner message marquee */}
-      <div className="flex-1 mx-4 max-w-xl h-8 rounded-lg bg-[#020305] border border-gray-900/60 flex items-center overflow-hidden relative">
-        <div className="absolute left-2 flex items-center gap-1 text-sky-500 font-mono text-[9px] uppercase font-bold tracking-wider z-10 bg-[#020305] pr-2 shadow-[4px_0_8px_rgba(2,3,5,1)]">
+      <div className="flex-1 mx-4 max-w-xl h-8 rounded-lg bg-[#010f1c]/80 border border-[#01497c]/20 flex items-center overflow-hidden relative">
+        <div className="absolute left-2 flex items-center gap-1 text-sky-400 font-mono text-[9px] uppercase font-bold tracking-wider z-10 bg-[#010f1c] pr-2 shadow-[4px_0_8px_rgba(1,15,28,1)]">
           <AlertCircle className="w-3.5 h-3.5 animate-pulse" />
           ALERT:
         </div>
@@ -44,7 +44,7 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
         {/* Scrolling LED status bar */}
         <div className="flex-1 overflow-hidden whitespace-nowrap pl-16">
           <div className="inline-block animate-marquee text-[11px] md:text-xs font-mono text-gray-300">
-            Jim's Home &middot; High Rain Rate: <span className="text-sky-400 font-bold">{high_rain_rate_today.toFixed(2)} in/hr</span> @ {high_rain_rate_time} &middot; Station Status: <span className="text-emerald-500">Nominal</span> &middot; RSSI: <span className="text-gray-400">-48dBm</span> &middot; Battery: <span className="text-emerald-400">Ok</span>
+            Jim's Home &middot; High Rain Rate: <span className="text-sky-400 font-bold">{high_rain_rate_today.toFixed(2)} in/hr</span> @ {high_rain_rate_time} &middot; Station Status: <span className="text-sky-400">Nominal</span> &middot; RSSI: <span className="text-gray-400">-48dBm</span> &middot; Battery: <span className="text-sky-400">Ok</span>
           </div>
         </div>
       </div>

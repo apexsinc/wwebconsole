@@ -9,37 +9,33 @@
 
 /* Custom scrollbar and ambient styles */
 body {
-  background-color: #1e1e1e;
+  background-color: #12151a;
   color: #f8fafc;
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
 
-/* Screen background theme */
+/* Screen background theme - Premium 01497c & 0353a4 Gradient Backdrop */
 .screen-bg {
-  background: radial-gradient(circle at top left, #2e1065, #0f172a, #1e3a8a);
+  background: radial-gradient(circle at top left, #0353a4 0%, #013a63 60%, #01497c 100%) !important;
 }
 
-/* Frosted glass styles */
-.glass-glow-purple {
-  background: rgba(139, 92, 246, 0.15) !important;
+/* Frosted glass styles - Redesigned as Ocean-Blue Gradient Glass Cards */
+.glass-glow-purple, .glass-glow-blue, .glass-glow-dark {
+  background: rgba(3, 83, 164, 0.12) !important;
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(1, 73, 124, 0.32);
+  box-shadow: 0 8px 32px 0 rgba(1, 42, 74, 0.35), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-glow-blue {
-  background: rgba(59, 130, 246, 0.15) !important;
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-}
-
-.glass-glow-dark {
-  background: rgba(15, 23, 42, 0.6) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+.glass-glow-purple:hover, .glass-glow-blue:hover, .glass-glow-dark:hover {
+  border-color: rgba(3, 83, 164, 0.55);
+  box-shadow: 0 8px 32px 0 rgba(1, 42, 74, 0.45), 
+              0 0 20px -3px rgba(3, 83, 164, 0.35), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 /* Pulse animation for active data state */
@@ -50,5 +46,21 @@ body {
 
 .animate-pulse-soft {
   animation: soft-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbar utility */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 

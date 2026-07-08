@@ -15,7 +15,7 @@ interface GlassPanelProps {
 
 export function GlassPanel({ children, variant, className = '' }: GlassPanelProps) {
   const baseStyle = "backdrop-blur-xl border rounded-2xl p-4 md:p-5 flex flex-col justify-between transition-all duration-300 hover:scale-[1.015]";
-  
+
   let variantStyle = "";
   if (variant === 'purple') {
     // Purple tinted glass
@@ -89,7 +89,7 @@ export function WeatherMetric({
 
       {/* Main Big Readout value */}
       <div className="flex items-baseline gap-1 mt-1 group">
-        <motion.span 
+        <motion.span
           className="text-3xl md:text-4xl font-display font-bold text-white tracking-tight"
           key={value}
           initial={{ opacity: 0.7, y: 4 }}
@@ -103,7 +103,7 @@ export function WeatherMetric({
             {unit}
           </span>
         )}
-        
+
         {/* Refresh button that spins */}
         <button
           onClick={handleRefreshClick}
@@ -155,7 +155,7 @@ export function HumidityRing({ value, size = 52 }: HumidityRingProps) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          className="stroke-emerald-500 filter drop-shadow-[0_0_4px_rgba(16,185,129,0.5)]"
+          className="stroke-[#00b4d8] filter drop-shadow-[0_0_4px_rgba(0,180,216,0.5)]"
           strokeWidth="3.5"
           fill="transparent"
           strokeDasharray={circumference}
