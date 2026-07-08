@@ -19,6 +19,8 @@ export default function ConfigNavbar() {
   const [apiToken, setApiToken] = useState(config.cloudApiToken ?? '');
   const [apiSecret, setApiSecret] = useState(config.cloudApiSecret ?? '');
   const [stationId, setStationId] = useState(config.cloudStationId ?? '');
+  const [latitude, setLatitude] = useState<number | ''>(config.latitude ?? '');
+  const [longitude, setLongitude] = useState<number | ''>(config.longitude ?? '');
 
   const handleSave = () => {
     configMutation.mutate({
@@ -30,7 +32,9 @@ export default function ConfigNavbar() {
       cloudPassword: password,
       cloudApiToken: apiToken,
       cloudApiSecret: apiSecret,
-      cloudStationId: stationId
+      cloudStationId: stationId,
+      latitude: latitude === '' ? undefined : Number(latitude),
+      longitude: longitude === '' ? undefined : Number(longitude)
     }, {
       onSuccess: () => {
         setIsOpen(false);
@@ -280,6 +284,17 @@ export default function ConfigNavbar() {
                             className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-sans text-xs focus:outline-none transition-all"
                           />
                         </div>
+
+                        <div className="flex flex-col gap-1 mt-2">
+                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Account Password (Optional)</label>
+                          <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="For exact Sunrise/Sunset hybrid polling"
+                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-sans text-xs focus:outline-none transition-all"
+                          />
+                        </div>
                       </>
                     )}
                   </div>
@@ -291,6 +306,43 @@ export default function ConfigNavbar() {
                   </p>
                 </div>
               )}
+
+              {/* Location Settings Panel */}
+              <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-sky-950/30 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white leading-none">Location Coordinates</h3>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Used for calculating sunrise, sunset, and moon phases</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-1">
+                  <div className="flex flex-col gap-1 flex-1">
+                    <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Latitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={latitude}
+                      onChange={(e) => setLatitude(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="e.g. 40.7128"
+                      className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 flex-1">
+                    <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Longitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={longitude}
+                      onChange={(e) => setLongitude(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="e.g. -74.0060"
+                      className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
 
             </div>
 

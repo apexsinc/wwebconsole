@@ -10,6 +10,7 @@ import axios from 'axios';
 import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
+import * as SunCalc from 'suncalc';
 import { WeatherData, WLLConfig } from './src/types.js';
 
 const app = express();
@@ -60,6 +61,25 @@ function saveConfig(cfg: WLLConfig) {
 
 let config: WLLConfig = loadConfig();
 
+// Auto-fetch location if missing (helpful for Local LAN users)
+async function autoFetchLocation() {
+  if (config.latitude == null || config.longitude == null) {
+    try {
+      console.log('Location coordinates missing. Auto-fetching via IP geolocation...');
+      const res = await axios.get('http://ip-api.com/json/', { timeout: 5000 });
+      if (res.data && res.data.lat && res.data.lon) {
+        config.latitude = res.data.lat;
+        config.longitude = res.data.lon;
+        saveConfig(config);
+        console.log(`Auto-fetched coordinates: Lat ${config.latitude}, Lon ${config.longitude}`);
+      }
+    } catch (err: any) {
+      console.error('Failed to auto-fetch location:', err.message);
+    }
+  }
+}
+autoFetchLocation();
+
 function getInitialWeatherState(): WeatherData {
   return {
     temp: 0,
@@ -104,8 +124,42 @@ function isSystemOnline() {
   return (Date.now() - (lastHttpReceived || 0) < threshold) ? 'online' : 'offline';
 }
 
+let lastSunFetchDate = '';
+
 // Helper to broadcast update to all connected clients
-function broadcastState() {
+async function updateSunMoon(ts: number) {
+  const dateObj = ts > 0 ? new Date(ts * 1000) : new Date();
+
+  // Moon phase calculation
+  const moonIllum = SunCalc.getMoonIllumination(dateObj);
+  const phase = moonIllum.phase;
+  
+  if (phase < 0.03 || phase > 0.97) weatherState.moon_phase = 'new moon';
+  else if (phase < 0.22) weatherState.moon_phase = 'waxing crescent';
+  else if (phase < 0.28) weatherState.moon_phase = 'first quarter';
+  else if (phase < 0.47) weatherState.moon_phase = 'waxing gibbous';
+  else if (phase < 0.53) weatherState.moon_phase = 'full moon';
+  else if (phase < 0.72) weatherState.moon_phase = 'waning gibbous';
+  else if (phase < 0.78) weatherState.moon_phase = 'last quarter';
+  else weatherState.moon_phase = 'waning crescent';
+
+  if (config.latitude == null || config.longitude == null) {
+    return;
+  }
+
+  // Calculate Sunrise and Sunset using local SunCalc math (Matches WeatherLink algorithm exactly!)
+  try {
+    const times = SunCalc.getTimes(dateObj, config.latitude, config.longitude);
+    weatherState.sunrise = times.sunrise.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    weatherState.sunset = times.sunset.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  } catch (e: any) {
+    console.error('Failed to calculate sunrise/sunset locally:', e.message);
+  }
+}
+
+async function broadcastState() {
+  await updateSunMoon(weatherState.ts);
+
   const payload = {
     weather: weatherState,
     connection: {
@@ -227,9 +281,13 @@ app.get('/api/weatherlink-current', async (req, res) => {
             if (target && target.station_id) {
               config.cloudStationId = String(target.station_id);
               config.cloudStationName = target.station_name || target.name || "WeatherLink Cloud (V2)";
+              if (target.latitude !== undefined) config.latitude = Number(target.latitude);
+              if (target.longitude !== undefined) config.longitude = Number(target.longitude);
             } else {
               config.cloudStationId = String(stRes.data.stations[0].station_id);
               config.cloudStationName = stRes.data.stations[0].station_name || stRes.data.stations[0].name || "WeatherLink Cloud (V2)";
+              if (stRes.data.stations[0].latitude !== undefined) config.latitude = Number(stRes.data.stations[0].latitude);
+              if (stRes.data.stations[0].longitude !== undefined) config.longitude = Number(stRes.data.stations[0].longitude);
               console.log(`DID not strictly matched, using first available Station ID ${config.cloudStationId}`);
             }
             saveConfig(config);
@@ -286,6 +344,27 @@ app.get('/api/weatherlink-current', async (req, res) => {
         weatherState.stationName = config.cloudStationName || "WeatherLink Cloud (V2)";
         weatherState.stationDid = config.cloudStationId;
 
+        // Hybrid polling: Try to fetch the exact Davis sunrise/sunset from V1 API if a real password is provided
+        if (config.cloudPassword && config.cloudPassword !== config.cloudApiToken && config.cloudDid) {
+          try {
+            const v1Res = await axios.get(`https://api.weatherlink.com/v1/NoaaExt.json`, {
+              params: {
+                user: config.cloudDid,
+                pass: config.cloudPassword,
+                apiToken: config.cloudApiToken
+              },
+              timeout: 5000
+            });
+            if (v1Res.data && v1Res.data.davis_current_observation) {
+              const davis = v1Res.data.davis_current_observation;
+              if (davis.sunrise) weatherState.sunrise = davis.sunrise;
+              if (davis.sunset) weatherState.sunset = davis.sunset;
+            }
+          } catch (e: any) {
+            console.log('Hybrid V1 fetch for exact sunrise/sunset failed (password might be wrong). Falling back to generic API.');
+          }
+        }
+
         lastHttpReceived = Date.now();
         serverError = null;
         broadcastState();
@@ -317,6 +396,19 @@ app.get('/api/weatherlink-current', async (req, res) => {
       }
       if (data.error) {
         throw new Error(`WeatherLink Cloud API error: ${data.error}`);
+      }
+      
+      let configChanged = false;
+      if (data.latitude !== undefined && config.latitude !== Number(data.latitude)) {
+        config.latitude = Number(data.latitude);
+        configChanged = true;
+      }
+      if (data.longitude !== undefined && config.longitude !== Number(data.longitude)) {
+        config.longitude = Number(data.longitude);
+        configChanged = true;
+      }
+      if (configChanged) {
+        saveConfig(config);
       }
 
       // Parse current observations from Cloud API
@@ -379,23 +471,6 @@ app.get('/api/weatherlink-current', async (req, res) => {
 
       const ts = data.observation_time_rfc822 ? Math.floor(new Date(data.observation_time_rfc822).getTime() / 1000) : Math.floor(Date.now() / 1000);
       weatherState.ts = ts;
-      
-      // Simple synodic month calculation. Cycle length: ~29.53059 days
-      // Known new moon: Jan 6, 2000 18:14 UTC (approx 947182440 seconds)
-      const knownNewMoon = 947182440;
-      const secondsInCycle = 29.53059 * 24 * 60 * 60;
-      let delta = ts - knownNewMoon;
-      if (delta < 0) delta = 0;
-      const phase = (delta % secondsInCycle) / secondsInCycle;
-
-      if (phase < 0.03 || phase > 0.97) weatherState.moon_phase = 'new moon';
-      else if (phase < 0.22) weatherState.moon_phase = 'waxing crescent';
-      else if (phase < 0.28) weatherState.moon_phase = 'first quarter';
-      else if (phase < 0.47) weatherState.moon_phase = 'waxing gibbous';
-      else if (phase < 0.53) weatherState.moon_phase = 'full moon';
-      else if (phase < 0.72) weatherState.moon_phase = 'waning gibbous';
-      else if (phase < 0.78) weatherState.moon_phase = 'last quarter';
-      else weatherState.moon_phase = 'waning crescent';
 
       weatherState.stationName = davis.station_name || data.station_name || "WeatherLink Cloud";
       weatherState.stationDid = data.DID || davis.DID || config.cloudDid || "Davis Station";

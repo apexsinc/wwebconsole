@@ -51,6 +51,8 @@ export interface WLLConfig {
   cloudApiSecret?: string; // V2
   cloudStationId?: string; // V2
   cloudStationName?: string; // V2
+  latitude?: number;
+  longitude?: number;
   unitTemp?: 'F' | 'C';
   unitWind?: 'mph' | 'kmh' | 'kts' | 'ms';
   unitBaro?: 'inHg' | 'hPa' | 'mmHg' | 'mb';
