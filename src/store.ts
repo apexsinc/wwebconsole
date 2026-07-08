@@ -52,9 +52,12 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   config: {
     wllIpAddress: '',
     useCloudApi: false,
+    cloudApiVersion: 'v1',
     cloudDid: '',
     cloudPassword: '',
-    cloudApiToken: 'C65771F93D9342898619AA95AF37B89B',
+    cloudApiToken: '',
+    cloudApiSecret: '',
+    cloudStationId: '',
     unitTemp: 'C',
     unitWind: 'kmh',
     unitBaro: 'hPa',

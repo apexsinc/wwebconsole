@@ -8,6 +8,7 @@ import path from 'path';
 import dgram from 'dgram';
 import axios from 'axios';
 import fs from 'fs';
+import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { WeatherData, WLLConfig } from './src/types.js';
 
@@ -23,9 +24,12 @@ function loadConfig(): WLLConfig {
   const defaults: WLLConfig = {
     wllIpAddress: '',
     useCloudApi: false,
+    cloudApiVersion: 'v1',
     cloudDid: '',
     cloudPassword: '',
-    cloudApiToken: 'C65771F93D9342898619AA95AF37B89B',
+    cloudApiToken: '',
+    cloudApiSecret: '',
+    cloudStationId: '',
     unitTemp: 'C',
     unitWind: 'kmh',
     unitBaro: 'hPa',
@@ -56,31 +60,35 @@ function saveConfig(cfg: WLLConfig) {
 
 let config: WLLConfig = loadConfig();
 
+function getInitialWeatherState(): WeatherData {
+  return {
+    temp: 0,
+    feels_like: 0,
+    hum: 0,
+    dew_point: 0,
+    temp_in: 0,
+    hum_in: 0,
+    bar_sea_level: 0,
+    bar_trend: 0,
+    wind_speed_last: 0,
+    wind_dir_last: 0,
+    wind_speed_avg_2_min: 0,
+    wind_speed_avg_10_min: 0,
+    rain_rate_last: 0,
+    rainfall_daily: 0,
+    high_rain_rate_today: 0,
+    high_rain_rate_time: '--',
+    sunrise: '--',
+    sunset: '--',
+    moon_phase: '--',
+    ts: 0,
+    stationName: "Offline Console",
+    stationDid: "Unconfigured"
+  };
+}
+
 // Initial state matching the user's requested values exactly
-let weatherState: WeatherData = {
-  temp: 0,
-  feels_like: 0,
-  hum: 0,
-  dew_point: 0,
-  temp_in: 0,
-  hum_in: 0,
-  bar_sea_level: 0,
-  bar_trend: 0,
-  wind_speed_last: 0,
-  wind_dir_last: 0,
-  wind_speed_avg_2_min: 0,
-  wind_speed_avg_10_min: 0,
-  rain_rate_last: 0,
-  rainfall_daily: 0,
-  high_rain_rate_today: 0,
-  high_rain_rate_time: '--',
-  sunrise: '--',
-  sunset: '--',
-  moon_phase: '--',
-  ts: 0,
-  stationName: "Offline Console",
-  stationDid: "Unconfigured"
-};
+let weatherState: WeatherData = getInitialWeatherState();
 
 // Connection status tracked on server
 let lastUdpReceived: number | null = null;
@@ -189,6 +197,105 @@ app.get('/api/weatherlink-current', async (req, res) => {
 
   if (config.useCloudApi) {
     try {
+      if (config.cloudApiVersion === 'v2') {
+        if (!config.cloudApiToken || !config.cloudApiSecret) {
+          throw new Error('Cloud API V2 configuration is missing (API Key or API Secret)');
+        }
+        
+        // Auto-lookup stationId if missing or stationName is missing
+        if ((!config.cloudStationId || !config.cloudStationName) && config.cloudDid) {
+          console.log(`Looking up Station info for DID ${config.cloudDid}...`);
+          const ts = Math.floor(Date.now() / 1000);
+          const sigStr = `api-key${config.cloudApiToken}t${ts}`;
+          const sig = crypto.createHmac('sha256', config.cloudApiSecret).update(sigStr).digest('hex');
+          
+          const stRes = await axios.get(`https://api.weatherlink.com/v2/stations`, {
+            params: { 'api-key': config.cloudApiToken, t: ts, 'api-signature': sig },
+            timeout: 8000
+          });
+          
+          if (stRes.data && stRes.data.stations && stRes.data.stations.length > 0) {
+            // Try to find a matching DID, but fallback to the first station if we can't find an exact match
+            // as most users only have 1 station per account.
+            const cleanDid = config.cloudDid.replace(/:/g, '').toUpperCase();
+            const target = stRes.data.stations.find((s: any) => 
+               (s.did && s.did.replace(/:/g, '').toUpperCase() === cleanDid) || 
+               (s.did_gateway && s.did_gateway.replace(/:/g, '').toUpperCase() === cleanDid)
+            );
+            
+            if (target && target.station_id) {
+              config.cloudStationId = String(target.station_id);
+              config.cloudStationName = target.station_name || "WeatherLink Cloud (V2)";
+            } else {
+              config.cloudStationId = String(stRes.data.stations[0].station_id);
+              config.cloudStationName = stRes.data.stations[0].station_name || "WeatherLink Cloud (V2)";
+              console.log(`DID not strictly matched, using first available Station ID ${config.cloudStationId}`);
+            }
+            saveConfig(config);
+            console.log(`Successfully mapped DID ${config.cloudDid} to Station ID ${config.cloudStationId} (${config.cloudStationName})`);
+          } else {
+            throw new Error(`No stations found for this API Key.`);
+          }
+        }
+
+        if (!config.cloudStationId) {
+           throw new Error('Cloud API V2 configuration is missing Station ID, and auto-lookup failed.');
+        }
+
+        console.log(`Polling WeatherLink Cloud API v2 for Station ID ${config.cloudStationId}...`);
+        const timestamp = Math.floor(Date.now() / 1000);
+        const stringToHash = `api-key${config.cloudApiToken}station-id${config.cloudStationId}t${timestamp}`;
+        const signature = crypto.createHmac('sha256', config.cloudApiSecret).update(stringToHash).digest('hex');
+
+        const response = await axios.get(`https://api.weatherlink.com/v2/current/${config.cloudStationId}`, {
+          params: {
+            'api-key': config.cloudApiToken,
+            t: timestamp,
+            'api-signature': signature
+          },
+          timeout: 8000
+        });
+        
+        const data = response.data;
+        if (!data || !data.sensors) throw new Error('WeatherLink Cloud API v2 returned empty response');
+        
+        data.sensors.forEach((sensor: any) => {
+          if (!sensor.data || sensor.data.length === 0) return;
+          const cond = sensor.data[0];
+          
+          if (cond.temp !== undefined) weatherState.temp = Number(cond.temp);
+          if (cond.hum !== undefined) weatherState.hum = Number(cond.hum);
+          if (cond.dew_point !== undefined) weatherState.dew_point = Number(cond.dew_point);
+          if (cond.heat_index !== undefined) weatherState.feels_like = Number(cond.heat_index);
+          if (cond.wind_speed_last !== undefined) weatherState.wind_speed_last = Number(cond.wind_speed_last);
+          if (cond.wind_dir_last !== undefined) weatherState.wind_dir_last = Number(cond.wind_dir_last);
+          if (cond.wind_speed_avg_last_2_min !== undefined) weatherState.wind_speed_avg_2_min = Number(cond.wind_speed_avg_last_2_min);
+          if (cond.wind_speed_avg_last_10_min !== undefined) weatherState.wind_speed_avg_10_min = Number(cond.wind_speed_avg_last_10_min);
+          if (cond.rain_rate_last !== undefined) weatherState.rain_rate_last = Number(cond.rain_rate_last);
+          if (cond.rainfall_daily !== undefined) weatherState.rainfall_daily = Number(cond.rainfall_daily);
+          
+          if (cond.temp_in !== undefined) weatherState.temp_in = Number(cond.temp_in);
+          if (cond.hum_in !== undefined) weatherState.hum_in = Number(cond.hum_in);
+          
+          if (cond.bar_sea_level !== undefined) weatherState.bar_sea_level = Number(cond.bar_sea_level);
+          if (cond.bar_trend !== undefined) weatherState.bar_trend = Number(cond.bar_trend);
+        });
+        
+        weatherState.ts = data.generated_at || Math.floor(Date.now() / 1000);
+        weatherState.stationName = config.cloudStationName || "WeatherLink Cloud (V2)";
+        weatherState.stationDid = config.cloudStationId;
+
+        lastHttpReceived = Date.now();
+        serverError = null;
+        broadcastState();
+
+        return res.json({
+          weather: weatherState,
+          connection: { status: 'online', lastUdpReceived, lastHttpReceived, errorMessage: null },
+          config
+        });
+      }
+
       if (!config.cloudDid || !config.cloudPassword || !config.cloudApiToken) {
         throw new Error('Cloud API configuration is missing (DID, Password, or API Token)');
       }
@@ -397,17 +504,54 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/config', (req, res) => {
-  const { wllIpAddress, useCloudApi, cloudDid, cloudPassword, cloudApiToken, unitTemp, unitWind, unitBaro, unitRain } = req.body;
-  if (wllIpAddress !== undefined) config.wllIpAddress = wllIpAddress;
+  const { wllIpAddress, useCloudApi, cloudApiVersion, cloudDid, cloudPassword, cloudApiToken, cloudApiSecret, cloudStationId, unitTemp, unitWind, unitBaro, unitRain } = req.body;
+  
+  let deviceChanged = false;
+  if (wllIpAddress !== undefined && wllIpAddress !== config.wllIpAddress) {
+    config.wllIpAddress = wllIpAddress;
+    deviceChanged = true;
+  }
   if (useCloudApi !== undefined) config.useCloudApi = useCloudApi;
-  if (cloudDid !== undefined) config.cloudDid = cloudDid;
-  if (cloudPassword !== undefined) config.cloudPassword = cloudPassword;
-  if (cloudApiToken !== undefined) config.cloudApiToken = cloudApiToken;
+  if (cloudApiVersion !== undefined) {
+    if (cloudApiVersion !== config.cloudApiVersion) deviceChanged = true;
+    config.cloudApiVersion = cloudApiVersion;
+  }
+  if (cloudDid !== undefined && cloudDid !== config.cloudDid) {
+    config.cloudDid = cloudDid;
+    config.cloudStationId = ''; // Clear station ID so we auto-lookup again for the new DID
+    config.cloudStationName = ''; // Clear station name so we fetch it again
+    deviceChanged = true;
+  }
+  if (cloudPassword !== undefined && cloudPassword !== config.cloudPassword) {
+    config.cloudPassword = cloudPassword;
+    deviceChanged = true;
+  }
+  if (cloudApiToken !== undefined && cloudApiToken !== config.cloudApiToken) {
+    config.cloudApiToken = cloudApiToken;
+    deviceChanged = true;
+  }
+  if (cloudApiSecret !== undefined && cloudApiSecret !== config.cloudApiSecret) {
+    config.cloudApiSecret = cloudApiSecret;
+    deviceChanged = true;
+  }
+  if (cloudStationId !== undefined && cloudStationId !== config.cloudStationId) {
+    config.cloudStationId = cloudStationId;
+    deviceChanged = true;
+  }
   if (unitTemp !== undefined) config.unitTemp = unitTemp;
   if (unitWind !== undefined) config.unitWind = unitWind;
   if (unitBaro !== undefined) config.unitBaro = unitBaro;
   if (unitRain !== undefined) config.unitRain = unitRain;
   
+  if (deviceChanged) {
+    // Reset state to avoid mixing data from different stations
+    weatherState = getInitialWeatherState();
+    lastHttpReceived = null;
+    lastUdpReceived = null;
+    serverError = null;
+    console.log("Device configuration changed. Resetting weather state.");
+  }
+
   saveConfig(config);
   broadcastState();
   res.json(config);

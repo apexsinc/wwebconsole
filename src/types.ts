@@ -44,9 +44,13 @@ export interface WeatherData {
 export interface WLLConfig {
   wllIpAddress: string;
   useCloudApi?: boolean;
-  cloudDid?: string;
-  cloudPassword?: string;
-  cloudApiToken?: string;
+  cloudApiVersion?: 'v1' | 'v2';
+  cloudDid?: string; // V1 and V2
+  cloudPassword?: string; // V1
+  cloudApiToken?: string; // V1 and V2
+  cloudApiSecret?: string; // V2
+  cloudStationId?: string; // V2
+  cloudStationName?: string; // V2
   unitTemp?: 'F' | 'C';
   unitWind?: 'mph' | 'kmh' | 'kts' | 'ms';
   unitBaro?: 'inHg' | 'hPa' | 'mmHg' | 'mb';

@@ -13,18 +13,24 @@ export default function ConfigNavbar() {
   // Connection settings states
   const [ipAddress, setIpAddress] = useState(config.wllIpAddress);
   const [useCloud, setUseCloud] = useState(config.useCloudApi ?? false);
+  const [apiVersion, setApiVersion] = useState<'v1' | 'v2'>(config.cloudApiVersion ?? 'v1');
   const [did, setDid] = useState(config.cloudDid ?? '');
   const [password, setPassword] = useState(config.cloudPassword ?? '');
-  const [apiToken, setApiToken] = useState(config.cloudApiToken ?? 'C65771F93D9342898619AA95AF37B89B');
+  const [apiToken, setApiToken] = useState(config.cloudApiToken ?? '');
+  const [apiSecret, setApiSecret] = useState(config.cloudApiSecret ?? '');
+  const [stationId, setStationId] = useState(config.cloudStationId ?? '');
 
   const handleSave = () => {
     configMutation.mutate({
       ...config,
       wllIpAddress: ipAddress,
       useCloudApi: useCloud,
+      cloudApiVersion: apiVersion,
       cloudDid: did,
       cloudPassword: password,
-      cloudApiToken: apiToken
+      cloudApiToken: apiToken,
+      cloudApiSecret: apiSecret,
+      cloudStationId: stationId
     }, {
       onSuccess: () => {
         setIsOpen(false);
@@ -193,6 +199,28 @@ export default function ConfigNavbar() {
                     </div>
                   </div>
 
+                  {/* API Version Selector */}
+                  <div className="flex bg-gray-950 border border-gray-800 rounded-lg p-1">
+                    <button
+                      type="button"
+                      onClick={() => setApiVersion('v1')}
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold tracking-wider transition-all ${
+                        apiVersion === 'v1' ? 'bg-gray-800 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      API V1 (Legacy)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setApiVersion('v2')}
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold tracking-wider transition-all ${
+                        apiVersion === 'v2' ? 'bg-gray-800 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      API V2 (Modern)
+                    </button>
+                  </div>
+
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Device ID (DID)</label>
@@ -205,31 +233,61 @@ export default function ConfigNavbar() {
                       />
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Account Password</label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Account Password"
-                        className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-sans text-xs focus:outline-none transition-all"
-                      />
-                    </div>
+                    {apiVersion === 'v1' ? (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Account Password</label>
+                          <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Account Password"
+                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-sans text-xs focus:outline-none transition-all"
+                          />
+                        </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">API Token v1</label>
-                      <input
-                        type="text"
-                        value={apiToken}
-                        onChange={(e) => setApiToken(e.target.value)}
-                        placeholder="API Token ID"
-                        className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none transition-all"
-                      />
-                    </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">API Token v1</label>
+                          <input
+                            type="text"
+                            value={apiToken}
+                            onChange={(e) => setApiToken(e.target.value)}
+                            placeholder="API Token ID"
+                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none transition-all"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">API Key v2</label>
+                          <input
+                            type="text"
+                            value={apiToken}
+                            onChange={(e) => setApiToken(e.target.value)}
+                            placeholder="API Key"
+                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none transition-all"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">API Secret v2</label>
+                          <input
+                            type="password"
+                            value={apiSecret}
+                            onChange={(e) => setApiSecret(e.target.value)}
+                            placeholder="API Secret"
+                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-sans text-xs focus:outline-none transition-all"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                   <p className="text-gray-500 text-[10px] leading-relaxed flex items-start gap-1">
                     <HelpCircle className="w-3.5 h-3.5 shrink-0 text-gray-600 mt-0.5" />
-                    Data is pulled from api.weatherlink.com/v1/NoaaExt.json. A poll interval of 1 minute will be applied to prevent account rate limits.
+                    {apiVersion === 'v1' 
+                      ? 'Data is pulled from api.weatherlink.com/v1/NoaaExt.json. Best for EnviroMonitor.'
+                      : 'Data is pulled from api.weatherlink.com/v2. Best for WeatherLink Live.'} A poll interval of 1 minute is applied.
                   </p>
                 </div>
               )}
