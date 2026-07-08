@@ -220,15 +220,16 @@ app.get('/api/weatherlink-current', async (req, res) => {
             const cleanDid = config.cloudDid.replace(/:/g, '').toUpperCase();
             const target = stRes.data.stations.find((s: any) => 
                (s.did && s.did.replace(/:/g, '').toUpperCase() === cleanDid) || 
-               (s.did_gateway && s.did_gateway.replace(/:/g, '').toUpperCase() === cleanDid)
+               (s.did_gateway && s.did_gateway.replace(/:/g, '').toUpperCase() === cleanDid) ||
+               (s.device_id && s.device_id.replace(/:/g, '').toUpperCase() === cleanDid)
             );
             
             if (target && target.station_id) {
               config.cloudStationId = String(target.station_id);
-              config.cloudStationName = target.station_name || "WeatherLink Cloud (V2)";
+              config.cloudStationName = target.station_name || target.name || "WeatherLink Cloud (V2)";
             } else {
               config.cloudStationId = String(stRes.data.stations[0].station_id);
-              config.cloudStationName = stRes.data.stations[0].station_name || "WeatherLink Cloud (V2)";
+              config.cloudStationName = stRes.data.stations[0].station_name || stRes.data.stations[0].name || "WeatherLink Cloud (V2)";
               console.log(`DID not strictly matched, using first available Station ID ${config.cloudStationId}`);
             }
             saveConfig(config);
@@ -538,6 +539,10 @@ app.post('/api/config', (req, res) => {
     config.cloudStationId = cloudStationId;
     deviceChanged = true;
   }
+
+  // Always force refresh the station name from the API when config is saved
+  config.cloudStationName = '';
+  
   if (unitTemp !== undefined) config.unitTemp = unitTemp;
   if (unitWind !== undefined) config.unitWind = unitWind;
   if (unitBaro !== undefined) config.unitBaro = unitBaro;

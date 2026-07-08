@@ -11,5 +11,6 @@
   "unitWind": "kmh",
   "unitBaro": "hPa",
   "unitRain": "mm",
-  "isSimulationMode": false
+  "isSimulationMode": false,
+  "cloudStationName": "Monterrazas Office"
 }
