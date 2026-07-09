@@ -83,15 +83,23 @@ export function useWeatherQuery() {
   const setAll = useWeatherStore((state) => state.setAll);
   const useCloudApi = useWeatherStore((state) => state.config.useCloudApi);
 
-  const pollInterval = useCloudApi ? 60000 : 10000; // 1 minute for cloud, 10 seconds for local WLL
+  const pollInterval = useCloudApi ? 15000 : 10000; // 1 minute for cloud, 10 seconds for local WLL
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['weatherCurrent'],
     queryFn: fetchCurrentWeather,
     refetchInterval: pollInterval,
     retry: 2,
     staleTime: 5000,
   });
+
+  useEffect(() => {
+    if (query.data) {
+      setAll(query.data);
+    }
+  }, [query.data, setAll]);
+
+  return query;
 }
 
 // Config mutation

@@ -16,8 +16,44 @@ body {
 }
 
 /* Screen background theme - Premium 01497c & 0353a4 Gradient Backdrop */
-.screen-bg {
-  background: radial-gradient(circle at top left, #0353a4 0%, #013a63 60%, #01497c 100%) !important;
+@layer utilities {
+  .screen-bg {
+    background: linear-gradient(135deg, #103073 0%, #03378b 100%);
+  }
+
+  /* When the document is fullscreen, hide the top navbar so ONLY the console is visible */
+  :fullscreen #config-navbar {
+    display: none !important;
+  }
+
+  /* Intelligent Monitor Scaling: Auto-fit UI text and layout based on physical monitor size */
+  :fullscreen .tablet-screen-shell {
+    zoom: 1.25; /* Default scale for 1080p monitors */
+  }
+  
+  @media (min-width: 1400px) {
+    :fullscreen .tablet-screen-shell {
+      zoom: 1.45; /* Ultra-wide or large laptop */
+    }
+  }
+
+  @media (min-width: 1920px) {
+    :fullscreen .tablet-screen-shell {
+      zoom: 1.7; /* Standard 4K horizontal scale or large desktop */
+    }
+  }
+
+  @media (min-width: 2560px) {
+    :fullscreen .tablet-screen-shell {
+      zoom: 2.2; /* Native 1440p / 2K scaling */
+    }
+  }
+
+  @media (min-width: 3840px) {
+    :fullscreen .tablet-screen-shell {
+      zoom: 3.5; /* True 4K TV scaling */
+    }
+  }
 }
 
 /* Frosted glass styles - Redesigned as Ocean-Blue Gradient Glass Cards */

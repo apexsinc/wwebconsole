@@ -32,6 +32,7 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
     wind_dir_last: 0,
     wind_speed_avg_2_min: 0,
     wind_speed_avg_10_min: 0,
+    wind_dir_10_min: 0,
     rain_rate_last: 0,
     rainfall_daily: 0,
     high_rain_rate_today: 0,

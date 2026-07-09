@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Settings, Volume2, VolumeX, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Settings, Volume2, VolumeX, AlertCircle, Maximize, Minimize } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
 
 interface BottomBarProps {
@@ -12,40 +12,71 @@ interface BottomBarProps {
 }
 
 export default function BottomBar({ onOpenSettings }: BottomBarProps) {
-  const { high_rain_rate_today, high_rain_rate_time } = useWeatherStore((state) => state.weather);
+  const weather = useWeatherStore((state) => state.weather);
+  const config = useWeatherStore((state) => state.config);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [tickerIndex, setTickerIndex] = useState(0);
+
+  // Authentic Davis consoles rotate through various interesting data points!
+  const tickerMessages = [
+    `High Rain Rate: ${weather.high_rain_rate_today.toFixed(2)}${config.unitRain === 'mm' ? 'mm/hr' : 'in/hr'} @ ${weather.high_rain_rate_time || '--'}`,
+    `Outside Temperature: ${weather.temp.toFixed(1)}°${config.unitTemp}`,
+    `Wind Speed: ${weather.wind_speed_last.toFixed(1)} ${config.unitWind}`,
+    `Current Barometer: ${weather.bar_sea_level.toFixed(2)} ${config.unitBaro}`,
+    `Dew Point: ${weather.dew_point.toFixed(1)}°${config.unitTemp}`
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerIndex((prev) => (prev + 1) % tickerMessages.length);
+    }, 8000); // Rotate every 8 seconds exactly like the hardware
+    return () => clearInterval(interval);
+  }, [tickerMessages.length]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   return (
-    <div className="w-full bg-[#030712]/90 border-t border-[#01497c]/30 px-4 py-3 flex items-center justify-between text-gray-400 text-xs md:text-sm font-sans select-none relative z-20">
+    <div className="w-full bg-[#030712]/90 border-t border-[#01497c]/30 px-4 py-1 flex items-center justify-between text-gray-400 text-xs md:text-sm font-sans select-none relative z-20">
       
       {/* Navigation Arrows */}
       <div className="flex items-center gap-1.5">
         <button 
-          className="w-8 h-8 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          className="w-7 h-7 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
           title="Previous Page"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
         <button 
-          className="w-8 h-8 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          className="w-7 h-7 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
           title="Next Page"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Ticker / Banner message marquee */}
-      <div className="flex-1 mx-4 max-w-xl h-8 rounded-lg bg-[#010f1c]/80 border border-[#01497c]/20 flex items-center overflow-hidden relative">
-        <div className="absolute left-2 flex items-center gap-1 text-sky-400 font-mono text-[9px] uppercase font-bold tracking-wider z-10 bg-[#010f1c] pr-2 shadow-[4px_0_8px_rgba(1,15,28,1)]">
-          <AlertCircle className="w-3.5 h-3.5 animate-pulse" />
-          ALERT:
-        </div>
-        
-        {/* Scrolling LED status bar */}
-        <div className="flex-1 overflow-hidden whitespace-nowrap pl-16">
-          <div className="inline-block animate-marquee text-[11px] md:text-xs font-mono text-gray-300">
-            Jim's Home &middot; High Rain Rate: <span className="text-sky-400 font-bold">{high_rain_rate_today.toFixed(2)} in/hr</span> @ {high_rain_rate_time} &middot; Station Status: <span className="text-sky-400">Nominal</span> &middot; RSSI: <span className="text-gray-400">-48dBm</span> &middot; Battery: <span className="text-sky-400">Ok</span>
-          </div>
+      {/* Ticker / Banner message (Authentic Davis style rotating ticker) */}
+      <div className="flex-1 mx-4 overflow-hidden flex items-center justify-center">
+        <div className="whitespace-nowrap text-xs md:text-[13px] font-sans italic text-gray-300 tracking-wide font-medium transition-opacity duration-500">
+          {config.stationName} - {tickerMessages[tickerIndex]}
         </div>
       </div>
 
@@ -54,37 +85,36 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
         {/* Sound Toggle (faithfully replicates the physical console sound beep switch!) */}
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}
-          className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+          className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
             soundEnabled 
               ? 'bg-sky-950/20 border-sky-500/20 text-sky-400 hover:border-sky-500/40' 
               : 'bg-gray-950/80 border-gray-800 text-gray-600 hover:border-gray-700'
           }`}
           title={soundEnabled ? 'Mute Console Beeps' : 'Enable Console Beeps'}
         >
-          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+        </button>
+
+        {/* Fullscreen Toggle */}
+        <button
+          onClick={toggleFullscreen}
+          className="w-7 h-7 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          title="Toggle Fullscreen Console"
+        >
+          {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
         </button>
 
         {/* Console System/Config settings */}
         <button
           onClick={onOpenSettings}
-          className="w-8 h-8 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          className="w-7 h-7 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
           title="Console System Settings"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Custom Keyframe Styles injected for Marquee */}
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translate3d(0, 0, 0); }
-          100% { transform: translate3d(-50%, 0, 0); }
-        }
-        .animate-marquee {
-          display: inline-block;
-          animation: marquee 25s linear infinite;
-        }
-      `}</style>
+
 
     </div>
   );

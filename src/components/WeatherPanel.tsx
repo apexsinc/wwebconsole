@@ -24,8 +24,8 @@ export function GlassPanel({ children, variant, className = '' }: GlassPanelProp
     // Blue tinted glass
     variantStyle = "bg-sky-950/15 border-sky-500/10 text-sky-100 hover:border-sky-500/25 glass-glow-blue";
   } else {
-    // Dark console panel
-    variantStyle = "bg-gray-950/65 border-gray-800 text-gray-100 glass-glow-dark";
+    // Semi-light version of the center column's #0e1930 color
+    variantStyle = "bg-[#162a4f]/80 border-[#01497c]/60 text-gray-100 shadow-xl hover:border-[#01497c]/90";
   }
 
   return (
@@ -41,6 +41,7 @@ interface WeatherMetricProps {
   unit?: string;
   icon?: LucideIcon;
   subValue?: string | number;
+  subUnit?: string;
   subLabel?: string;
   subIcon?: LucideIcon;
   onRefresh?: () => void;
@@ -54,6 +55,7 @@ export function WeatherMetric({
   unit = '',
   icon: Icon,
   subValue,
+  subUnit = '',
   subLabel,
   subIcon: SubIcon,
   onRefresh,
@@ -78,50 +80,60 @@ export function WeatherMetric({
   };
 
   return (
-    <div className={`flex flex-col w-full h-full justify-between gap-2 md:gap-3 ${className}`}>
-      {/* Panel Top Header */}
-      <div className="flex items-center justify-between w-full">
-        <span className="text-[10px] md:text-xs font-sans font-semibold text-gray-400 uppercase tracking-wider select-none">
-          {title}
-        </span>
-        {Icon && <Icon className={`w-4 h-4 md:w-[18px] md:h-[18px] ${iconColorClass}`} />}
-      </div>
+    <div className={`grid grid-cols-2 w-full h-full gap-2 md:gap-4 relative ${className}`}>
 
-      {/* Main Big Readout value */}
-      <div className="flex items-baseline gap-1 mt-1 group">
-        <motion.span
-          className="text-3xl md:text-4xl font-display font-bold text-white tracking-tight"
-          key={value}
-          initial={{ opacity: 0.7, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {value}
-        </motion.span>
-        {unit && (
-          <span className="text-sm md:text-base font-semibold text-gray-400 font-sans ml-0.5 select-none">
-            {unit}
+      {/* Centered Divider Icon (User Request) */}
+      {Icon && (
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-0.5 z-10 flex items-center justify-center bg-[#061122] rounded-full p-1 border border-white/10 shadow-sm">
+          <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 ${iconColorClass}`} />
+        </div>
+      )}
+
+      {/* Primary Metric (Left) */}
+      <div className="flex flex-col justify-between h-full pr-2">
+        <div className="flex items-center w-full">
+          <span className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-sans font-bold text-gray-400 uppercase tracking-wide select-none leading-tight">
+            {title}
           </span>
-        )}
+        </div>
 
-        {/* Refresh button that spins */}
-        <button
-          onClick={handleRefreshClick}
-          className="ml-2 text-gray-600 hover:text-sky-400 cursor-pointer p-0.5 rounded-full transition-all focus:outline-none"
-          title="Force refresh metric"
-        >
-          <motion.div animate={controls} className="origin-center">
-            <RefreshCw className="w-3 h-3 md:w-3.5 md:h-3.5" />
-          </motion.div>
-        </button>
+        <div className="flex items-baseline gap-1 mt-1">
+          <motion.span
+            className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-[2.75rem] xl:text-5xl 2xl:text-[3rem] font-display font-bold text-white tracking-tight leading-none"
+            key={value}
+            initial={{ opacity: 0.7, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {value}
+          </motion.span>
+          {unit && (
+            <span className="text-sm md:text-base lg:text-base xl:text-lg 2xl:text-xl font-semibold text-gray-400 font-sans ml-0.5 lg:ml-1 select-none">
+              {unit}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Secondary Bottom Metric info */}
+      {/* Secondary Metric (Right) */}
       {subValue !== undefined && (
-        <div className="flex items-center gap-1.5 pt-2 border-t border-white/5 text-[11px] md:text-xs text-gray-400 select-none">
-          {SubIcon && <SubIcon className="w-3 h-3 text-gray-500" />}
-          {subLabel && <span className="font-medium text-gray-500">{subLabel}:</span>}
-          <span className="text-white font-semibold">{subValue}</span>
+        <div className="flex flex-col justify-between h-full pl-2 md:pl-4 border-l border-white/5">
+          <div className="flex items-center w-full">
+            <span className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-sans font-bold text-gray-400 uppercase tracking-wide select-none leading-tight pl-2 lg:pl-3">
+              {subLabel}
+            </span>
+          </div>
+
+          <div className="flex items-baseline gap-1 mt-1">
+            <span className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-[2.75rem] xl:text-5xl 2xl:text-[3rem] font-display font-bold text-white tracking-tight leading-none">
+              {subValue}
+            </span>
+            {subUnit && (
+              <span className="text-sm md:text-base lg:text-base xl:text-lg 2xl:text-xl font-semibold text-gray-400 font-sans ml-0.5 lg:ml-1 select-none">
+                {subUnit}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

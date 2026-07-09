@@ -23,6 +23,7 @@ export interface WeatherData {
   wind_dir_last: number; // degrees
   wind_speed_avg_2_min: number; // mph
   wind_speed_avg_10_min: number; // mph
+  wind_dir_10_min: number; // degrees
 
   // Rain (typically conditions type 1)
   rain_rate_last: number; // in/hr

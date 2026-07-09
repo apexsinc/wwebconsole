@@ -94,6 +94,7 @@ function getInitialWeatherState(): WeatherData {
     wind_dir_last: 0,
     wind_speed_avg_2_min: 0,
     wind_speed_avg_10_min: 0,
+    wind_dir_10_min: 0,
     rain_rate_last: 0,
     rainfall_daily: 0,
     high_rain_rate_today: 0,
@@ -134,13 +135,13 @@ async function updateSunMoon(ts: number) {
   const moonIllum = SunCalc.getMoonIllumination(dateObj);
   const phase = moonIllum.phase;
   
-  if (phase < 0.03 || phase > 0.97) weatherState.moon_phase = 'new moon';
-  else if (phase < 0.22) weatherState.moon_phase = 'waxing crescent';
-  else if (phase < 0.28) weatherState.moon_phase = 'first quarter';
-  else if (phase < 0.47) weatherState.moon_phase = 'waxing gibbous';
-  else if (phase < 0.53) weatherState.moon_phase = 'full moon';
-  else if (phase < 0.72) weatherState.moon_phase = 'waning gibbous';
-  else if (phase < 0.78) weatherState.moon_phase = 'last quarter';
+  if (phase < 0.05 || phase > 0.95) weatherState.moon_phase = 'new moon';
+  else if (phase < 0.20) weatherState.moon_phase = 'waxing crescent';
+  else if (phase < 0.30) weatherState.moon_phase = 'first quarter';
+  else if (phase < 0.45) weatherState.moon_phase = 'waxing gibbous';
+  else if (phase < 0.55) weatherState.moon_phase = 'full moon';
+  else if (phase < 0.70) weatherState.moon_phase = 'waning gibbous';
+  else if (phase < 0.80) weatherState.moon_phase = 'last quarter';
   else weatherState.moon_phase = 'waning crescent';
 
   if (config.latitude == null || config.longitude == null) {
@@ -191,9 +192,8 @@ udpSocket.on('message', (msg, rinfo) => {
     const packet = JSON.parse(msg.toString());
     console.log(`UDP packet from ${rinfo.address}:${rinfo.port}`);
 
-    // If cloud API mode is enabled, ignore real packets to avoid pollution
-    if (config.useCloudApi) return;
-
+    // Even if Cloud API is enabled, we accept local UDP packets to provide true real-time 
+    // sub-minute updates for the compass and wind speed (just like the physical console).
     lastUdpReceived = Date.now();
     serverError = null;
 
@@ -205,13 +205,25 @@ udpSocket.on('message', (msg, rinfo) => {
           if (cond.temp !== undefined) weatherState.temp = cond.temp;
           if (cond.hum !== undefined) weatherState.hum = cond.hum;
           if (cond.dew_point !== undefined) weatherState.dew_point = cond.dew_point;
-          if (cond.heat_index !== undefined) weatherState.feels_like = cond.heat_index;
+          
+          if (cond.wind_chill !== undefined && cond.temp !== undefined && cond.wind_chill < cond.temp) {
+            weatherState.feels_like = cond.wind_chill;
+          } else if (cond.heat_index !== undefined && cond.temp !== undefined && cond.heat_index > cond.temp) {
+            weatherState.feels_like = cond.heat_index;
+          } else if (cond.temp !== undefined) {
+            weatherState.feels_like = cond.temp;
+          }
           if (cond.wind_speed_last !== undefined) weatherState.wind_speed_last = cond.wind_speed_last;
           if (cond.wind_dir_last !== undefined) weatherState.wind_dir_last = cond.wind_dir_last;
           if (cond.wind_speed_avg_last_2_min !== undefined) weatherState.wind_speed_avg_2_min = cond.wind_speed_avg_last_2_min;
           if (cond.wind_speed_avg_last_10_min !== undefined) weatherState.wind_speed_avg_10_min = cond.wind_speed_avg_last_10_min;
-          if (cond.rain_rate_last !== undefined) weatherState.rain_rate_last = cond.rain_rate_last;
-          if (cond.rainfall_daily !== undefined) weatherState.rainfall_daily = cond.rainfall_daily;
+          
+          if (cond.rain_rate_last_in !== undefined) weatherState.rain_rate_last = cond.rain_rate_last_in;
+          else if (cond.rain_rate_last !== undefined) weatherState.rain_rate_last = cond.rain_rate_last;
+          
+          if (cond.rainfall_daily_in !== undefined) weatherState.rainfall_daily = cond.rainfall_daily_in;
+          else if (cond.rainfall_day_in !== undefined) weatherState.rainfall_daily = cond.rainfall_day_in;
+          else if (cond.rainfall_daily !== undefined) weatherState.rainfall_daily = cond.rainfall_daily;
         } else if (cond.data_structure_type === 3) {
           // Inside Temp & Hum
           if (cond.temp_in !== undefined) weatherState.temp_in = cond.temp_in;
@@ -322,22 +334,49 @@ app.get('/api/weatherlink-current', async (req, res) => {
           if (!sensor.data || sensor.data.length === 0) return;
           const cond = sensor.data[0];
           
-          if (cond.temp !== undefined) weatherState.temp = Number(cond.temp);
-          if (cond.hum !== undefined) weatherState.hum = Number(cond.hum);
-          if (cond.dew_point !== undefined) weatherState.dew_point = Number(cond.dew_point);
-          if (cond.heat_index !== undefined) weatherState.feels_like = Number(cond.heat_index);
-          if (cond.wind_speed_last !== undefined) weatherState.wind_speed_last = Number(cond.wind_speed_last);
-          if (cond.wind_dir_last !== undefined) weatherState.wind_dir_last = Number(cond.wind_dir_last);
-          if (cond.wind_speed_avg_last_2_min !== undefined) weatherState.wind_speed_avg_2_min = Number(cond.wind_speed_avg_last_2_min);
-          if (cond.wind_speed_avg_last_10_min !== undefined) weatherState.wind_speed_avg_10_min = Number(cond.wind_speed_avg_last_10_min);
-          if (cond.rain_rate_last !== undefined) weatherState.rain_rate_last = Number(cond.rain_rate_last);
-          if (cond.rainfall_daily !== undefined) weatherState.rainfall_daily = Number(cond.rainfall_daily);
+          // Structure 21, 22 usually Inside conditions
+          if (sensor.data_structure_type === 21 || sensor.data_structure_type === 22) {
+            if (cond.temp_in !== undefined) weatherState.temp_in = Number(cond.temp_in);
+            if (cond.hum_in !== undefined) weatherState.hum_in = Number(cond.hum_in);
+          }
           
-          if (cond.temp_in !== undefined) weatherState.temp_in = Number(cond.temp_in);
-          if (cond.hum_in !== undefined) weatherState.hum_in = Number(cond.hum_in);
-          
-          if (cond.bar_sea_level !== undefined) weatherState.bar_sea_level = Number(cond.bar_sea_level);
-          if (cond.bar_trend !== undefined) weatherState.bar_trend = Number(cond.bar_trend);
+          // Structure 19, 20 usually Barometer
+          if (sensor.data_structure_type === 19 || sensor.data_structure_type === 20) {
+            if (cond.bar_sea_level !== undefined) weatherState.bar_sea_level = Number(cond.bar_sea_level);
+            if (cond.bar_trend !== undefined) weatherState.bar_trend = Number(cond.bar_trend);
+          }
+
+          // Any structure that is likely ISS (Outside Temp/Wind/Rain) (e.g. 23, 24, 26, etc)
+          // We exclude Inside(21, 22), Baro(19, 20), SystemHealth(27) to avoid an extra sensor overwriting ISS temp.
+          if (sensor.data_structure_type !== 21 && sensor.data_structure_type !== 22 && sensor.data_structure_type !== 19 && sensor.data_structure_type !== 20 && sensor.data_structure_type !== 27) {
+            if (cond.temp !== undefined) weatherState.temp = Number(cond.temp);
+            if (cond.hum !== undefined) weatherState.hum = Number(cond.hum);
+            if (cond.dew_point !== undefined) weatherState.dew_point = Number(cond.dew_point);
+            
+            if (cond.thw_index !== undefined) {
+              weatherState.feels_like = Number(cond.thw_index);
+            } else if (cond.wind_chill !== undefined && cond.temp !== undefined && Number(cond.wind_chill) < Number(cond.temp)) {
+              weatherState.feels_like = Number(cond.wind_chill);
+            } else if (cond.heat_index !== undefined && cond.temp !== undefined && Number(cond.heat_index) > Number(cond.temp)) {
+              weatherState.feels_like = Number(cond.heat_index);
+            } else if (cond.temp !== undefined) {
+              weatherState.feels_like = Number(cond.temp);
+            }
+            if (cond.wind_speed_last !== undefined) weatherState.wind_speed_last = Number(cond.wind_speed_last);
+            if (cond.wind_dir_last !== undefined) weatherState.wind_dir_last = Number(cond.wind_dir_last);
+            if (cond.wind_speed_avg_last_2_min !== undefined) weatherState.wind_speed_avg_2_min = Number(cond.wind_speed_avg_last_2_min);
+            if (cond.wind_speed_avg_last_10_min !== undefined) weatherState.wind_speed_avg_10_min = Number(cond.wind_speed_avg_last_10_min);
+            if (cond.wind_dir_scalar_avg_last_10_min !== undefined) weatherState.wind_dir_10_min = Number(cond.wind_dir_scalar_avg_last_10_min);
+            
+            if (cond.rain_rate_last_in !== undefined) weatherState.rain_rate_last = Number(cond.rain_rate_last_in);
+            else if (cond.rain_rate_last !== undefined) weatherState.rain_rate_last = Number(cond.rain_rate_last);
+            
+            if (cond.rainfall_day_in !== undefined) weatherState.rainfall_daily = Number(cond.rainfall_day_in);
+            else if (cond.rainfall_daily_in !== undefined) weatherState.rainfall_daily = Number(cond.rainfall_daily_in);
+            else if (cond.rainfall_daily !== undefined) weatherState.rainfall_daily = Number(cond.rainfall_daily);
+            
+            if (cond.rain_rate_hi_in !== undefined) weatherState.high_rain_rate_today = Number(cond.rain_rate_hi_in);
+          }
         });
         
         weatherState.ts = data.generated_at || Math.floor(Date.now() / 1000);
@@ -523,13 +562,25 @@ app.get('/api/weatherlink-current', async (req, res) => {
           if (cond.temp !== undefined) weatherState.temp = cond.temp;
           if (cond.hum !== undefined) weatherState.hum = cond.hum;
           if (cond.dew_point !== undefined) weatherState.dew_point = cond.dew_point;
-          if (cond.heat_index !== undefined) weatherState.feels_like = cond.heat_index;
+          
+          if (cond.wind_chill !== undefined && cond.temp !== undefined && cond.wind_chill < cond.temp) {
+            weatherState.feels_like = cond.wind_chill;
+          } else if (cond.heat_index !== undefined && cond.temp !== undefined && cond.heat_index > cond.temp) {
+            weatherState.feels_like = cond.heat_index;
+          } else if (cond.temp !== undefined) {
+            weatherState.feels_like = cond.temp;
+          }
           if (cond.wind_speed_last !== undefined) weatherState.wind_speed_last = cond.wind_speed_last;
           if (cond.wind_dir_last !== undefined) weatherState.wind_dir_last = cond.wind_dir_last;
           if (cond.wind_speed_avg_last_2_min !== undefined) weatherState.wind_speed_avg_2_min = cond.wind_speed_avg_last_2_min;
           if (cond.wind_speed_avg_last_10_min !== undefined) weatherState.wind_speed_avg_10_min = cond.wind_speed_avg_last_10_min;
-          if (cond.rain_rate_last !== undefined) weatherState.rain_rate_last = cond.rain_rate_last;
-          if (cond.rainfall_daily !== undefined) weatherState.rainfall_daily = cond.rainfall_daily;
+          
+          if (cond.rain_rate_last_in !== undefined) weatherState.rain_rate_last = cond.rain_rate_last_in;
+          else if (cond.rain_rate_last !== undefined) weatherState.rain_rate_last = cond.rain_rate_last;
+          
+          if (cond.rainfall_daily_in !== undefined) weatherState.rainfall_daily = cond.rainfall_daily_in;
+          else if (cond.rainfall_day_in !== undefined) weatherState.rainfall_daily = cond.rainfall_day_in;
+          else if (cond.rainfall_daily !== undefined) weatherState.rainfall_daily = cond.rainfall_daily;
         } else if (cond.data_structure_type === 3) {
           if (cond.temp_in !== undefined) weatherState.temp_in = cond.temp_in;
           if (cond.hum_in !== undefined) weatherState.hum_in = cond.hum_in;

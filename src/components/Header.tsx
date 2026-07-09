@@ -11,7 +11,7 @@ import { useWeatherStore } from '../store.js';
 export default function Header() {
   const { ts, stationName, stationDid } = useWeatherStore((state) => state.weather);
   const config = useWeatherStore((state) => state.config);
-  const status = useWeatherStore((state) => state.connection.status);
+  const connection = useWeatherStore((state) => state.connection);
   
   // Real-time ticking system clock synced with the WLL system
   const [systemTime, setSystemTime] = useState(new Date());
@@ -23,12 +23,12 @@ export default function Header() {
     return () => clearInterval(timer);
   }, []);
 
-  // Format the time as requested: "12:52 pm | 12/14/22 Wednesday"
-  // Note: if simulation mode is active, we can show the live system clock.
-  // If we are showing the Davis weather station's actual packet timestamp, we format the "ts".
-  const displayDate = ts === 0
+  // Use the exact time we polled the API (or received UDP), falling back to the ticking system clock if offline
+  const lastUpdateMs = connection.lastHttpReceived || connection.lastUdpReceived || 0;
+  
+  const displayDate = lastUpdateMs === 0
     ? systemTime 
-    : new Date(ts * 1000);
+    : new Date(lastUpdateMs);
 
   const formattedTime = format(displayDate, 'h:mm a');
   const formattedDate = format(displayDate, 'MM/dd/yy EEEE');
@@ -46,8 +46,13 @@ export default function Header() {
       </h1>
 
       {/* Time & Date Display */}
-      <div className="text-xs md:text-sm font-sans font-semibold text-gray-300 tracking-tight leading-none mt-0.5">
-        {formattedTime} <span className="text-gray-500 font-normal">|</span> {formattedDate}
+      <div className="flex flex-col items-center mt-1 text-center">
+        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">
+          Last Updated
+        </span>
+        <div className="text-xs md:text-sm font-sans font-semibold text-gray-300 tracking-tight leading-none">
+          {formattedTime} <span className="text-gray-500 font-normal mx-1">|</span> {formattedDate}
+        </div>
       </div>
     </div>
   );

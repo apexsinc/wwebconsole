@@ -58,7 +58,7 @@ export default function ConfigNavbar() {
 
   return (
     <>
-      <nav className="w-full bg-[#0a0d14] border-b border-gray-900 px-6 py-4 flex items-center justify-between select-none">
+      <nav id="config-navbar" className="w-full bg-[#0a0d14] border-b border-gray-900 px-6 py-4 flex items-center justify-between select-none">
         {/* Left: Branding & Status */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-sky-950/40 border border-sky-500/25 flex items-center justify-center text-sky-400">
