@@ -4,18 +4,27 @@
  */
 
 import { create } from 'zustand';
-import { WeatherData, WLLConfig, ConnectionState } from './types.js';
+import { WeatherData, WLLConfig, ConnectionState, AuthUser } from './types.js';
 
 interface WeatherStore {
   weather: WeatherData;
   connection: ConnectionState;
   config: WLLConfig;
-  
-  // Actions
+  user: AuthUser | null;
+  stationId: string | null;
+  authChecked: boolean;
+
   updateWeather: (data: WeatherData) => void;
   updateConnection: (conn: Partial<ConnectionState>) => void;
   updateConfig: (cfg: Partial<WLLConfig>) => void;
-  setAll: (payload: { weather: WeatherData; connection: ConnectionState; config: WLLConfig }) => void;
+  setUser: (user: AuthUser | null) => void;
+  setAuthChecked: (v: boolean) => void;
+  setAll: (payload: {
+    weather: WeatherData;
+    connection: ConnectionState;
+    config: WLLConfig;
+    stationId?: string;
+  }) => void;
 }
 
 export const useWeatherStore = create<WeatherStore>((set) => ({
@@ -41,8 +50,8 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
     sunset: '--',
     moon_phase: '--',
     ts: 0,
-    stationName: "Offline Console",
-    stationDid: "Unconfigured"
+    stationName: 'Offline Console',
+    stationDid: 'Unconfigured',
   },
   connection: {
     status: 'connecting',
@@ -51,26 +60,29 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
     errorMessage: null,
   },
   config: {
-    wllIpAddress: '',
-    useCloudApi: false,
-    cloudApiVersion: 'v1',
+    useCloudApi: true,
+    cloudApiVersion: 'v2',
     cloudDid: '',
-    cloudPassword: '',
-    cloudApiToken: '',
-    cloudApiSecret: '',
     cloudStationId: '',
     unitTemp: 'C',
     unitWind: 'kmh',
     unitBaro: 'hPa',
     unitRain: 'mm',
   },
+  user: null,
+  stationId: null,
+  authChecked: false,
 
   updateWeather: (data) => set((state) => ({ weather: { ...state.weather, ...data } })),
   updateConnection: (conn) => set((state) => ({ connection: { ...state.connection, ...conn } })),
   updateConfig: (cfg) => set((state) => ({ config: { ...state.config, ...cfg } })),
-  setAll: (payload) => set(() => ({
-    weather: payload.weather,
-    connection: payload.connection,
-    config: payload.config
-  }))
+  setUser: (user) => set({ user }),
+  setAuthChecked: (authChecked) => set({ authChecked }),
+  setAll: (payload) =>
+    set(() => ({
+      weather: payload.weather,
+      connection: payload.connection,
+      config: payload.config,
+      stationId: payload.stationId ?? null,
+    })),
 }));

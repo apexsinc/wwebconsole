@@ -4,60 +4,50 @@
  */
 
 export interface WeatherData {
-  // Outside Air (typically conditions type 1)
-  temp: number; // °F
-  feels_like: number; // °F
-  hum: number; // %
-  dew_point: number; // °F
-
-  // Inside Air (typically conditions type 3)
-  temp_in: number; // °F
-  hum_in: number; // %
-
-  // Barometer (typically conditions type 4)
-  bar_sea_level: number; // in Hg
-  bar_trend: number; // in Hg
-
-  // Wind (typically conditions type 1)
-  wind_speed_last: number; // mph
-  wind_dir_last: number; // degrees
-  wind_speed_avg_2_min: number; // mph
-  wind_speed_avg_10_min: number; // mph
-  wind_dir_10_min: number; // degrees
-
-  // Rain (typically conditions type 1)
-  rain_rate_last: number; // in/hr
-  rainfall_daily: number; // in
-  high_rain_rate_today: number; // in/hr
-  high_rain_rate_time: string; // e.g. "8:32 am"
-
-  // Sun & Moon (calculated / static for station location)
-  sunrise: string; // "7:15 am"
-  sunset: string; // "4:50 pm"
-  moon_phase: string; // "waning crescent"
-  
-  // Status
-  ts: number; // Unix timestamp
+  temp: number;
+  feels_like: number;
+  hum: number;
+  dew_point: number;
+  temp_in: number;
+  hum_in: number;
+  bar_sea_level: number;
+  bar_trend: number;
+  wind_speed_last: number;
+  wind_dir_last: number;
+  wind_speed_avg_2_min: number;
+  wind_speed_avg_10_min: number;
+  wind_dir_10_min: number;
+  rain_rate_last: number;
+  rainfall_daily: number;
+  high_rain_rate_today: number;
+  high_rain_rate_time: string;
+  sunrise: string;
+  sunset: string;
+  moon_phase: string;
+  ts: number;
   stationName?: string;
   stationDid?: string;
 }
 
+/** Public station config returned by API (secrets never included) */
 export interface WLLConfig {
-  wllIpAddress: string;
-  useCloudApi?: boolean;
   cloudApiVersion?: 'v1' | 'v2';
-  cloudDid?: string; // V1 and V2
-  cloudPassword?: string; // V1
-  cloudApiToken?: string; // V1 and V2
-  cloudApiSecret?: string; // V2
-  cloudStationId?: string; // V2
-  cloudStationName?: string; // V2
+  cloudDid?: string;
+  cloudStationId?: string;
+  cloudStationName?: string;
   latitude?: number;
   longitude?: number;
   unitTemp?: 'F' | 'C';
   unitWind?: 'mph' | 'kmh' | 'kts' | 'ms';
   unitBaro?: 'inHg' | 'hPa' | 'mmHg' | 'mb';
   unitRain?: 'in' | 'mm';
+  hasPassword?: boolean;
+  hasApiToken?: boolean;
+  hasApiSecret?: boolean;
+  stationName?: string;
+  /** @deprecated LAN mode is not available on Cloudflare Workers */
+  wllIpAddress?: string;
+  useCloudApi?: boolean;
 }
 
 export interface ConnectionState {
@@ -65,4 +55,19 @@ export interface ConnectionState {
   lastUdpReceived: number | null;
   lastHttpReceived: number | null;
   errorMessage: string | null;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface ShareLink {
+  id: string;
+  slug: string;
+  label: string;
+  enabled: boolean;
+  url: string;
+  created_at?: number;
 }

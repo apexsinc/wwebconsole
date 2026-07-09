@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Thermometer,
@@ -14,7 +15,7 @@ import {
   Sunrise,
   Sunset,
   Moon,
-  Wifi
+  Wifi,
 } from 'lucide-react';
 
 import TabletFrame from './components/TabletFrame.js';
@@ -23,10 +24,11 @@ import CompassRose from './components/CompassRose.js';
 import BottomBar from './components/BottomBar.js';
 import SettingsModal from './components/SettingsModal.js';
 import ConfigNavbar from './components/ConfigNavbar.js';
-import { GlassPanel, WeatherMetric, HumidityRing } from './components/WeatherPanel.js';
-
+import { GlassPanel, WeatherMetric } from './components/WeatherPanel.js';
 import { useWeatherStore } from './store.js';
-import { useLiveStream, useWeatherQuery } from './services/api.js';
+import { fetchMe, useWeatherQuery } from './services/api.js';
+import { LoginPage, RegisterPage } from './pages/AuthPages.js';
+import TvPage from './pages/TvPage.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,21 +43,13 @@ function MainDashboard() {
   const config = useWeatherStore((state) => state.config);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Initialize both real-time streams: SSE (Live sub-second pushes) + TanStack Query (Polling Backup)
-  useLiveStream();
-  useWeatherQuery();
+  useWeatherQuery(true);
 
-  // Unit conversion helpers
   const convertTemp = (tempF: number, unit?: 'F' | 'C') => {
-    if (unit === 'C') {
-      return (tempF - 32) * 5 / 9;
-    }
+    if (unit === 'C') return ((tempF - 32) * 5) / 9;
     return tempF;
   };
-  const getTempUnit = (unit?: 'F' | 'C') => {
-    return unit === 'C' ? '°C' : '°F';
-  };
-
+  const getTempUnit = (unit?: 'F' | 'C') => (unit === 'C' ? '°C' : '°F');
   const convertWind = (speedMph: number, unit?: 'mph' | 'kmh' | 'kts' | 'ms') => {
     if (unit === 'kmh') return speedMph * 1.60934;
     if (unit === 'kts') return speedMph * 0.868976;
@@ -68,7 +62,6 @@ function MainDashboard() {
     if (unit === 'ms') return 'm/s';
     return 'mph';
   };
-
   const convertBaro = (baroInHg: number, unit?: 'inHg' | 'hPa' | 'mmHg' | 'mb') => {
     if (unit === 'hPa' || unit === 'mb') return baroInHg * 33.8639;
     if (unit === 'mmHg') return baroInHg * 25.4;
@@ -80,19 +73,11 @@ function MainDashboard() {
     if (unit === 'mmHg') return 'mm Hg';
     return 'in Hg';
   };
-
-  const convertRain = (rainInches: number, unit?: 'in' | 'mm') => {
-    if (unit === 'mm') return rainInches * 25.4;
-    return rainInches;
-  };
-  const getRainUnit = (unit?: 'in' | 'mm') => {
-    return unit === 'mm' ? 'mm' : 'in';
-  };
+  const convertRain = (rainInches: number, unit?: 'in' | 'mm') => (unit === 'mm' ? rainInches * 25.4 : rainInches);
+  const getRainUnit = (unit?: 'in' | 'mm') => (unit === 'mm' ? 'mm' : 'in');
 
   return (
     <div className="flex-1 flex flex-col justify-between h-full relative">
-
-      {/* Awaiting Connection / Unconfigured Overlay */}
       {weather.ts === 0 && (
         <div className="absolute inset-0 bg-black/75 backdrop-blur-md z-30 flex items-center justify-center p-6 select-none">
           <div className="max-w-md bg-[#0e111a] border border-[#2d343f] rounded-2xl p-6 shadow-2xl text-center flex flex-col items-center gap-4">
@@ -102,20 +87,15 @@ function MainDashboard() {
             <div>
               <h3 className="text-white font-sans font-bold text-base">Awaiting Station Connection</h3>
               <p className="text-gray-400 text-xs mt-1.5 leading-relaxed">
-                No weather data has been received yet. Please configure your WeatherLink Live IP Address or WeatherLink Cloud API credentials in the top configuration bar to start receiving live weather telemetry.
+                Configure your WeatherLink Cloud credentials in the top bar, then create a TV Share URL for big-screen monitors.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* 3-Column Grid Panel Layout (Authentic Proportions) */}
       <div className="pt-2 px-2 pb-0 md:pt-3 md:px-3 md:pb-0 grid grid-cols-1 md:grid-cols-[1fr_240px_1fr] lg:grid-cols-[1fr_280px_1fr] gap-2.5 md:gap-4 items-stretch flex-1 overflow-hidden min-h-0">
-
-        {/* COLUMN 1: left (separated cards) */}
         <div className="flex flex-col min-h-0 relative z-10 h-full gap-2.5 md:gap-4">
-
-          {/* Top Card: Outside Temperature & Feels Like */}
           <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
             <WeatherMetric
               title="Outside Temperature"
@@ -128,8 +108,6 @@ function MainDashboard() {
               subLabel="Feels Like"
             />
           </GlassPanel>
-
-          {/* Middle Card: Outside Humidity & Dew Point */}
           <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
             <WeatherMetric
               title="Outside Humidity"
@@ -142,8 +120,6 @@ function MainDashboard() {
               subLabel="Dew Point"
             />
           </GlassPanel>
-
-          {/* Bottom Card: Inside Temperature & Inside Humidity */}
           <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
             <WeatherMetric
               title="Inside Temperature"
@@ -158,85 +134,59 @@ function MainDashboard() {
           </GlassPanel>
         </div>
 
-        {/* CENTER COLUMN (dark console panel) */}
         <div className="flex flex-col justify-between bg-[#0e1930]/75 border border-[#01497c]/30 rounded-2xl pt-2.5 px-2.5 pb-0 md:pt-3.5 md:px-3.5 md:pb-0 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible backdrop-blur-md min-h-0 z-50">
-
-          {/* Header section - z-20 ensures it stays above the compass */}
           <div className="relative z-20">
             <Header />
           </div>
-
-          {/* Large High-fidelity Circular Compass Rose - Absolutely positioned to prevent stretching the column! */}
           <div className="absolute top-[55%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
             <div className="pointer-events-auto">
               <CompassRose />
             </div>
           </div>
-
-          {/* Bottom panel: Sunrise, Sunset, Moon Phase */}
           <div className="grid grid-cols-3 gap-1 border-t border-white/10 pt-1.5 select-none mt-auto z-20 relative">
-
-            {/* Sunrise Section */}
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="w-8 h-8 rounded-full bg-amber-950/20 border border-amber-500/15 flex items-center justify-center text-amber-500/80 filter drop-shadow-[0_0_6px_rgba(245,158,11,0.25)]">
+              <div className="w-8 h-8 rounded-full bg-amber-950/20 border border-amber-500/15 flex items-center justify-center text-amber-500/80">
                 <Sunrise className="w-4 h-4" />
               </div>
-              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">
-                Sunrise
-              </span>
-              <span className="text-xs text-white font-mono font-bold mt-0">
-                {weather.sunrise}
-              </span>
+              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">Sunrise</span>
+              <span className="text-xs text-white font-mono font-bold mt-0">{weather.sunrise}</span>
             </div>
-
-            {/* Sunset Section */}
             <div className="flex flex-col items-center justify-center text-center border-x border-gray-800/60">
-              <div className="w-8 h-8 rounded-full bg-rose-950/20 border border-rose-500/15 flex items-center justify-center text-rose-500/80 filter drop-shadow-[0_0_6px_rgba(244,63,94,0.25)]">
+              <div className="w-8 h-8 rounded-full bg-rose-950/20 border border-rose-500/15 flex items-center justify-center text-rose-500/80">
                 <Sunset className="w-4 h-4" />
               </div>
-              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">
-                Sunset
-              </span>
-              <span className="text-xs text-white font-mono font-bold mt-0">
-                {weather.sunset}
-              </span>
+              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">Sunset</span>
+              <span className="text-xs text-white font-mono font-bold mt-0">{weather.sunset}</span>
             </div>
-
-            {/* Moon Phase Section */}
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="w-8 h-8 rounded-full bg-slate-900/40 border border-slate-700/30 flex items-center justify-center text-sky-200 filter drop-shadow-[0_0_6px_rgba(186,230,253,0.15)]">
+              <div className="w-8 h-8 rounded-full bg-slate-900/40 border border-slate-700/30 flex items-center justify-center text-sky-200">
                 <Moon className="w-4 h-4" />
               </div>
-              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">
-                Moon Phase
-              </span>
+              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">Moon Phase</span>
               <span className="text-[10px] text-gray-300 font-sans font-bold mt-0.5 uppercase leading-none text-center px-1">
                 {weather.moon_phase}
               </span>
             </div>
-
           </div>
-
         </div>
 
-        {/* COLUMN 3: right (separated cards) */}
         <div className="flex flex-col min-h-0 relative z-10 h-full gap-2.5 md:gap-4">
-
-          {/* Top Card: Current Barometer & Trend */}
           <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
             <WeatherMetric
               title="Current Barometer"
-              value={convertBaro(weather.bar_sea_level, config.unitBaro).toFixed(config.unitBaro === 'inHg' || config.unitBaro === 'mmHg' ? 3 : 1)}
+              value={convertBaro(weather.bar_sea_level, config.unitBaro).toFixed(
+                config.unitBaro === 'inHg' || config.unitBaro === 'mmHg' ? 3 : 1
+              )}
               unit={getBaroUnit(config.unitBaro)}
               icon={Cloud}
               iconColorClass="text-slate-400"
-              subValue={`${weather.bar_trend >= 0 ? '+' : ''}${convertBaro(weather.bar_trend, config.unitBaro).toFixed(config.unitBaro === 'inHg' || config.unitBaro === 'mmHg' ? 3 : 1)}`}
+              subValue={`${weather.bar_trend >= 0 ? '+' : ''}${convertBaro(weather.bar_trend, config.unitBaro).toFixed(
+                config.unitBaro === 'inHg' || config.unitBaro === 'mmHg' ? 3 : 1
+              )}`}
               subUnit={getBaroUnit(config.unitBaro)}
               subLabel="Barometer Trend"
             />
           </GlassPanel>
-
-          {/* Middle Card: Wind Speed averages */}
           <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
             <WeatherMetric
               title="2-Min Avg Wind"
@@ -249,8 +199,6 @@ function MainDashboard() {
               subLabel="10-Min Avg"
             />
           </GlassPanel>
-
-          {/* Bottom Card: Rain rate & Daily rain */}
           <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
             <WeatherMetric
               title="Current Rain Rate"
@@ -264,15 +212,55 @@ function MainDashboard() {
             />
           </GlassPanel>
         </div>
-
       </div>
 
-      {/* Console Bottom status utility bar */}
       <BottomBar onOpenSettings={() => setIsSettingsOpen(true)} />
-
-      {/* Settings configuration modal */}
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+    </div>
+  );
+}
 
+function ProtectedConsole() {
+  const user = useWeatherStore((s) => s.user);
+  const authChecked = useWeatherStore((s) => s.authChecked);
+  const setUser = useWeatherStore((s) => s.setUser);
+  const setAuthChecked = useWeatherStore((s) => s.setAuthChecked);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { user: me } = await fetchMe();
+        if (!cancelled) setUser(me);
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setAuthChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setUser, setAuthChecked]);
+
+  if (!authChecked) {
+    return (
+      <div className="h-screen bg-[#0a0d14] flex items-center justify-center text-gray-400 text-sm">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  return (
+    <div className="h-screen bg-[#e1e5eb] flex flex-col overflow-hidden">
+      <ConfigNavbar />
+      <div className="flex-1 flex flex-col justify-center">
+        <TabletFrame>
+          <MainDashboard />
+        </TabletFrame>
+      </div>
     </div>
   );
 }
@@ -280,17 +268,14 @@ function MainDashboard() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="h-screen bg-[#e1e5eb] flex flex-col overflow-hidden">
-        {/* Web Application Config Navbar */}
-        <ConfigNavbar />
-
-        {/* Console Tablet Interface */}
-        <div className="flex-1 flex flex-col justify-center">
-          <TabletFrame>
-            <MainDashboard />
-          </TabletFrame>
-        </div>
-      </div>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/tv/:slug" element={<TvPage />} />
+          <Route path="/*" element={<ProtectedConsole />} />
+        </Routes>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

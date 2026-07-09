@@ -21,17 +21,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null;
 
   const handleSave = () => {
-    configMutation.mutate({
-      ...config,
-      unitTemp,
-      unitWind,
-      unitBaro,
-      unitRain
-    }, {
-      onSuccess: () => {
-        onClose();
+    configMutation.mutate(
+      { unitTemp, unitWind, unitBaro, unitRain },
+      {
+        onSuccess: () => {
+          onClose();
+        },
       }
-    });
+    );
   };
 
   return (
