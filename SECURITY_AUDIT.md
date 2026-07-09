@@ -137,10 +137,11 @@ Priority:
 - [x] Anti-enumeration register responses  
 - [x] PBKDF2 310k for new password hashes  
 - [x] Strip `.dev.vars` from Vite `dist/` output  
-- [ ] Enable Cloudflare WAF rate-limit rules (manual — see `scripts/setup-waf-rate-limits.sh`)  
-- [ ] Enable Turnstile/Resend in production (manual)  
+- [~] Enable Cloudflare WAF rate-limit rules — script ready (`npm run waf:rate-limits`); **API token lacks Zone WAF Edit** → create Free-plan rule in dashboard (1 rule: `/api/auth/*`)  
+- [x] Enable Turnstile in production (`turnstile_enabled=1`, site key in D1, secret as Worker secret)  
+- [~] Enable Resend — blocked until `RESEND_API_KEY` is added to `.env` then `npm run secrets:push`  
 - [ ] Rotate secrets if `.dev.vars` ever leaked (manual)  
-- [ ] Move `ADMIN_EMAILS` fully to secrets (optional)  
+- [x] Move `ADMIN_EMAIL` / `ADMIN_EMAILS` to Worker secrets (removed from `wrangler.jsonc` vars)  
 
 ---
 
@@ -157,7 +158,15 @@ Closed remaining Low/Partial items in code:
 | I1 | `stripDevVarsFromDist` Vite plugin |
 | L3 | Admin Integrations copy prefers Worker secrets |
 
-**Still manual (Cloudflare dashboard):** WAF rate limits, enable Turnstile/Resend, secret rotation if leaked.
+## Ops pass (env + secrets + WAF)
+
+| Item | Status |
+|------|--------|
+| `.env` / `.env.example` + `env:sync-dev` / `secrets:push` | Done |
+| Worker secrets (session, credentials, Turnstile, admin emails) | Live |
+| Turnstile production | On |
+| Resend production | Off until API key in `.env` |
+| WAF rate limits via API | Blocked: token needs **Zone WAF Edit**; Free = 1 rule — use dashboard or widen token + `npm run waf:rate-limits` |
 
 ---
 

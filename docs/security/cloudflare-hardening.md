@@ -24,17 +24,25 @@ Manual dashboard actions that complement app-level controls.
 
 1. Enable **WAF Managed Rules** (Cloudflare Free/Pro as available).
 2. Enable **Bot Fight Mode** (or Super Bot Fight Mode on Pro+).
-3. Add **Rate limiting** rules (prefer these over Worker-only limits):
+3. Add **Rate limiting** rules (edge layer; Worker still has app-level limits):
+
+**Free plan (1 rule only):** path starts with `/api/auth/` · 20 req / 10 s / IP · Block  
+Dashboard: **Security → WAF → Rate limiting rules**
+
+**Pro+ (script default when `CF_PLAN=pro`):**
 
 | Rule | Match | Limit |
 |------|-------|-------|
-| Auth login | `admin.wwebconsole.com` + `wwebconsole.com` path `/api/auth/login` | 10 / 15 min / IP |
-| Auth register | `/api/auth/register` | 5 / hour / IP |
-| OTP | `/api/auth/verify-email`, `/api/auth/reset-password` | 10 / 15 min / IP |
-| Public TV | `/api/public/tv/*` | 60 / min / IP |
-| Admin API | `admin.wwebconsole.com/api/admin/*` | 60 / min / IP |
+| Auth login | path `/api/auth/login` | 20 / 60 s / IP |
+| Auth register | `/api/auth/register` | 10 / 60 s / IP |
+| OTP | verify-email / reset / forgot | 20 / 60 s / IP |
+| Public TV | `/api/public/tv/*` | 120 / 60 s / IP |
+| Admin API | `admin…/api/admin/*` | 60 / 60 s / IP |
 
-4. Enable **Turnstile** in admin Integrations for production (`turnstile_enabled=1`). Prefer Worker secrets for `TURNSTILE_SECRET_KEY`.
+API helper: `npm run waf:rate-limits` (needs token with **Zone → Zone WAF → Edit**).  
+If the API returns `request is not authorized`, create the Free rule in the dashboard and/or widen the token.
+
+4. **Turnstile** is enabled via `.env` (`TURNSTILE_ENABLED=1`) + `npm run secrets:push` (Worker secret + D1 flag). Prefer Worker secrets for `TURNSTILE_SECRET_KEY`.
 
 ## Cache
 
@@ -44,12 +52,14 @@ Manual dashboard actions that complement app-level controls.
 
 ## Secrets
 
+Keep one local file `.env` (from `.env.example`), then:
+
 ```bash
-npx wrangler secret put SESSION_SECRET
-npx wrangler secret put CREDENTIALS_KEY
-npx wrangler secret put TURNSTILE_SECRET_KEY
-npx wrangler secret put RESEND_API_KEY
+npm run env:sync-dev    # → .dev.vars for local wrangler/vite
+npm run secrets:push    # → Worker secrets + D1 Turnstile/Resend flags
 ```
+
+Secrets pushed: `SESSION_SECRET`, `CREDENTIALS_KEY`, `TURNSTILE_SECRET_KEY`, `RESEND_API_KEY` (if set), `ADMIN_EMAIL`, `ADMIN_EMAILS`.
 
 Prefer secrets over D1 `app_settings` for integration keys. Rotate if `.dev.vars` or build artifacts were ever exposed.
 
@@ -58,10 +68,12 @@ Prefer secrets over D1 `app_settings` for integration keys. Rotate if `.dev.vars
 ## Rate limiting helper
 
 ```bash
-ZONE_ID=<zone> CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… bash scripts/setup-waf-rate-limits.sh
+npm run waf:rate-limits
+# or: bash scripts/setup-waf-rate-limits.sh
 ```
 
-If the API cannot create rules (plan/permission), add the three rules listed in this doc under **Security → WAF → Rate limiting rules**.
+Requires `CLOUDFLARE_API_TOKEN` (+ optional `ZONE_ID`, `CF_PLAN`) in `.env`.  
+If unauthorized or Free-plan capped, add the Free rule in the dashboard (see table above).
 
 ## Monitoring & alerts
 

@@ -2,6 +2,14 @@
 
 All notable changes to WWebConsole are documented in this file.
 
+## [1.4.2] - 2026-07-09
+
+### Changed
+- Single `.env` workflow: commented `.env.example`, `npm run env:sync-dev`, `npm run secrets:push`
+- `ADMIN_EMAIL` / `ADMIN_EMAILS` moved to Worker secrets (removed from `wrangler.jsonc` vars)
+- Turnstile enabled in production via secrets + D1; Resend stays off until `RESEND_API_KEY` is set
+- WAF helper supports Free-plan (1 rule) vs Pro+; documents Zone WAF token permission
+
 ## [1.4.1] - 2026-07-09
 
 ### Security
