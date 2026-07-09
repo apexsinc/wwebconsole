@@ -93,12 +93,26 @@ export function newId(): string {
   return crypto.randomUUID();
 }
 
-export function randomSlug(length = 10): string {
+export function randomSlug(length = 16): string {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
   const bytes = crypto.getRandomValues(new Uint8Array(length));
   let out = '';
   for (let i = 0; i < length; i++) out += alphabet[bytes[i]! % alphabet.length];
   return out;
+}
+
+/** Cryptographically secure 6-digit OTP (000000–999999). */
+export function generateOtpCode(digits = 6): string {
+  const max = 10 ** digits;
+  // Rejection sampling to avoid modulo bias
+  const limit = Math.floor(0x100000000 / max) * max;
+  const buf = new Uint32Array(1);
+  let n = 0;
+  do {
+    crypto.getRandomValues(buf);
+    n = buf[0]!;
+  } while (n >= limit);
+  return String(n % max).padStart(digits, '0');
 }
 
 export async function hmacSha256Hex(secret: string, message: string): Promise<string> {

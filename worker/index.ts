@@ -12,6 +12,7 @@ import {
   optionalAuth,
   publicUser,
   purgeDeletedAccounts,
+  purgeExpiredAuthRows,
   registerUser,
   requestAccountDeletion,
   requestEmailChange,
@@ -42,6 +43,16 @@ import {
   setSetting,
   SITE_SETTING_GROUPS,
 } from './settings';
+import {
+  clientIp,
+  corsOriginAllowlist,
+  enforceRateLimit,
+  isDevEnvironment,
+  limitJsonBody,
+  safePublicError,
+  securityHeaders,
+  WRITABLE_SETTING_KEYS,
+} from './security';
 import { verifyTurnstile } from './turnstile';
 import type { Env, ShareLinkRow, StationCredentials, StationRow, UserRow } from './types';
 import {
@@ -56,7 +67,18 @@ import {
 type AppVars = { user: UserRow };
 const app = new Hono<{ Bindings: Env; Variables: AppVars }>();
 
-app.use('/api/*', cors({ origin: (origin) => origin || '*', credentials: true }));
+app.use('*', securityHeaders);
+app.use(
+  '/api/*',
+  cors({
+    origin: (origin) => corsOriginAllowlist(origin) || '',
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type'],
+    maxAge: 86400,
+  })
+);
+app.use('/api/*', limitJsonBody);
 
 app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME }));
 
@@ -77,10 +99,6 @@ app.get('/sitemap.xml', async (c) => {
   });
 });
 
-function clientIp(c: { req: { header: (n: string) => string | undefined } }) {
-  return c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || null;
-}
-
 function isAdminHostname(hostname: string): boolean {
   return hostname === 'admin.wwebconsole.com' || hostname.startsWith('admin.') || hostname === 'admin.localhost';
 }
@@ -91,16 +109,18 @@ app.post('/api/auth/register', async (c) => {
   if (isAdminHostname(new URL(c.req.url).hostname)) {
     return c.json({ error: 'Registration is not available on the admin site. Use wwebconsole.com.' }, 403);
   }
+  const limited = enforceRateLimit(c, 'authRegister');
+  if (limited) return limited;
 
   const body = z
     .object({
-      email: z.string().email(),
+      email: z.string().email().max(254),
       password: z.string().min(8).max(128),
       name: z.string().max(80).optional(),
-      turnstileToken: z.string().optional(),
+      turnstileToken: z.string().max(2048).optional(),
     })
-    .safeParse(await c.req.json());
-  if (!body.success) return c.json({ error: 'Invalid input', details: body.error.flatten() }, 400);
+    .safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
 
   try {
     await verifyTurnstile(c.env, body.data.turnstileToken, clientIp(c));
@@ -117,18 +137,21 @@ app.post('/api/auth/register', async (c) => {
     const full = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(user.id).first<UserRow>();
     return c.json({ user: publicUser(full!), needsVerification: false });
   } catch (err: any) {
-    return c.json({ error: err.message || 'Registration failed' }, 400);
+    return c.json({ error: safePublicError(err, 'Registration failed') }, 400);
   }
 });
 
 app.post('/api/auth/verify-email', async (c) => {
+  const limited = enforceRateLimit(c, 'authOtp');
+  if (limited) return limited;
+
   const body = z
     .object({
-      email: z.string().email(),
+      email: z.string().email().max(254),
       code: z.string().min(4).max(12),
-      turnstileToken: z.string().optional(),
+      turnstileToken: z.string().max(2048).optional(),
     })
-    .safeParse(await c.req.json());
+    .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
 
   try {
@@ -138,21 +161,23 @@ app.post('/api/auth/verify-email', async (c) => {
     const user = await c.env.DB.prepare('SELECT * FROM users WHERE email = ? COLLATE NOCASE')
       .bind(body.data.email.trim())
       .first<UserRow>();
-    if (!user) return c.json({ error: 'User not found' }, 404);
+    if (!user) return c.json({ error: 'Invalid or expired code' }, 400);
     await createSession(c, user.id);
     return c.json({ user: publicUser(user) });
   } catch (err: any) {
-    return c.json({ error: err.message || 'Verification failed' }, 400);
+    return c.json({ error: safePublicError(err, 'Verification failed') }, 400);
   }
 });
 
 app.post('/api/auth/resend-verification', async (c) => {
+  const limited = enforceRateLimit(c, 'authForgot');
+  if (limited) return limited;
   const body = z
     .object({
-      email: z.string().email(),
-      turnstileToken: z.string().optional(),
+      email: z.string().email().max(254),
+      turnstileToken: z.string().max(2048).optional(),
     })
-    .safeParse(await c.req.json());
+    .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   try {
     await verifyTurnstile(c.env, body.data.turnstileToken, clientIp(c));
@@ -164,19 +189,23 @@ app.post('/api/auth/resend-verification', async (c) => {
     await createAndSendOtp(c.env, user.email, 'verify');
     return c.json({ ok: true });
   } catch (err: any) {
-    return c.json({ error: err.message || 'Failed to send code' }, 400);
+    return c.json({ error: safePublicError(err, 'Failed to send code') }, 400);
   }
 });
 
 app.post('/api/auth/login', async (c) => {
+  const raw = await c.req.json().catch(() => ({}));
   const body = z
     .object({
-      email: z.string().email(),
-      password: z.string().min(1),
-      turnstileToken: z.string().optional(),
+      email: z.string().email().max(254),
+      password: z.string().min(1).max(128),
+      turnstileToken: z.string().max(2048).optional(),
     })
-    .safeParse(await c.req.json());
+    .safeParse(raw);
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+
+  const limited = enforceRateLimit(c, 'authLogin', body.data.email.toLowerCase());
+  if (limited) return limited;
 
   try {
     await verifyTurnstile(c.env, body.data.turnstileToken, clientIp(c));
@@ -185,17 +214,22 @@ app.post('/api/auth/login', async (c) => {
     return c.json({ user: publicUser(user) });
   } catch (err: any) {
     const status = err.code === 'EMAIL_NOT_VERIFIED' ? 403 : 401;
-    return c.json({ error: err.message || 'Login failed', code: err.code }, status);
+    return c.json(
+      { error: safePublicError(err, 'Login failed'), code: err.code },
+      status
+    );
   }
 });
 
 app.post('/api/auth/forgot-password', async (c) => {
+  const limited = enforceRateLimit(c, 'authForgot');
+  if (limited) return limited;
   const body = z
     .object({
-      email: z.string().email(),
-      turnstileToken: z.string().optional(),
+      email: z.string().email().max(254),
+      turnstileToken: z.string().max(2048).optional(),
     })
-    .safeParse(await c.req.json());
+    .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   try {
     await verifyTurnstile(c.env, body.data.turnstileToken, clientIp(c));
@@ -205,19 +239,21 @@ app.post('/api/auth/forgot-password', async (c) => {
     if (user) await createAndSendOtp(c.env, user.email, 'reset');
     return c.json({ ok: true, message: 'If that email exists, a reset code was sent' });
   } catch (err: any) {
-    return c.json({ error: err.message || 'Request failed' }, 400);
+    return c.json({ error: safePublicError(err, 'Request failed') }, 400);
   }
 });
 
 app.post('/api/auth/reset-password', async (c) => {
+  const limited = enforceRateLimit(c, 'authOtp');
+  if (limited) return limited;
   const body = z
     .object({
-      email: z.string().email(),
+      email: z.string().email().max(254),
       code: z.string().min(4).max(12),
       password: z.string().min(8).max(128),
-      turnstileToken: z.string().optional(),
+      turnstileToken: z.string().max(2048).optional(),
     })
-    .safeParse(await c.req.json());
+    .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   try {
     await verifyTurnstile(c.env, body.data.turnstileToken, clientIp(c));
@@ -225,7 +261,7 @@ app.post('/api/auth/reset-password', async (c) => {
     await updatePassword(c.env, body.data.email, body.data.password);
     return c.json({ ok: true });
   } catch (err: any) {
-    return c.json({ error: err.message || 'Reset failed' }, 400);
+    return c.json({ error: safePublicError(err, 'Reset failed') }, 400);
   }
 });
 
@@ -243,23 +279,28 @@ app.get('/api/auth/me', optionalAuth, async (c) => {
 
 // ---------- Account settings ----------
 app.post('/api/account/password', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'accountSensitive', c.get('user').id);
+  if (limited) return limited;
   const body = z
     .object({
-      currentPassword: z.string().min(1),
+      currentPassword: z.string().min(1).max(128),
       newPassword: z.string().min(8).max(128),
     })
-    .safeParse(await c.req.json());
+    .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   try {
     await changePassword(c.env, c.get('user').id, body.data.currentPassword, body.data.newPassword);
+    await createSession(c, c.get('user').id);
     return c.json({ ok: true });
   } catch (err: any) {
-    return c.json({ error: err.message || 'Password change failed' }, 400);
+    return c.json({ error: safePublicError(err, 'Password change failed') }, 400);
   }
 });
 
 app.post('/api/account/email/request', requireAuth, async (c) => {
-  const body = z.object({ email: z.string().email() }).safeParse(await c.req.json());
+  const limited = enforceRateLimit(c, 'accountSensitive', c.get('user').id);
+  if (limited) return limited;
+  const body = z.object({ email: z.string().email().max(254) }).safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   try {
     const { email, code } = await requestEmailChange(c.env, c.get('user').id, body.data.email);
@@ -268,23 +309,32 @@ app.post('/api/account/email/request', requireAuth, async (c) => {
       await sendOtpEmail(c.env, email, 'verify', code);
       return c.json({ ok: true, needsVerification: true, email });
     }
-    // Dev/local without Resend: apply immediately after confirming with returned code path disabled —
-    // still require confirm endpoint, but include code only when email is disabled (local).
-    return c.json({ ok: true, needsVerification: true, email, devCode: code });
+    // Only expose OTP in explicit local/dev environments — never in production
+    if (isDevEnvironment(c.env, c.req.url)) {
+      return c.json({ ok: true, needsVerification: true, email, devCode: code });
+    }
+    return c.json({
+      ok: true,
+      needsVerification: true,
+      email,
+      error: 'Email delivery is not configured. Contact support.',
+    }, 503);
   } catch (err: any) {
-    return c.json({ error: err.message || 'Email change failed' }, 400);
+    return c.json({ error: safePublicError(err, 'Email change failed') }, 400);
   }
 });
 
 app.post('/api/account/email/confirm', requireAuth, async (c) => {
-  const body = z.object({ code: z.string().min(4).max(12) }).safeParse(await c.req.json());
+  const limited = enforceRateLimit(c, 'authOtp', c.get('user').id);
+  if (limited) return limited;
+  const body = z.object({ code: z.string().min(4).max(12) }).safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   try {
     const result = await confirmEmailChange(c.env, c.get('user').id, body.data.code);
     const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(c.get('user').id).first<UserRow>();
     return c.json({ ok: true, user: publicUser(user!), email: result.email });
   } catch (err: any) {
-    return c.json({ error: err.message || 'Confirmation failed' }, 400);
+    return c.json({ error: safePublicError(err, 'Confirmation failed') }, 400);
   }
 });
 
@@ -358,11 +408,10 @@ app.patch('/api/station', requireAuth, async (c) => {
       cloudPassword: z.string().max(200).optional(),
       cloudApiToken: z.string().max(200).optional(),
       cloudApiSecret: z.string().max(200).optional(),
-      wlPlan: z.enum(['basic', 'pro', 'unknown']).optional(),
     })
-    .safeParse(await c.req.json());
+    .safeParse(await c.req.json().catch(() => ({})));
 
-  if (!body.success) return c.json({ error: 'Invalid input', details: body.error.flatten() }, 400);
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   const d = body.data;
   const now = Date.now();
   const nextVersion = d.cloudApiVersion || (station.cloud_api_version === 'v1' ? 'v1' : 'v2');
@@ -387,13 +436,6 @@ app.patch('/api/station', requireAuth, async (c) => {
     apiVersion: nextVersion,
   });
 
-  // When switching versions, wipe the unused secret fields explicitly
-  if (d.cloudApiVersion === 'v1') {
-    // ensure secret cleared in encrypted blob already via saveCredentials
-  } else if (d.cloudApiVersion === 'v2') {
-    // v2 keeps optional password for sunrise hybrid only
-  }
-
   await c.env.DB.prepare(
     `UPDATE stations SET
       name = COALESCE(?, name),
@@ -409,7 +451,6 @@ app.patch('/api/station', requireAuth, async (c) => {
       unit_wind = COALESCE(?, unit_wind),
       unit_baro = COALESCE(?, unit_baro),
       unit_rain = COALESCE(?, unit_rain),
-      wl_plan = COALESCE(?, wl_plan),
       updated_at = ?
      WHERE id = ?`
   )
@@ -429,13 +470,12 @@ app.patch('/api/station', requireAuth, async (c) => {
       d.unitWind ?? null,
       d.unitBaro ?? null,
       d.unitRain ?? null,
-      d.wlPlan ?? null,
       now,
       station.id
     )
     .run();
 
-  if (d.wlPlan) await setStationWlPlan(c.env, station.id, d.wlPlan);
+  // wlPlan is admin/subscription-controlled only — not user-writable
 
   let updated = await getStationForUser(c.env, user.id);
   if (!updated) return c.json({ error: 'Station not found' }, 404);
@@ -549,21 +589,30 @@ app.post('/api/share', requireAuth, async (c) => {
   const { user, station } = gate;
   if (!station) return c.json({ error: 'Station not found' }, 404);
 
+  const limited = enforceRateLimit(c, 'shareCreate', user.id);
+  if (limited) return limited;
+
   const body = z
     .object({
       label: z.string().max(80).optional(),
       slug: z
         .string()
-        .min(4)
+        .min(12)
         .max(32)
         .regex(/^[a-z0-9-]+$/i)
         .optional(),
     })
     .safeParse(await c.req.json().catch(() => ({})));
 
-  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+  if (!body.success) return c.json({ error: 'Invalid input (custom slug must be 12–32 chars)' }, 400);
 
-  const slug = (body.data.slug || randomSlug(10)).toLowerCase();
+  // Cap share links per user
+  const countRow = await c.env.DB.prepare('SELECT COUNT(*) as c FROM share_links WHERE user_id = ?')
+    .bind(user.id)
+    .first<{ c: number }>();
+  if ((countRow?.c || 0) >= 25) return c.json({ error: 'Share link limit reached' }, 400);
+
+  const slug = (body.data.slug || randomSlug(16)).toLowerCase();
   const existing = await c.env.DB.prepare('SELECT id FROM share_links WHERE slug = ? COLLATE NOCASE')
     .bind(slug)
     .first();
@@ -585,55 +634,69 @@ app.post('/api/share', requireAuth, async (c) => {
 });
 
 app.delete('/api/share/:id', requireAuth, async (c) => {
+  const gate = await assertAccess(c);
+  if (gate.blocked) return gate.response;
   const user = c.get('user');
+  const id = z.string().uuid().safeParse(c.req.param('id'));
+  if (!id.success) return c.json({ error: 'Invalid id' }, 400);
   await c.env.DB.prepare('DELETE FROM share_links WHERE id = ? AND user_id = ?')
-    .bind(c.req.param('id'), user.id)
+    .bind(id.data, user.id)
     .run();
   return c.json({ ok: true });
 });
 
 app.get('/api/public/tv/:slug', async (c) => {
-  const slug = c.req.param('slug');
+  const slugParse = z
+    .string()
+    .min(4)
+    .max(32)
+    .regex(/^[a-z0-9-]+$/i)
+    .safeParse(c.req.param('slug'));
+  if (!slugParse.success) return c.json({ error: 'Display not found' }, 404);
+
+  const limited = enforceRateLimit(c, 'publicTv', slugParse.data.toLowerCase());
+  if (limited) return limited;
+
   const link = await c.env.DB.prepare(
     'SELECT * FROM share_links WHERE slug = ? COLLATE NOCASE AND enabled = 1'
   )
-    .bind(slug)
+    .bind(slugParse.data)
     .first<ShareLinkRow>();
   if (!link) return c.json({ error: 'Display not found' }, 404);
 
   const owner = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(link.user_id).first<UserRow>();
-  let station = await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?')
+  const station = await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?')
     .bind(link.station_id)
     .first<StationRow>();
-  if (!owner || !station) return c.json({ error: 'Station not found' }, 404);
+  if (!owner || !station) return c.json({ error: 'Display not found' }, 404);
   if (owner.suspended) return c.json({ error: 'Display unavailable' }, 403);
 
   const access = hasAccountAccess(owner, station);
-  if (!access.ok) return c.json({ error: 'Subscription inactive', code: 'ACCESS_DENIED' }, 402);
+  if (!access.ok) return c.json({ error: 'Display unavailable', code: 'ACCESS_DENIED' }, 402);
 
-  const pollMs = (station.poll_interval_sec || 900) * 1000;
-  const stale = !station.last_http_at || Date.now() - station.last_http_at > Math.min(pollMs, 90_000);
-  if (stale) {
-    await refreshStation(c.env, station);
-    station = (await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?')
-      .bind(link.station_id)
-      .first<StationRow>())!;
-  }
-
+  // Public endpoint serves cached weather only — never triggers WeatherLink refresh (abuse amplification)
   const weather = parseStoredWeather(station);
-  return c.json({
-    weather,
-    connection: connectionFromRow(station, weather, station.last_error),
-    config: {
-      unitTemp: station.unit_temp,
-      unitWind: station.unit_wind,
-      unitBaro: station.unit_baro,
-      unitRain: station.unit_rain,
-      stationName: station.name || station.cloud_station_name,
-      cloudStationName: station.cloud_station_name,
+  return c.json(
+    {
+      weather,
+      connection: {
+        status: weather ? 'online' : 'offline',
+        lastUdpReceived: null,
+        lastHttpReceived: station.last_http_at,
+        errorMessage: null,
+      },
+      config: {
+        unitTemp: station.unit_temp,
+        unitWind: station.unit_wind,
+        unitBaro: station.unit_baro,
+        unitRain: station.unit_rain,
+        stationName: station.name || station.cloud_station_name,
+        cloudStationName: station.cloud_station_name,
+      },
+      label: link.label,
     },
-    label: link.label,
-  });
+    { status: 200, headers: { 'Cache-Control': 'public, max-age=30' } }
+  );
 });
 
 // ---------- Admin ----------
@@ -653,18 +716,20 @@ app.get('/api/admin/overview', requireAdmin, async (c) => {
 });
 
 app.get('/api/admin/users', requireAdmin, async (c) => {
-  const q = (c.req.query('q') || '').trim();
+  const qParse = z.string().max(120).optional().safeParse(c.req.query('q') || undefined);
+  const q = (qParse.success ? qParse.data : '')?.trim() || '';
+  const limit = 100;
   let rows: UserRow[] = [];
   if (q) {
-    const like = `%${q}%`;
+    const like = `%${q.replace(/[%_]/g, '')}%`;
     const res = await c.env.DB.prepare(
-      `SELECT * FROM users WHERE email LIKE ? COLLATE NOCASE OR name LIKE ? COLLATE NOCASE ORDER BY created_at DESC LIMIT 100`
+      `SELECT * FROM users WHERE email LIKE ? COLLATE NOCASE OR name LIKE ? COLLATE NOCASE ORDER BY created_at DESC LIMIT ?`
     )
-      .bind(like, like)
+      .bind(like, like, limit)
       .all<UserRow>();
     rows = res.results || [];
   } else {
-    const res = await c.env.DB.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT 100').all<UserRow>();
+    const res = await c.env.DB.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT ?').bind(limit).all<UserRow>();
     rows = res.results || [];
   }
 
@@ -759,14 +824,17 @@ app.get('/api/admin/settings', requireAdmin, async (c) => {
 });
 
 app.put('/api/admin/settings', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
   const body = z
     .object({
-      settings: z.record(z.string(), z.string()),
+      settings: z.record(z.string().max(80), z.string().max(50_000)),
     })
-    .safeParse(await c.req.json());
+    .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
 
   for (const [key, value] of Object.entries(body.data.settings)) {
+    if (!WRITABLE_SETTING_KEYS.has(key)) continue;
     if (value === '••••••••') continue; // keep existing secret
     await setSetting(c.env, key, value);
   }
@@ -809,6 +877,7 @@ export default {
     ctx.waitUntil(
       (async () => {
         await purgeDeletedAccounts(env);
+        await purgeExpiredAuthRows(env);
         await pollAllStations(env);
       })()
     );

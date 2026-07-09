@@ -56,6 +56,17 @@ if (typeof document !== 'undefined') {
   applyTheme(getStoredTheme());
 }
 
+function AdminHostRedirect() {
+  useEffect(() => {
+    window.location.replace('https://admin.wwebconsole.com/');
+  }, []);
+  return (
+    <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">
+      Redirecting to admin…
+    </div>
+  );
+}
+
 function MainDashboard() {
   const weather = useWeatherStore((state) => state.weather);
   const config = useWeatherStore((state) => state.config);
@@ -329,8 +340,8 @@ function HostAwareRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/account" element={<AccountPage />} />
-      <Route path="/admin" element={<AdminPage />} />
-      <Route path="/admin/*" element={<AdminPage />} />
+      <Route path="/admin" element={<AdminHostRedirect />} />
+      <Route path="/admin/*" element={<AdminHostRedirect />} />
       <Route path="/tv/:slug" element={<TvPage />} />
       <Route path="/app" element={<ProtectedConsole />} />
       <Route path="/app/*" element={<ProtectedConsole />} />

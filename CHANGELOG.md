@@ -2,6 +2,15 @@
 
 All notable changes to WWebConsole are documented in this file.
 
+## [1.4.0] - 2026-07-09
+
+### Security
+- Full security audit (`SECURITY_AUDIT.md`) with Worker rate limits, CORS allowlist, security headers
+- CSPRNG OTPs, OTP attempt lockout, session rotation on login/password change
+- Block self-registration of allowlisted admin emails; `devCode` only in local/dev
+- Public TV serves cached weather only; longer share slugs; settings key allowlist
+- Docs: `SECURITY.md`, Cloudflare hardening + incident response; Dependabot; unit tests
+
 ## [1.3.1] - 2026-07-09
 
 ### Changed

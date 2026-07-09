@@ -1,7 +1,7 @@
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { Context, Next } from 'hono';
 import { freeTrialMs } from './billing';
-import { hashPassword, newId, verifyPassword } from './crypto';
+import { hashPassword, newId, verifyPassword, generateOtpCode } from './crypto';
 import { isEnabled } from './settings';
 import type { Env, UserRow } from './types';
 
@@ -24,13 +24,12 @@ export function isAdminEmail(env: Env, email: string): boolean {
   return adminEmailAllowlist(env).includes(email.trim().toLowerCase());
 }
 
-/** Promote allowlisted accounts to admin (idempotent). Used on register + login. */
+/** Promote allowlisted accounts to admin on login only (never on register). */
 export async function ensureAdminRole(env: Env, user: UserRow): Promise<UserRow> {
   if (!isAdminEmail(env, user.email)) return user;
   if (user.role === 'admin' && user.email_verified) return user;
 
   const now = Date.now();
-  // Admins get long-lived access so local/staging/prod consoles stay usable
   const freeUntil = Math.max(user.free_until || 0, now + 10 * 365 * 24 * 60 * 60 * 1000);
   await env.DB.prepare(
     `UPDATE users SET role = 'admin', email_verified = 1, free_until = ?, updated_at = ? WHERE id = ?`
@@ -48,6 +47,9 @@ export async function ensureAdminRole(env: Env, user: UserRow): Promise<UserRow>
 }
 
 export async function createSession(c: Context<{ Bindings: Env; Variables: AppVars }>, userId: string) {
+  // Rotate: drop prior sessions for this user (login / password change)
+  await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
+
   const id = newId();
   const now = Date.now();
   const expires = now + SESSION_DAYS * 24 * 60 * 60 * 1000;
@@ -57,15 +59,26 @@ export async function createSession(c: Context<{ Bindings: Env; Variables: AppVa
   const isHttps = new URL(c.req.url).protocol === 'https:';
   const host = new URL(c.req.url).hostname;
   const domain = host.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
+  const isProd = host.endsWith('wwebconsole.com');
   setCookie(c, SESSION_COOKIE, id, {
     httpOnly: true,
-    secure: isHttps,
+    secure: isProd || isHttps,
     sameSite: 'Lax',
     path: '/',
     domain,
     expires: new Date(expires),
   });
   return id;
+}
+
+export async function destroyAllSessionsForUser(env: Env, userId: string) {
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
+}
+
+export async function purgeExpiredAuthRows(env: Env) {
+  const now = Date.now();
+  await env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now).run();
+  await env.DB.prepare('DELETE FROM otp_codes WHERE expires_at < ? OR consumed_at IS NOT NULL').bind(now).run();
 }
 
 export async function destroySession(c: Context<{ Bindings: Env; Variables: AppVars }>) {
@@ -124,8 +137,15 @@ export async function optionalAuth(c: Context<{ Bindings: Env; Variables: AppVar
 }
 
 export async function registerUser(env: Env, email: string, password: string, name: string) {
+  const normalized = email.trim().toLowerCase();
+
+  // Allowlisted admin emails cannot self-register (prevents squatting). Create via invite/ops.
+  if (isAdminEmail(env, normalized)) {
+    throw new Error('This email cannot be used for self-registration. Contact support.');
+  }
+
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE')
-    .bind(email.trim())
+    .bind(normalized)
     .first();
   if (existing) throw new Error('Email already registered');
 
@@ -136,11 +156,8 @@ export async function registerUser(env: Env, email: string, password: string, na
   const freeUntil = now + trialMs;
   const resendOn = await isEnabled(env, 'resend_enabled');
   const emailVerified = resendOn ? 0 : 1;
-  const isAdmin = isAdminEmail(env, email);
-  const role = isAdmin ? 'admin' : 'user';
-  // Admins skip email verification and get extended access in all environments
-  const verified = isAdmin ? 1 : emailVerified;
-  const adminFreeUntil = isAdmin ? now + 10 * 365 * 24 * 60 * 60 * 1000 : freeUntil;
+  // Never auto-promote on register — admin role only via login allowlist after account exists
+  const role = 'user';
 
   await env.DB.prepare(
     `INSERT INTO users (
@@ -149,12 +166,12 @@ export async function registerUser(env: Env, email: string, password: string, na
   )
     .bind(
       id,
-      email.trim().toLowerCase(),
+      normalized,
       passwordHash,
-      name.trim() || email.split('@')[0],
+      name.trim() || normalized.split('@')[0],
       role,
-      verified,
-      adminFreeUntil,
+      emailVerified,
+      freeUntil,
       now,
       now
     )
@@ -171,7 +188,7 @@ export async function registerUser(env: Env, email: string, password: string, na
     ) VALUES (?, ?, ?, 'v2', '', '', '', NULL, NULL, '', '', '', 'C', 'kmh', 'hPa', 'mm',
       'unknown', 'Device 1', 'trial', ?, 900, ?, ?)`
   )
-    .bind(stationId, id, 'My Station', adminFreeUntil, now, now)
+    .bind(stationId, id, 'My Station', freeUntil, now, now)
     .run();
 
   await env.DB.prepare(
@@ -179,17 +196,17 @@ export async function registerUser(env: Env, email: string, password: string, na
       id, user_id, station_id, label, wl_plan, subscription_status, subscription_expires_at, poll_interval_sec, created_at, updated_at
     ) VALUES (?, ?, ?, 'Device 1', 'unknown', 'trial', ?, 900, ?, ?)`
   )
-    .bind(newId(), id, stationId, adminFreeUntil, now, now)
+    .bind(newId(), id, stationId, freeUntil, now, now)
     .run();
 
   return {
     id,
-    email: email.trim().toLowerCase(),
-    name: name.trim() || email.split('@')[0],
+    email: normalized,
+    name: name.trim() || normalized.split('@')[0],
     role,
-    emailVerified: Boolean(verified),
-    freeUntil: adminFreeUntil,
-    needsVerification: !verified,
+    emailVerified: Boolean(emailVerified),
+    freeUntil,
+    needsVerification: !emailVerified,
   };
 }
 
@@ -222,9 +239,13 @@ export async function markEmailVerified(env: Env, email: string) {
 
 export async function updatePassword(env: Env, email: string, password: string) {
   const hash = await hashPassword(password);
+  const user = await env.DB.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE')
+    .bind(email.trim().toLowerCase())
+    .first<{ id: string }>();
   await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE email = ? COLLATE NOCASE')
     .bind(hash, Date.now(), email.trim().toLowerCase())
     .run();
+  if (user) await destroyAllSessionsForUser(env, user.id);
 }
 
 export function publicUser(user: UserRow) {
@@ -253,6 +274,7 @@ export async function changePassword(env: Env, userId: string, currentPassword: 
   await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
     .bind(hash, Date.now(), userId)
     .run();
+  await destroyAllSessionsForUser(env, userId);
 }
 
 export async function requestEmailChange(env: Env, userId: string, newEmail: string) {
@@ -262,7 +284,7 @@ export async function requestEmailChange(env: Env, userId: string, newEmail: str
     .first();
   if (existing) throw new Error('Email already in use');
 
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const code = generateOtpCode(6);
   const codeHash = await hashPassword(code);
   const now = Date.now();
   await env.DB.prepare(

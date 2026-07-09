@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Mail, KeyRound, Trash2, Undo2 } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
@@ -6,6 +6,7 @@ import {
   cancelAccountDeletion,
   changeAccountPassword,
   confirmEmailChange,
+  fetchMe,
   requestAccountDeletion,
   requestEmailChange,
 } from '../services/api.js';
@@ -15,6 +16,7 @@ export default function AccountPage() {
   const user = useWeatherStore((s) => s.user);
   const setUser = useWeatherStore((s) => s.setUser);
   const authChecked = useWeatherStore((s) => s.authChecked);
+  const setAuthChecked = useWeatherStore((s) => s.setAuthChecked);
   const { isDark } = useTheme();
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -27,6 +29,23 @@ export default function AccountPage() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await fetchMe();
+        if (!cancelled) setUser(me.user);
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setAuthChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setUser, setAuthChecked]);
 
   if (!authChecked) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Loading…</div>;

@@ -11,7 +11,8 @@
     "db:migrate:local": "wrangler d1 migrations apply wwebconsole-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply wwebconsole-db --remote",
     "cf:typegen": "wrangler types",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test worker/__tests__/security.test.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.8.0",

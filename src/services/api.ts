@@ -267,6 +267,6 @@ export function buildStationPatch(form: {
   if (form.unitWind) patch.unitWind = form.unitWind;
   if (form.unitBaro) patch.unitBaro = form.unitBaro;
   if (form.unitRain) patch.unitRain = form.unitRain;
-  if (form.wlPlan) patch.wlPlan = form.wlPlan;
+  // wlPlan is not user-writable (billing / admin controlled)
   return patch;
 }
