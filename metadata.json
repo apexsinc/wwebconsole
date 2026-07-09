@@ -1,0 +1,6 @@
+{
+  "name": "Davis WeatherLink Console",
+  "description": "A pixel-perfect recreation of a Davis WeatherLink console weather dashboard displayed on a tablet screen with high-fidelity weather metrics and real-time network integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

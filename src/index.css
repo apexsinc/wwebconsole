@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Custom scrollbar and ambient styles */
+body {
+  background-color: #12151a;
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Screen background theme - Premium 01497c & 0353a4 Gradient Backdrop */
+@layer utilities {
+  .screen-bg {
+    background: linear-gradient(135deg, #103073 0%, #03378b 100%);
+  }
+
+  /* When the document is fullscreen, hide the top navbar so ONLY the console is visible */
+  :fullscreen #config-navbar {
+    display: none !important;
+  }
+
+  /* Intelligent Monitor Scaling: Auto-fit UI text and layout based on physical monitor size */
+  :fullscreen .tablet-screen-shell {
+    zoom: 1.25; /* Default scale for 1080p monitors */
+  }
+  
+  @media (min-width: 1400px) {
+    :fullscreen .tablet-screen-shell {
+      zoom: 1.45; /* Ultra-wide or large laptop */
+    }
+  }
+
+  @media (min-width: 1920px) {
+    :fullscreen .tablet-screen-shell {
+      zoom: 1.7; /* Standard 4K horizontal scale or large desktop */
+    }
+  }
+
+  @media (min-width: 2560px) {
+    :fullscreen .tablet-screen-shell {
+      zoom: 2.2; /* Native 1440p / 2K scaling */
+    }
+  }
+
+  @media (min-width: 3840px) {
+    :fullscreen .tablet-screen-shell {
+      zoom: 3.5; /* True 4K TV scaling */
+    }
+  }
+}
+
+/* Frosted glass styles - Redesigned as Ocean-Blue Gradient Glass Cards */
+.glass-glow-purple, .glass-glow-blue, .glass-glow-dark {
+  background: rgba(3, 83, 164, 0.12) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(1, 73, 124, 0.32);
+  box-shadow: 0 8px 32px 0 rgba(1, 42, 74, 0.35), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-glow-purple:hover, .glass-glow-blue:hover, .glass-glow-dark:hover {
+  border-color: rgba(3, 83, 164, 0.55);
+  box-shadow: 0 8px 32px 0 rgba(1, 42, 74, 0.45), 
+              0 0 20px -3px rgba(3, 83, 164, 0.35), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Pulse animation for active data state */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-soft {
+  animation: soft-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbar utility */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
