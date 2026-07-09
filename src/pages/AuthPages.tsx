@@ -287,7 +287,7 @@ export function VerifyEmailPage() {
   };
 
   return (
-    <AuthShell title="Verify email" subtitle="Enter the 6-digit code from Resend">
+    <AuthShell title="Verify email" subtitle="Enter the 6-digit code we sent to your email">
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
         {info && <p className="text-emerald-400 text-xs bg-emerald-950/40 border border-emerald-500/20 rounded-lg px-3 py-2">{info}</p>}

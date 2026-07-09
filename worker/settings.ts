@@ -56,40 +56,34 @@ const SITE_DEFAULTS: Record<string, string> = {
   site_name: 'WWebConsole',
   site_tagline: 'WeatherLink console for the web',
   site_description:
-    'WWebConsole is a cloud weather console for Davis WeatherLink stations. Live dashboard, TV share links, and secure WeatherLink API credentials — free to start.',
+    'WWebConsole is a web console for Davis WeatherLink stations. Live dashboard, TV share links, and private WeatherLink credentials — free to start.',
   site_keywords:
-    'WeatherLink, Davis Instruments, weather console, weather dashboard, WeatherLink Live, TV weather display, weather station',
+    'WeatherLink, Davis Instruments, weather console, weather dashboard, weather station display, TV weather display',
   site_og_image: 'https://wwebconsole.com/og.png',
   site_canonical_base: 'https://wwebconsole.com',
   site_twitter_handle: '',
   site_support_email: 'support@wwebconsole.com',
   site_company_name: 'APEXs Inc',
-  site_footer_text: 'Built for Davis WeatherLink stations. Cloud console on Cloudflare.',
+  site_footer_text: 'Built for Davis WeatherLink stations.',
   seo_home_title: 'WWebConsole — WeatherLink console for the web',
-  seo_home_description:
-    'Live WeatherLink dashboard, TV share links, and secure cloud credentials. Start free for 30 days.',
+  seo_home_description: 'Live WeatherLink dashboard and TV share links. Start free.',
   seo_features_title: 'Features — WWebConsole',
-  seo_features_description:
-    'Live weather dashboard, WeatherLink v1/v2 API, TV share URLs, account security, and admin controls.',
+  seo_features_description: 'Live weather dashboard, WeatherLink connection, TV share URLs, and account tools.',
   seo_pricing_title: 'Pricing — WWebConsole',
-  seo_pricing_description:
-    'Free trial, then yearly per-device pricing for WeatherLink Pro stations. Cancel anytime.',
+  seo_pricing_description: 'Free trial, then yearly per-device pricing for WeatherLink Pro stations.',
   seo_about_title: 'About — WWebConsole',
-  seo_about_description:
-    'Why we built WWebConsole: a modern web console for Davis WeatherLink without local servers.',
+  seo_about_description: 'WWebConsole is a simple web console for Davis WeatherLink stations.',
   seo_contact_title: 'Contact — WWebConsole',
-  seo_contact_description:
-    'Get in touch with the WWebConsole team for support, billing, or partnership questions.',
+  seo_contact_description: 'Contact the WWebConsole team for support or billing questions.',
   seo_privacy_title: 'Privacy Policy — WWebConsole',
-  seo_privacy_description:
-    'How WWebConsole collects, stores, and protects your account and WeatherLink data.',
+  seo_privacy_description: 'How WWebConsole handles account and WeatherLink-related information.',
   seo_terms_title: 'Terms of Service — WWebConsole',
-  seo_terms_description: 'Terms governing use of WWebConsole, billing, and WeatherLink integrations.',
+  seo_terms_description: 'Terms for using WWebConsole and related billing.',
   seo_changelog_title: 'Changelog — WWebConsole',
-  seo_changelog_description: 'Product updates and release notes for WWebConsole.',
+  seo_changelog_description: 'Product updates for WWebConsole.',
   home_hero_headline: 'Your WeatherLink station, on the web',
   home_hero_subhead:
-    'Secure cloud console for Davis WeatherLink. Live dashboard, TV share links, and admin-ready accounts — start free.',
+    'A simple web console for Davis WeatherLink. Live dashboard and TV share links — start free.',
   home_hero_cta_primary: 'Start free',
   home_hero_cta_secondary: 'See pricing',
   home_features_json: JSON.stringify([
@@ -103,31 +97,31 @@ const SITE_DEFAULTS: Record<string, string> = {
     },
     {
       title: 'Secure credentials',
-      body: 'WeatherLink API keys encrypted at rest. Choose v1 or v2 — never both.',
+      body: 'Connect with your WeatherLink API credentials. Your keys stay private to your account.',
     },
     {
-      title: 'Cloud-native',
-      body: 'Runs on Cloudflare Workers worldwide. No local server to babysit.',
+      title: 'Works in the browser',
+      body: 'Open your console from any device — no software to install on site.',
     },
   ]),
   pricing_headline: 'Simple yearly pricing',
-  pricing_subhead: 'Try free, then pay per device when you need continuous Pro polling.',
+  pricing_subhead: 'Try free, then pay per device when you need continuous Pro updates.',
   pricing_basic_blurb:
-    'Free trial access with Basic WeatherLink polling (about every 15 minutes). Perfect to evaluate the console.',
+    'Free trial access with Basic WeatherLink update rates. Perfect to evaluate the console.',
   pricing_pro_blurb:
-    'Yearly per device for WeatherLink Pro stations. Faster polling and continuous access after the trial.',
+    'Yearly per device for WeatherLink Pro stations. Faster updates and continuous access after the trial.',
   pricing_footnote:
-    'Paid plans require a WeatherLink Pro subscription from Davis. Activate devices from your account or ask an admin.',
+    'Paid plans require a WeatherLink Pro subscription from Davis. Contact support if you need help activating a device.',
   about_body:
-    'WWebConsole is a cloud weather console for Davis WeatherLink stations. We built it so you can monitor stations from any browser, share a TV display URL, and keep API credentials encrypted — without running a local server.\n\nThe product runs on Cloudflare Workers and D1, with optional Turnstile bot protection and email verification.',
+    'WWebConsole is a web console for Davis WeatherLink stations. Monitor your station from any browser, share a display link for TVs and lobbies, and keep your WeatherLink credentials private to your account.\n\nWe focus on a simple, reliable console — not on running software at your site.',
   contact_intro:
-    'Questions about billing, WeatherLink setup, or enterprise access? Email us and we will get back to you.',
+    'Questions about billing, WeatherLink setup, or access? Email us and we will get back to you.',
   privacy_body:
-    '## Overview\nWWebConsole (“we”, “us”) provides a web console for Davis WeatherLink stations. This policy explains what we collect and why.\n\n## Account data\nWe store your email, optional name, password hash, and account status. If email verification is enabled, we temporarily store one-time codes.\n\n## WeatherLink credentials\nAPI keys and secrets you enter are encrypted at rest and used only to fetch weather data for your account. We do not sell credential data.\n\n## Usage data\nWe store station configuration, cached weather payloads, share-link slugs, and billing/trial timestamps needed to operate the service.\n\n## Cookies\nWe use a session cookie to keep you signed in. Theme preference may be stored in local browser storage.\n\n## Retention & deletion\nYou can schedule account deletion from Account settings. After the grace period, account data is purged. Contact support for earlier assistance.\n\n## Contact\nEmail the address shown on the Contact page for privacy requests.',
+    '## Overview\nWWebConsole (“we”, “us”) provides a web console for Davis WeatherLink stations. This policy explains what we collect and why.\n\n## Account data\nWe store the information needed to run your account, such as email, optional name, and account status. Verification codes may be stored briefly when email confirmation is required.\n\n## WeatherLink credentials\nCredentials you enter are used only to fetch weather data for your account. We do not sell your data.\n\n## Service data\nWe store station settings, display preferences, share links you create, and billing or trial information needed to provide the service.\n\n## Cookies\nWe use a sign-in cookie to keep you logged in. Theme preference may be stored in your browser.\n\n## Retention & deletion\nYou can request account deletion from Account settings. After a short grace period, account data is removed. Contact support if you need help sooner.\n\n## Contact\nEmail the address on the Contact page for privacy requests.',
   terms_body:
-    '## Agreement\nBy using WWebConsole you agree to these terms.\n\n## Service\nWe provide a best-effort cloud console for WeatherLink data. WeatherLink and Davis Instruments are third parties; their APIs and plans are outside our control.\n\n## Accounts\nYou are responsible for safeguarding your password and for activity under your account. Do not share credentials that you are not authorized to use.\n\n## Billing\nFree trial length and yearly pricing are shown on the Pricing page and may change. Paid device access may require WeatherLink Pro. Refunds are handled case-by-case.\n\n## Acceptable use\nDo not abuse the service, attempt unauthorized access, or use share links for unlawful content.\n\n## Disclaimer\nThe service is provided “as is” without warranties. We are not liable for weather data accuracy, API outages, or consequential damages to the extent permitted by law.\n\n## Changes\nWe may update these terms; continued use after changes constitutes acceptance.\n\n## Contact\nUse the Contact page for legal or billing questions.',
+    '## Agreement\nBy using WWebConsole you agree to these terms.\n\n## Service\nWe provide a best-effort web console for WeatherLink data. WeatherLink and Davis Instruments are separate products; their availability and plans are outside our control.\n\n## Accounts\nYou are responsible for your password and for activity under your account. Do not use credentials you are not authorized to use.\n\n## Billing\nFree trial length and yearly pricing are shown on the Pricing page and may change. Paid device access may require WeatherLink Pro. Refunds are handled case-by-case.\n\n## Acceptable use\nDo not abuse the service, attempt unauthorized access, or use share links for unlawful content.\n\n## Disclaimer\nThe service is provided “as is” without warranties. We are not liable for weather data accuracy, third-party outages, or consequential damages to the extent permitted by law.\n\n## Changes\nWe may update these terms; continued use after changes constitutes acceptance.\n\n## Contact\nUse the Contact page for legal or billing questions.',
   changelog_body:
-    '## 2026-07-09\n- Marketing site and SEO pages\n- Admin-configurable site & SEO settings\n- Account email/password change and 15-day deletion grace\n- Light theme default with dark mode\n- WeatherLink v1 or v2 credentials (exclusive)\n\n## Earlier\n- Cloudflare Workers + D1 rewrite\n- Auth, Turnstile, Resend OTP\n- Free trial and yearly per-device Pro\n- TV share links and admin console',
+    '## Recent\n- Marketing site and product pages\n- Account email and password change\n- Account deletion with a short grace period\n- Light and dark appearance\n- WeatherLink credential setup improvements\n\n## Earlier\n- Web console for WeatherLink stations\n- Free trial and yearly per-device plans\n- TV share links\n- Account sign-in and verification',
   seo_indexable: '1',
   yearly_price_usd: '49',
   free_trial_days: '30',

@@ -61,8 +61,8 @@ export function HomePage() {
     : [
         { title: 'Live dashboard', body: 'Temperature, wind, rain, pressure, and sun times.' },
         { title: 'TV share links', body: 'Fullscreen public URLs for wall displays.' },
-        { title: 'Secure credentials', body: 'WeatherLink API keys encrypted at rest.' },
-        { title: 'Cloud-native', body: 'Runs on Cloudflare Workers worldwide.' },
+        { title: 'Secure credentials', body: 'Your WeatherLink credentials stay private to your account.' },
+        { title: 'Works in the browser', body: 'Open your console from any device — nothing to install on site.' },
       ];
 
   return (
@@ -160,15 +160,14 @@ export function FeaturesPage() {
         <div className="border-t border-[var(--wwc-border)] pt-5">
           <h2 className="font-semibold text-lg">Account security</h2>
           <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">
-            Optional Turnstile bot protection, email verification, password and email change, and a 15-day deletion
-            grace period.
+            Sign-in protection, email verification when enabled, password and email change, and account deletion with
+            a short grace period.
           </p>
         </div>
         <div className="border-t border-[var(--wwc-border)] pt-5">
-          <h2 className="font-semibold text-lg">Admin controls</h2>
+          <h2 className="font-semibold text-lg">Simple setup</h2>
           <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">
-            Manage users, activate Pro devices, and configure site copy, SEO, Turnstile, and email from
-            admin.wwebconsole.com.
+            Connect your WeatherLink station, open the live console, and share a TV display link when you need it.
           </p>
         </div>
       </div>

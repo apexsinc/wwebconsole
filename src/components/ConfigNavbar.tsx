@@ -227,7 +227,8 @@ export default function ConfigNavbar() {
               <>
                 <div className="p-6 flex flex-col gap-5 max-h-[60vh] overflow-y-auto">
                   <p className="text-[10px] text-amber-400/90 bg-amber-950/20 border border-amber-500/20 rounded-lg px-3 py-2">
-                    Cloud mode only on Cloudflare Workers. Local LAN / UDP is not available at the edge.
+                    Connect with WeatherLink Cloud credentials. Local network / UDP discovery is not available in this
+                    console.
                   </p>
 
                   <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-4">
@@ -347,7 +348,7 @@ export default function ConfigNavbar() {
 
                     <p className="text-gray-500 text-[10px] leading-relaxed flex items-start gap-1">
                       <HelpCircle className="w-3.5 h-3.5 shrink-0 text-gray-600 mt-0.5" />
-                      Credentials are encrypted in D1. Secrets are never sent back to the browser.
+                      Credentials stay private to your account. Secrets are never shown again after you save.
                     </p>
                   </div>
 
