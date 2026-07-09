@@ -37,6 +37,7 @@ export interface WLLConfig {
   cloudStationName?: string;
   latitude?: number;
   longitude?: number;
+  timezone?: string;
   unitTemp?: 'F' | 'C';
   unitWind?: 'mph' | 'kmh' | 'kts' | 'ms';
   unitBaro?: 'inHg' | 'hPa' | 'mmHg' | 'mb';

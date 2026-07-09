@@ -41,8 +41,6 @@ export default function ConfigNavbar() {
   const [apiToken, setApiToken] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [stationId, setStationId] = useState(config.cloudStationId ?? '');
-  const [latitude, setLatitude] = useState<number | ''>(config.latitude ?? '');
-  const [longitude, setLongitude] = useState<number | ''>(config.longitude ?? '');
   const [shareLabel, setShareLabel] = useState('Lobby TV');
   const [shareBusy, setShareBusy] = useState(false);
   const [copied, setCopied] = useState('');
@@ -51,8 +49,6 @@ export default function ConfigNavbar() {
     setApiVersion(config.cloudApiVersion ?? 'v2');
     setDid(config.cloudDid ?? '');
     setStationId(config.cloudStationId ?? '');
-    setLatitude(config.latitude ?? '');
-    setLongitude(config.longitude ?? '');
   }, [config]);
 
   const handleSave = () => {
@@ -64,8 +60,8 @@ export default function ConfigNavbar() {
         apiToken,
         apiSecret,
         stationId,
-        latitude,
-        longitude,
+        latitude: '',
+        longitude: '',
       }),
       {
         onSuccess: () => {
@@ -319,28 +315,29 @@ export default function ConfigNavbar() {
                     </p>
                   </div>
 
-                  <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-3">
-                    <h3 className="text-sm font-bold text-white">Location Coordinates</h3>
-                    <div className="flex gap-3">
-                      <div className="flex flex-col gap-1 flex-1">
-                        <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Latitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          value={latitude}
-                          onChange={(e) => setLatitude(e.target.value === '' ? '' : Number(e.target.value))}
-                          className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
-                        />
+                  <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-2">
+                    <h3 className="text-sm font-bold text-white">Station location (auto from WeatherLink)</h3>
+                    <p className="text-[10px] text-gray-500 leading-relaxed">
+                      Latitude, longitude, and timezone are pulled from the WeatherLink Cloud station profile on each refresh — no manual entry needed for sunrise/sunset.
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      <div className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2">
+                        <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">Latitude</p>
+                        <p className="text-xs text-white font-mono mt-0.5">
+                          {config.latitude != null ? Number(config.latitude).toFixed(5) : '—'}
+                        </p>
                       </div>
-                      <div className="flex flex-col gap-1 flex-1">
-                        <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Longitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          value={longitude}
-                          onChange={(e) => setLongitude(e.target.value === '' ? '' : Number(e.target.value))}
-                          className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
-                        />
+                      <div className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2">
+                        <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">Longitude</p>
+                        <p className="text-xs text-white font-mono mt-0.5">
+                          {config.longitude != null ? Number(config.longitude).toFixed(5) : '—'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2">
+                        <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">Timezone</p>
+                        <p className="text-[10px] text-white font-mono mt-0.5 truncate" title={config.timezone || ''}>
+                          {config.timezone || '—'}
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -90,9 +90,9 @@ export async function registerUser(env: Env, email: string, password: string, na
   await env.DB.prepare(
     `INSERT INTO stations (
       id, user_id, name, cloud_api_version, cloud_did, cloud_station_id, cloud_station_name,
-      latitude, longitude, credentials_enc, credentials_iv,
+      latitude, longitude, timezone, credentials_enc, credentials_iv,
       unit_temp, unit_wind, unit_baro, unit_rain, created_at, updated_at
-    ) VALUES (?, ?, ?, 'v2', '', '', '', NULL, NULL, '', '', 'C', 'kmh', 'hPa', 'mm', ?, ?)`
+    ) VALUES (?, ?, ?, 'v2', '', '', '', NULL, NULL, '', '', '', 'C', 'kmh', 'hPa', 'mm', ?, ?)`
   )
     .bind(stationId, id, 'My Station', now, now)
     .run();

@@ -1,0 +1,1 @@
+ALTER TABLE stations ADD COLUMN timezone TEXT NOT NULL DEFAULT '';

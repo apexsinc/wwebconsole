@@ -127,8 +127,8 @@ export function buildStationPatch(
     apiToken: string;
     apiSecret: string;
     stationId: string;
-    latitude: number | '';
-    longitude: number | '';
+    latitude?: number | '';
+    longitude?: number | '';
     unitTemp?: WLLConfig['unitTemp'];
     unitWind?: WLLConfig['unitWind'];
     unitBaro?: WLLConfig['unitBaro'];
@@ -139,8 +139,6 @@ export function buildStationPatch(
     cloudApiVersion: form.apiVersion,
     cloudDid: form.did,
     cloudStationId: form.stationId,
-    latitude: form.latitude === '' ? null : Number(form.latitude),
-    longitude: form.longitude === '' ? null : Number(form.longitude),
   };
   if (form.name) patch.name = form.name;
   if (form.password) patch.cloudPassword = form.password;

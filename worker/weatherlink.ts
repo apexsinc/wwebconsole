@@ -38,6 +38,7 @@ export function toPublicConfig(row: StationRow, creds: StationCredentials): Publ
     cloudStationName: row.cloud_station_name,
     latitude: row.latitude ?? undefined,
     longitude: row.longitude ?? undefined,
+    timezone: row.timezone || undefined,
     unitTemp: (row.unit_temp as PublicConfig['unitTemp']) || 'C',
     unitWind: (row.unit_wind as PublicConfig['unitWind']) || 'kmh',
     unitBaro: (row.unit_baro as PublicConfig['unitBaro']) || 'hPa',
@@ -58,7 +59,38 @@ export function parseStoredWeather(row: StationRow): WeatherData {
   }
 }
 
-function applySunMoon(weather: WeatherData, lat?: number | null, lon?: number | null) {
+/** Format a Date in the station's IANA timezone (Workers run in UTC). */
+function formatStationTime(date: Date, timeZone?: string | null, tzOffsetSeconds?: number | null): string {
+  if (timeZone) {
+    try {
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone,
+      });
+    } catch {
+      /* fall through */
+    }
+  }
+  if (tzOffsetSeconds != null && Number.isFinite(tzOffsetSeconds)) {
+    const shifted = new Date(date.getTime() + tzOffsetSeconds * 1000);
+    let h = shifted.getUTCHours();
+    const m = shifted.getUTCMinutes();
+    const ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+  // Last resort: UTC (will look wrong for non-UTC stations)
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
+}
+
+function applySunMoon(
+  weather: WeatherData,
+  lat?: number | null,
+  lon?: number | null,
+  timeZone?: string | null,
+  tzOffsetSeconds?: number | null
+) {
   const dateObj = weather.ts > 0 ? new Date(weather.ts * 1000) : new Date();
   const moonIllum = SunCalc.getMoonIllumination(dateObj);
   const phase = moonIllum.phase;
@@ -71,14 +103,60 @@ function applySunMoon(weather: WeatherData, lat?: number | null, lon?: number | 
   else if (phase < 0.8) weather.moon_phase = 'last quarter';
   else weather.moon_phase = 'waning crescent';
 
-  if (lat == null || lon == null) return;
+  if (lat == null || lon == null || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
   try {
     const times = SunCalc.getTimes(dateObj, lat, lon);
-    weather.sunrise = times.sunrise.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    weather.sunset = times.sunset.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    weather.sunrise = formatStationTime(times.sunrise, timeZone, tzOffsetSeconds);
+    weather.sunset = formatStationTime(times.sunset, timeZone, tzOffsetSeconds);
   } catch {
     /* ignore */
   }
+}
+
+function pickStationFromList(stations: any[], cloudDid: string) {
+  if (!stations.length) return null;
+  if (!cloudDid) return stations[0];
+  const cleanDid = cloudDid.replace(/:/g, '').toUpperCase();
+  return (
+    stations.find(
+      (s) =>
+        (s.did && String(s.did).replace(/:/g, '').toUpperCase() === cleanDid) ||
+        (s.did_gateway && String(s.did_gateway).replace(/:/g, '').toUpperCase() === cleanDid) ||
+        (s.device_id && String(s.device_id).replace(/:/g, '').toUpperCase() === cleanDid) ||
+        (s.gateway_id_hex && String(s.gateway_id_hex).replace(/:/g, '').toUpperCase() === cleanDid)
+    ) || stations[0]
+  );
+}
+
+function applyStationMeta(row: StationRow, station: any) {
+  if (!station) return;
+  if (station.station_id != null) row.cloud_station_id = String(station.station_id);
+  row.cloud_station_name = station.station_name || station.name || row.cloud_station_name || 'WeatherLink Cloud (V2)';
+  if (station.latitude !== undefined && station.latitude !== null) row.latitude = Number(station.latitude);
+  if (station.longitude !== undefined && station.longitude !== null) row.longitude = Number(station.longitude);
+  if (station.time_zone) row.timezone = String(station.time_zone);
+}
+
+/** Always refresh lat/lon/timezone from WeatherLink /stations (source of truth). */
+async function syncV2StationMeta(row: StationRow, creds: StationCredentials) {
+  if (!creds.apiToken || !creds.apiSecret) return;
+  const ts = Math.floor(Date.now() / 1000);
+  const sigStr = `api-key${creds.apiToken}t${ts}`;
+  const sig = await hmacSha256Hex(creds.apiSecret, sigStr);
+  const stRes = await fetch(
+    `https://api.weatherlink.com/v2/stations?api-key=${encodeURIComponent(creds.apiToken)}&t=${ts}&api-signature=${sig}`,
+    { signal: AbortSignal.timeout(8000) }
+  );
+  if (!stRes.ok) throw new Error(`Station lookup failed (${stRes.status})`);
+  const stData = (await stRes.json()) as { stations?: any[] };
+  if (!stData.stations?.length) throw new Error('No stations found for this API Key');
+
+  let target: any = null;
+  if (row.cloud_station_id) {
+    target = stData.stations.find((s) => String(s.station_id) === String(row.cloud_station_id));
+  }
+  if (!target) target = pickStationFromList(stData.stations, row.cloud_did);
+  applyStationMeta(row, target);
 }
 
 async function getCredentials(env: Env, row: StationRow): Promise<StationCredentials> {
@@ -95,7 +173,7 @@ async function persistStation(
   const now = Date.now();
   await env.DB.prepare(
     `UPDATE stations SET
-      cloud_station_id = ?, cloud_station_name = ?, latitude = ?, longitude = ?,
+      cloud_station_id = ?, cloud_station_name = ?, latitude = ?, longitude = ?, timezone = ?,
       weather_json = ?, last_http_at = ?, last_error = ?, updated_at = ?
      WHERE id = ?`
   )
@@ -104,6 +182,7 @@ async function persistStation(
       row.cloud_station_name,
       row.latitude,
       row.longitude,
+      row.timezone || '',
       JSON.stringify(weather),
       online ? now : row.last_http_at,
       error,
@@ -113,37 +192,13 @@ async function persistStation(
     .run();
 }
 
-async function fetchV2(row: StationRow, creds: StationCredentials, weather: WeatherData) {
+async function fetchV2(row: StationRow, creds: StationCredentials, weather: WeatherData): Promise<number | null> {
   if (!creds.apiToken || !creds.apiSecret) {
     throw new Error('Cloud API V2 requires API Key and API Secret');
   }
 
-  if ((!row.cloud_station_id || !row.cloud_station_name) && row.cloud_did) {
-    const ts = Math.floor(Date.now() / 1000);
-    const sigStr = `api-key${creds.apiToken}t${ts}`;
-    const sig = await hmacSha256Hex(creds.apiSecret, sigStr);
-    const stRes = await fetch(
-      `https://api.weatherlink.com/v2/stations?api-key=${encodeURIComponent(creds.apiToken)}&t=${ts}&api-signature=${sig}`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!stRes.ok) throw new Error(`Station lookup failed (${stRes.status})`);
-    const stData = (await stRes.json()) as { stations?: any[] };
-    if (!stData.stations?.length) throw new Error('No stations found for this API Key');
-
-    const cleanDid = row.cloud_did.replace(/:/g, '').toUpperCase();
-    const target =
-      stData.stations.find(
-        (s) =>
-          (s.did && s.did.replace(/:/g, '').toUpperCase() === cleanDid) ||
-          (s.did_gateway && s.did_gateway.replace(/:/g, '').toUpperCase() === cleanDid) ||
-          (s.device_id && String(s.device_id).replace(/:/g, '').toUpperCase() === cleanDid)
-      ) || stData.stations[0];
-
-    row.cloud_station_id = String(target.station_id);
-    row.cloud_station_name = target.station_name || target.name || 'WeatherLink Cloud (V2)';
-    if (target.latitude !== undefined) row.latitude = Number(target.latitude);
-    if (target.longitude !== undefined) row.longitude = Number(target.longitude);
-  }
+  // Always sync lat/lon/time_zone from /stations so sunrise/sunset stay accurate
+  await syncV2StationMeta(row, creds);
 
   if (!row.cloud_station_id) throw new Error('Missing Station ID and auto-lookup failed');
 
@@ -158,10 +213,16 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
   const data = (await response.json()) as { sensors?: any[]; generated_at?: number };
   if (!data.sensors) throw new Error('WeatherLink Cloud API v2 returned empty response');
 
+  let tzOffsetSeconds: number | null = null;
+
   for (const sensor of data.sensors) {
     if (!sensor.data?.length) continue;
     const cond = sensor.data[0];
     const dst = sensor.data_structure_type;
+
+    if (cond.tz_offset !== undefined && cond.tz_offset !== null) {
+      tzOffsetSeconds = Number(cond.tz_offset);
+    }
 
     if (dst === 21 || dst === 22) {
       if (cond.temp_in !== undefined) weather.temp_in = Number(cond.temp_in);
@@ -201,23 +262,7 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
   weather.stationName = row.cloud_station_name || row.name || 'WeatherLink Cloud (V2)';
   weather.stationDid = row.cloud_station_id;
 
-  if (creds.password && creds.password !== creds.apiToken && row.cloud_did) {
-    try {
-      const v1Url = new URL('https://api.weatherlink.com/v1/NoaaExt.json');
-      v1Url.searchParams.set('user', row.cloud_did);
-      v1Url.searchParams.set('pass', creds.password);
-      v1Url.searchParams.set('apiToken', creds.apiToken);
-      const v1Res = await fetch(v1Url, { signal: AbortSignal.timeout(5000) });
-      if (v1Res.ok) {
-        const v1 = (await v1Res.json()) as any;
-        const davis = v1.davis_current_observation || {};
-        if (davis.sunrise) weather.sunrise = davis.sunrise;
-        if (davis.sunset) weather.sunset = davis.sunset;
-      }
-    } catch {
-      /* optional hybrid */
-    }
-  }
+  return tzOffsetSeconds;
 }
 
 async function fetchV1(row: StationRow, creds: StationCredentials, weather: WeatherData) {
@@ -288,8 +333,9 @@ async function fetchV1(row: StationRow, creds: StationCredentials, weather: Weat
       : davis.rain_rate_max_in_per_hr !== undefined
         ? Number(davis.rain_rate_max_in_per_hr)
         : weather.high_rain_rate_today;
-  weather.sunrise = davis.sunrise || weather.sunrise;
-  weather.sunset = davis.sunset || weather.sunset;
+  // Prefer SunCalc with API lat/lon; keep Davis strings only as temporary until applySunMoon runs
+  if (davis.sunrise) weather.sunrise = davis.sunrise;
+  if (davis.sunset) weather.sunset = davis.sunset;
   weather.ts = data.observation_time_rfc822
     ? Math.floor(new Date(data.observation_time_rfc822).getTime() / 1000)
     : Math.floor(Date.now() / 1000);
@@ -303,19 +349,20 @@ async function fetchV1(row: StationRow, creds: StationCredentials, weather: Weat
 export async function refreshStation(env: Env, row: StationRow) {
   const weather = parseStoredWeather(row);
   const creds = await getCredentials(env, row);
+  let tzOffsetSeconds: number | null = null;
 
   try {
     if (row.cloud_api_version === 'v1') {
       await fetchV1(row, creds, weather);
     } else {
-      await fetchV2(row, creds, weather);
+      tzOffsetSeconds = await fetchV2(row, creds, weather);
     }
-    applySunMoon(weather, row.latitude, row.longitude);
+    applySunMoon(weather, row.latitude, row.longitude, row.timezone, tzOffsetSeconds);
     await persistStation(env, row, weather, null, true);
     return { weather, error: null as string | null, online: true };
   } catch (err: any) {
     const message = err?.message || 'WeatherLink poll failed';
-    applySunMoon(weather, row.latitude, row.longitude);
+    applySunMoon(weather, row.latitude, row.longitude, row.timezone, tzOffsetSeconds);
     await persistStation(env, row, weather, message, false);
     return { weather, error: message, online: false };
   }

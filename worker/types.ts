@@ -31,6 +31,7 @@ export interface PublicConfig {
   cloudStationName: string;
   latitude?: number;
   longitude?: number;
+  timezone?: string;
   unitTemp: 'F' | 'C';
   unitWind: 'mph' | 'kmh' | 'kts' | 'ms';
   unitBaro: 'inHg' | 'hPa' | 'mmHg' | 'mb';
@@ -82,6 +83,7 @@ export interface StationRow {
   cloud_station_name: string;
   latitude: number | null;
   longitude: number | null;
+  timezone?: string;
   credentials_enc: string;
   credentials_iv: string;
   unit_temp: string;
