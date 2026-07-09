@@ -102,7 +102,10 @@ export function LoginPage() {
     try {
       const { user } = await login(email, password, turnstile.token || undefined);
       setUser(user);
-      navigate('/');
+      const host = typeof window !== 'undefined' ? window.location.hostname : '';
+      const isAdminHost =
+        host === 'admin.wwebconsole.com' || host.startsWith('admin.') || host === 'admin.localhost';
+      navigate(isAdminHost ? '/' : '/app');
     } catch (err: any) {
       if (err.code === 'EMAIL_NOT_VERIFIED') {
         navigate(`/verify?email=${encodeURIComponent(email)}`);
@@ -183,7 +186,7 @@ export function RegisterPage() {
         return;
       }
       if (res.user) setUser(res.user);
-      navigate('/');
+      navigate('/app');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -264,7 +267,7 @@ export function VerifyEmailPage() {
     try {
       const { user } = await verifyEmail(email, code, turnstile.token || undefined);
       setUser(user);
-      navigate('/');
+      navigate('/app');
     } catch (err: any) {
       setError(err.message || 'Verification failed');
     } finally {
@@ -435,20 +438,31 @@ function AuthShell({
   return (
     <div className="min-h-screen bg-[#e8edf3] dark:bg-[#0a0d14] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        <div className="flex items-center gap-3 mb-8">
+        <Link to="/" className="flex items-center gap-3 mb-8 group">
           <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-slate-900 dark:text-white font-black tracking-wider text-sm uppercase">WWebConsole</h1>
+            <h1 className="text-slate-900 dark:text-white font-black tracking-wider text-sm uppercase group-hover:text-sky-600 dark:group-hover:text-sky-400">
+              WWebConsole
+            </h1>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest">wwebconsole.com</p>
           </div>
-        </div>
+        </Link>
         <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-[#2d343f] rounded-2xl p-6 shadow-xl">
           <h2 className="text-slate-900 dark:text-white font-bold text-lg">{title}</h2>
           <p className="text-slate-500 dark:text-gray-400 text-xs mt-1 mb-5">{subtitle}</p>
           {children}
         </div>
+        <p className="text-[11px] text-slate-500 text-center mt-4">
+          <Link to="/privacy" className="hover:underline">
+            Privacy
+          </Link>
+          {' · '}
+          <Link to="/terms" className="hover:underline">
+            Terms
+          </Link>
+        </p>
       </div>
     </div>
   );

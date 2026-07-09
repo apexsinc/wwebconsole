@@ -20,7 +20,6 @@ import {
   updatePassword,
 } from './auth';
 import { sendOtpEmail } from './email';
-import { isEnabled } from './settings';
 import {
   activateYearlySubscription,
   hasAccountAccess,
@@ -30,7 +29,19 @@ import {
 } from './billing';
 import { decryptJson, newId, randomSlug } from './crypto';
 import { createAndSendOtp, consumeOtp } from './otp';
-import { getPublicAuthConfig, listSettingsForAdmin, setSetting } from './settings';
+import {
+  buildRobotsTxt,
+  buildSitemapXml,
+  getPublicAuthConfig,
+  getPublicSiteConfig,
+  getSeoForPath,
+  injectSeoIntoHtml,
+  isEnabled,
+  listSettingsForAdmin,
+  seoPageFromPath,
+  setSetting,
+  SITE_SETTING_GROUPS,
+} from './settings';
 import { verifyTurnstile } from './turnstile';
 import type { Env, ShareLinkRow, StationCredentials, StationRow, UserRow } from './types';
 import {
@@ -50,6 +61,21 @@ app.use('/api/*', cors({ origin: (origin) => origin || '*', credentials: true })
 app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME }));
 
 app.get('/api/auth/config', async (c) => c.json(await getPublicAuthConfig(c.env)));
+
+app.get('/api/public/site', async (c) => c.json(await getPublicSiteConfig(c.env)));
+
+app.get('/robots.txt', async (c) => {
+  const body = await buildRobotsTxt(c.env);
+  return c.text(body, 200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
+});
+
+app.get('/sitemap.xml', async (c) => {
+  const body = await buildSitemapXml(c.env);
+  return c.text(body, 200, {
+    'Content-Type': 'application/xml; charset=utf-8',
+    'Cache-Control': 'public, max-age=300',
+  });
+});
 
 function clientIp(c: { req: { header: (n: string) => string | undefined } }) {
   return c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || null;
@@ -720,7 +746,7 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
 });
 
 app.get('/api/admin/settings', requireAdmin, async (c) => {
-  return c.json({ settings: await listSettingsForAdmin(c.env) });
+  return c.json({ settings: await listSettingsForAdmin(c.env), groups: SITE_SETTING_GROUPS });
 });
 
 app.put('/api/admin/settings', requireAdmin, async (c) => {
@@ -735,7 +761,7 @@ app.put('/api/admin/settings', requireAdmin, async (c) => {
     if (value === '••••••••') continue; // keep existing secret
     await setSetting(c.env, key, value);
   }
-  return c.json({ settings: await listSettingsForAdmin(c.env) });
+  return c.json({ settings: await listSettingsForAdmin(c.env), groups: SITE_SETTING_GROUPS });
 });
 
 app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));
@@ -743,10 +769,32 @@ app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith('/api/')) {
+    if (url.pathname.startsWith('/api/') || url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml') {
       return app.fetch(request, env, ctx);
     }
-    return env.ASSETS.fetch(request);
+
+    const assetRes = await env.ASSETS.fetch(request);
+    const accept = request.headers.get('Accept') || '';
+    const isHtmlNav =
+      request.method === 'GET' &&
+      (accept.includes('text/html') || url.pathname === '/' || seoPageFromPath(url.pathname));
+
+    if (isHtmlNav && assetRes.ok) {
+      const seo = await getSeoForPath(env, url.pathname);
+      if (seo) {
+        const html = await assetRes.text();
+        const injected = injectSeoIntoHtml(html, seo);
+        return new Response(injected, {
+          status: assetRes.status,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'public, max-age=60',
+          },
+        });
+      }
+    }
+
+    return assetRes;
   },
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(

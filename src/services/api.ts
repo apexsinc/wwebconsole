@@ -31,6 +31,17 @@ export async function fetchAuthConfig() {
   }>('/api/auth/config');
 }
 
+export type PublicSiteConfig = Record<string, string> & {
+  yearlyPriceUsd: number;
+  freeTrialDays: number;
+  indexable: boolean;
+  features: { title: string; body: string }[];
+};
+
+export async function fetchSiteConfig() {
+  return api<PublicSiteConfig>('/api/public/site');
+}
+
 export async function fetchMe() {
   return api<{ user: AuthUser | null; billing: BillingInfo | null }>('/api/auth/me');
 }
@@ -135,11 +146,11 @@ export async function adminActivateDevice(userId: string, body: { years?: number
 }
 
 export async function adminGetSettings() {
-  return api<{ settings: any[] }>('/api/admin/settings');
+  return api<{ settings: any[]; groups?: { id: string; label: string; keys: string[] }[] }>('/api/admin/settings');
 }
 
 export async function adminUpdateSettings(settings: Record<string, string>) {
-  return api<{ settings: any[] }>('/api/admin/settings', {
+  return api<{ settings: any[]; groups?: { id: string; label: string; keys: string[] }[] }>('/api/admin/settings', {
     method: 'PUT',
     body: JSON.stringify({ settings }),
   });

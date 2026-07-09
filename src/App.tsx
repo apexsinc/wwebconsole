@@ -28,9 +28,20 @@ import { GlassPanel, WeatherMetric } from './components/WeatherPanel.js';
 import { useWeatherStore } from './store.js';
 import { fetchMe, useWeatherQuery } from './services/api.js';
 import { LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage } from './pages/AuthPages.js';
-import TvPage from './pages/TvPage.js';
-import AdminPage from './pages/AdminPage.js';
 import AccountPage from './pages/AccountPage.js';
+import AdminPage from './pages/AdminPage.js';
+import TvPage from './pages/TvPage.js';
+import { MarketingLayout } from './components/MarketingLayout.js';
+import {
+  AboutPage,
+  ChangelogPage,
+  ContactPage,
+  FeaturesPage,
+  HomePage,
+  PricingPage,
+  PrivacyPage,
+  TermsPage,
+} from './pages/MarketingPages.js';
 import { applyTheme, getStoredTheme } from './hooks/useTheme.js';
 
 const queryClient = new QueryClient({
@@ -317,7 +328,19 @@ function HostAwareRoutes() {
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/admin/*" element={<AdminPage />} />
       <Route path="/tv/:slug" element={<TvPage />} />
-      <Route path="/*" element={<ProtectedConsole />} />
+      <Route path="/app" element={<ProtectedConsole />} />
+      <Route path="/app/*" element={<ProtectedConsole />} />
+      <Route element={<MarketingLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/changelog" element={<ChangelogPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

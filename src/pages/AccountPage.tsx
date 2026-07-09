@@ -127,7 +127,7 @@ export default function AccountPage() {
   return (
     <div className={`min-h-screen ${shell}`}>
       <div className="max-w-xl mx-auto p-6 space-y-4">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-sky-600 hover:underline">
+        <Link to="/app" className="inline-flex items-center gap-1.5 text-xs text-sky-600 hover:underline">
           <ArrowLeft className="w-3.5 h-3.5" /> Back to console
         </Link>
         <h1 className="text-xl font-black tracking-tight">Account settings</h1>

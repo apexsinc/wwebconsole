@@ -2,6 +2,17 @@
 
 All notable changes to WWebConsole are documented in this file.
 
+## [1.3.0] - 2026-07-09
+
+### Added
+- Public marketing site: Home, Features, Pricing, About, Contact, Privacy, Terms, Changelog
+- Admin **Site & SEO** tab: brand, hero, pricing copy, legal bodies, meta titles/descriptions
+- `GET /api/public/site`, `/robots.txt`, `/sitemap.xml`; HTML meta injection for crawlers
+- Console moved to `/app` so `/` is the marketing landing page
+
+### Changed
+- Auth success redirects to `/app` (admin host still lands on admin UI)
+
 ## [1.2.0] - 2026-07-09
 
 ### Added

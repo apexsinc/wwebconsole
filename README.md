@@ -19,12 +19,13 @@ Davis WeatherLink web console on **Cloudflare Workers + D1**, with user auth, bi
 
 ## Features
 
+- Marketing site (Home, Features, Pricing, About, Contact, Privacy, Terms, Changelog) — copy & SEO editable from admin **Site & SEO**
 - Register / login with optional Turnstile + Resend OTP (verify + forgot password)
 - Free users: 1 month access; paid: yearly subscription **per device** (WeatherLink Pro required)
 - Polling: WeatherLink Basic → 15 min; Pro → faster (admin-configurable)
-- Admin subdomain: suspend users, activate devices, Turnstile/Resend settings
-- Encrypted WeatherLink Cloud credentials
-- Live console dashboard + public TV URLs (`/tv/<slug>`)
+- Admin subdomain: users, Site & SEO, Turnstile/Resend; `/robots.txt` + `/sitemap.xml`
+- Encrypted WeatherLink Cloud credentials (v1 **or** v2)
+- Live console at `/app` + public TV URLs (`/tv/<slug>`)
 - See `CHANGELOG.md` for release notes
 
 ## Develop
