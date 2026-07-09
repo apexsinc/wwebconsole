@@ -28,6 +28,7 @@
   "vars": {
     "APP_NAME": "WWebConsole",
     "APP_URL": "https://wwebconsole.com",
-    "ADMIN_EMAIL": "apexsinc@gmail.com"
+    "ADMIN_EMAIL": "apexsinc@gmail.com",
+    "ADMIN_EMAILS": "apexsinc@gmail.com,demo@wwebconsole.com,contact@apexsinc.com"
   }
 }

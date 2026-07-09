@@ -279,11 +279,10 @@ function ProtectedConsole() {
 }
 
 function HostAwareRoutes() {
-  const isAdminHost =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'admin.wwebconsole.com' || window.location.hostname.startsWith('admin.'));
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
 
-  if (isAdminHost) {
+  // Dedicated admin host (prod/staging/local admin.localhost) always shows admin UI
+  if (host === 'admin.wwebconsole.com' || host.startsWith('admin.') || host === 'admin.localhost') {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />

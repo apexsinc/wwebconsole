@@ -2,6 +2,13 @@
 
 All notable changes to WWebConsole are documented in this file.
 
+## [1.1.1] - 2026-07-09
+
+### Changed
+- Admin allowlist via `ADMIN_EMAILS` (comma-separated) for production, staging, and local `.dev.vars`
+- Allowlisted admins auto-promote on login, skip email verification, and bypass subscription gates
+- Removed unused local `davis-console` clone (run root cleanup script if still present)
+
 ## [1.1.0] - 2026-07-09
 
 ### Added

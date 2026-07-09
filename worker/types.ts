@@ -66,6 +66,8 @@ export interface Env {
   CREDENTIALS_KEY: string;
   APP_NAME: string;
   APP_URL: string;
+  /** Comma-separated admin emails (preferred). Falls back to ADMIN_EMAIL. */
+  ADMIN_EMAILS?: string;
   ADMIN_EMAIL?: string;
   /** Optional Workers secrets that override D1 settings */
   TURNSTILE_SECRET_KEY?: string;

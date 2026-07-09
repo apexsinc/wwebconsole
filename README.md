@@ -47,4 +47,8 @@ npx wrangler secret put CREDENTIALS_KEY
 npm run deploy
 ```
 
-Set `ADMIN_EMAIL` in `wrangler.jsonc` so that account becomes admin on registration (or promote via D1).
+Set `ADMIN_EMAILS` (comma-separated) in `wrangler.jsonc` and `.dev.vars` so those accounts are admins in **production, staging, and local**. They auto-promote on login.
+
+**Local admin:** `npm run dev` → open http://localhost:5173/admin and sign in with an allowlisted email.
+
+**Remove old davis-console (root-owned):** as root run `bash /home/wwebconsole/remove-davis-console.sh`

@@ -10,6 +10,43 @@ const SESSION_DAYS = 30;
 
 type AppVars = { user: UserRow };
 
+/** Admin allowlist from ADMIN_EMAILS (comma-separated) or legacy ADMIN_EMAIL. */
+export function adminEmailAllowlist(env: Env): string[] {
+  const raw = [env.ADMIN_EMAILS || '', env.ADMIN_EMAIL || '']
+    .join(',')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return [...new Set(raw)];
+}
+
+export function isAdminEmail(env: Env, email: string): boolean {
+  return adminEmailAllowlist(env).includes(email.trim().toLowerCase());
+}
+
+/** Promote allowlisted accounts to admin (idempotent). Used on register + login. */
+export async function ensureAdminRole(env: Env, user: UserRow): Promise<UserRow> {
+  if (!isAdminEmail(env, user.email)) return user;
+  if (user.role === 'admin' && user.email_verified) return user;
+
+  const now = Date.now();
+  // Admins get long-lived access so local/staging/prod consoles stay usable
+  const freeUntil = Math.max(user.free_until || 0, now + 10 * 365 * 24 * 60 * 60 * 1000);
+  await env.DB.prepare(
+    `UPDATE users SET role = 'admin', email_verified = 1, free_until = ?, updated_at = ? WHERE id = ?`
+  )
+    .bind(freeUntil, now, user.id)
+    .run();
+
+  return {
+    ...user,
+    role: 'admin',
+    email_verified: 1,
+    free_until: freeUntil,
+    updated_at: now,
+  };
+}
+
 export async function createSession(c: Context<{ Bindings: Env; Variables: AppVars }>, userId: string) {
   const id = newId();
   const now = Date.now();
@@ -99,8 +136,11 @@ export async function registerUser(env: Env, email: string, password: string, na
   const freeUntil = now + trialMs;
   const resendOn = await isEnabled(env, 'resend_enabled');
   const emailVerified = resendOn ? 0 : 1;
-  const adminEmail = (env.ADMIN_EMAIL || '').trim().toLowerCase();
-  const role = adminEmail && email.trim().toLowerCase() === adminEmail ? 'admin' : 'user';
+  const isAdmin = isAdminEmail(env, email);
+  const role = isAdmin ? 'admin' : 'user';
+  // Admins skip email verification and get extended access in all environments
+  const verified = isAdmin ? 1 : emailVerified;
+  const adminFreeUntil = isAdmin ? now + 10 * 365 * 24 * 60 * 60 * 1000 : freeUntil;
 
   await env.DB.prepare(
     `INSERT INTO users (
@@ -113,8 +153,8 @@ export async function registerUser(env: Env, email: string, password: string, na
       passwordHash,
       name.trim() || email.split('@')[0],
       role,
-      emailVerified,
-      freeUntil,
+      verified,
+      adminFreeUntil,
       now,
       now
     )
@@ -131,7 +171,7 @@ export async function registerUser(env: Env, email: string, password: string, na
     ) VALUES (?, ?, ?, 'v2', '', '', '', NULL, NULL, '', '', '', 'C', 'kmh', 'hPa', 'mm',
       'unknown', 'Device 1', 'trial', ?, 900, ?, ?)`
   )
-    .bind(stationId, id, 'My Station', freeUntil, now, now)
+    .bind(stationId, id, 'My Station', adminFreeUntil, now, now)
     .run();
 
   await env.DB.prepare(
@@ -139,7 +179,7 @@ export async function registerUser(env: Env, email: string, password: string, na
       id, user_id, station_id, label, wl_plan, subscription_status, subscription_expires_at, poll_interval_sec, created_at, updated_at
     ) VALUES (?, ?, ?, 'Device 1', 'unknown', 'trial', ?, 900, ?, ?)`
   )
-    .bind(newId(), id, stationId, freeUntil, now, now)
+    .bind(newId(), id, stationId, adminFreeUntil, now, now)
     .run();
 
   return {
@@ -147,14 +187,14 @@ export async function registerUser(env: Env, email: string, password: string, na
     email: email.trim().toLowerCase(),
     name: name.trim() || email.split('@')[0],
     role,
-    emailVerified: Boolean(emailVerified),
-    freeUntil,
-    needsVerification: !emailVerified,
+    emailVerified: Boolean(verified),
+    freeUntil: adminFreeUntil,
+    needsVerification: !verified,
   };
 }
 
 export async function loginUser(env: Env, email: string, password: string) {
-  const user = await env.DB.prepare('SELECT * FROM users WHERE email = ? COLLATE NOCASE')
+  let user = await env.DB.prepare('SELECT * FROM users WHERE email = ? COLLATE NOCASE')
     .bind(email.trim())
     .first<UserRow>();
   if (!user) throw new Error('Invalid email or password');
@@ -162,8 +202,11 @@ export async function loginUser(env: Env, email: string, password: string) {
   const ok = await verifyPassword(password, user.password_hash);
   if (!ok) throw new Error('Invalid email or password');
 
+  // Auto-promote allowlisted admins on every login (prod + local/staging)
+  user = await ensureAdminRole(env, user);
+
   const resendOn = await isEnabled(env, 'resend_enabled');
-  if (resendOn && !user.email_verified) {
+  if (resendOn && !user.email_verified && user.role !== 'admin') {
     const err = new Error('Email not verified');
     (err as any).code = 'EMAIL_NOT_VERIFIED';
     throw err;

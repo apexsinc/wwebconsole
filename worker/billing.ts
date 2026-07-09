@@ -24,6 +24,11 @@ export function isUserSuspended(user: UserRow): boolean {
 export function hasAccountAccess(user: UserRow, station?: StationRow | null): { ok: boolean; reason?: string; status: SubscriptionStatus } {
   if (isUserSuspended(user)) return { ok: false, reason: 'Account suspended', status: 'none' };
 
+  // Admins always have access in production, staging, and local
+  if ((user.role || '') === 'admin') {
+    return { ok: true, status: (station?.subscription_status as SubscriptionStatus) || 'active' };
+  }
+
   const now = Date.now();
   if (user.free_until && user.free_until > now) {
     return { ok: true, status: 'trial' };
