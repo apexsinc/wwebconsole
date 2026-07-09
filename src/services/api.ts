@@ -6,7 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useWeatherStore } from '../store.js';
-import { AuthUser, ShareLink, WLLConfig } from '../types.js';
+import { ApiError, AuthUser, BillingInfo, ShareLink, WLLConfig } from '../types.js';
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -16,26 +16,67 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error((data as any)?.error || `Request failed (${res.status})`);
+    throw new ApiError((data as any)?.error || `Request failed (${res.status})`, res.status, (data as any)?.code);
   }
   return data as T;
 }
 
-export async function fetchMe() {
-  return api<{ user: AuthUser | null }>('/api/auth/me');
+export async function fetchAuthConfig() {
+  return api<{
+    turnstileEnabled: boolean;
+    turnstileSiteKey: string;
+    emailVerificationRequired: boolean;
+    yearlyPriceUsd: number;
+    freeTrialDays: number;
+  }>('/api/auth/config');
 }
 
-export async function login(email: string, password: string) {
+export async function fetchMe() {
+  return api<{ user: AuthUser | null; billing: BillingInfo | null }>('/api/auth/me');
+}
+
+export async function login(email: string, password: string, turnstileToken?: string) {
   return api<{ user: AuthUser }>('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, turnstileToken }),
   });
 }
 
-export async function register(email: string, password: string, name?: string) {
-  return api<{ user: AuthUser }>('/api/auth/register', {
+export async function register(email: string, password: string, name?: string, turnstileToken?: string) {
+  return api<{ user?: AuthUser; needsVerification?: boolean; email?: string; message?: string }>(
+    '/api/auth/register',
+    {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name, turnstileToken }),
+    }
+  );
+}
+
+export async function verifyEmail(email: string, code: string, turnstileToken?: string) {
+  return api<{ user: AuthUser }>('/api/auth/verify-email', {
     method: 'POST',
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ email, code, turnstileToken }),
+  });
+}
+
+export async function resendVerification(email: string, turnstileToken?: string) {
+  return api<{ ok: boolean }>('/api/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email, turnstileToken }),
+  });
+}
+
+export async function forgotPassword(email: string, turnstileToken?: string) {
+  return api<{ ok: boolean }>('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, turnstileToken }),
+  });
+}
+
+export async function resetPassword(email: string, code: string, password: string, turnstileToken?: string) {
+  return api<{ ok: boolean }>('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, code, password, turnstileToken }),
   });
 }
 
@@ -73,13 +114,45 @@ export async function fetchPublicTv(slug: string) {
   return api<any>(`/api/public/tv/${encodeURIComponent(slug)}`);
 }
 
+export async function adminGetOverview() {
+  return api<{ users: number; suspended: number; activePaidDevices: number }>('/api/admin/overview');
+}
+
+export async function adminListUsers(q?: string) {
+  const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+  return api<{ users: any[] }>(`/api/admin/users${qs}`);
+}
+
+export async function adminUpdateUser(id: string, patch: Record<string, unknown>) {
+  return api<any>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+}
+
+export async function adminActivateDevice(userId: string, body: { years?: number; wlPlan?: string }) {
+  return api<any>(`/api/admin/users/${userId}/activate-device`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminGetSettings() {
+  return api<{ settings: any[] }>('/api/admin/settings');
+}
+
+export async function adminUpdateSettings(settings: Record<string, string>) {
+  return api<{ settings: any[] }>('/api/admin/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ settings }),
+  });
+}
+
 export function useWeatherQuery(enabled = true) {
   const setAll = useWeatherStore((state) => state.setAll);
+  const pollSec = useWeatherStore((state) => state.billing?.pollIntervalSec || state.config.pollIntervalSec || 120);
 
   const query = useQuery({
     queryKey: ['weatherCurrent'],
     queryFn: fetchCurrentWeather,
-    refetchInterval: 15000,
+    refetchInterval: Math.max(pollSec, 60) * 1000,
     retry: 2,
     staleTime: 5000,
     enabled,
@@ -88,6 +161,9 @@ export function useWeatherQuery(enabled = true) {
   useEffect(() => {
     if (query.data) {
       setAll(query.data);
+      if (query.data.billing) {
+        useWeatherStore.getState().setBilling(query.data.billing);
+      }
     }
   }, [query.data, setAll]);
 
@@ -98,12 +174,14 @@ export function useConfigMutation() {
   const queryClient = useQueryClient();
   const updateConfigState = useWeatherStore((state) => state.updateConfig);
   const setAll = useWeatherStore((state) => state.setAll);
+  const setBilling = useWeatherStore((state) => state.setBilling);
 
   return useMutation({
     mutationFn: updateStationConfig,
     onSuccess: (data) => {
       if (data?.config) updateConfigState(data.config);
       if (data?.weather) setAll(data);
+      if (data?.billing) setBilling(data.billing);
       queryClient.invalidateQueries({ queryKey: ['weatherCurrent'] });
       queryClient.invalidateQueries({ queryKey: ['shareLinks'] });
     },
@@ -117,24 +195,22 @@ export function useShareLinks() {
   });
 }
 
-/** Map UI form fields to API patch (including secret fields only when non-empty) */
-export function buildStationPatch(
-  form: {
-    name?: string;
-    apiVersion: 'v1' | 'v2';
-    did: string;
-    password: string;
-    apiToken: string;
-    apiSecret: string;
-    stationId: string;
-    latitude?: number | '';
-    longitude?: number | '';
-    unitTemp?: WLLConfig['unitTemp'];
-    unitWind?: WLLConfig['unitWind'];
-    unitBaro?: WLLConfig['unitBaro'];
-    unitRain?: WLLConfig['unitRain'];
-  }
-) {
+export function buildStationPatch(form: {
+  name?: string;
+  apiVersion: 'v1' | 'v2';
+  did: string;
+  password: string;
+  apiToken: string;
+  apiSecret: string;
+  stationId: string;
+  latitude?: number | '';
+  longitude?: number | '';
+  unitTemp?: WLLConfig['unitTemp'];
+  unitWind?: WLLConfig['unitWind'];
+  unitBaro?: WLLConfig['unitBaro'];
+  unitRain?: WLLConfig['unitRain'];
+  wlPlan?: 'basic' | 'pro' | 'unknown';
+}) {
   const patch: Record<string, unknown> = {
     cloudApiVersion: form.apiVersion,
     cloudDid: form.did,
@@ -148,5 +224,6 @@ export function buildStationPatch(
   if (form.unitWind) patch.unitWind = form.unitWind;
   if (form.unitBaro) patch.unitBaro = form.unitBaro;
   if (form.unitRain) patch.unitRain = form.unitRain;
+  if (form.wlPlan) patch.wlPlan = form.wlPlan;
   return patch;
 }

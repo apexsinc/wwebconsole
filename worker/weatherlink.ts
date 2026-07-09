@@ -1,4 +1,5 @@
 import * as SunCalc from 'suncalc';
+import { normalizeWlPlan, syncPollInterval } from './billing';
 import { decryptJson, encryptJson, hmacSha256Hex } from './crypto';
 import type { Env, PublicConfig, StationCredentials, StationRow, WeatherData } from './types';
 
@@ -47,6 +48,10 @@ export function toPublicConfig(row: StationRow, creds: StationCredentials): Publ
     hasApiToken: Boolean(creds.apiToken),
     hasApiSecret: Boolean(creds.apiSecret),
     stationName: row.name,
+    wlPlan: row.wl_plan || 'unknown',
+    subscriptionStatus: row.subscription_status || 'trial',
+    subscriptionExpiresAt: row.subscription_expires_at ?? null,
+    pollIntervalSec: row.poll_interval_sec ?? 900,
   };
 }
 
@@ -135,6 +140,20 @@ function applyStationMeta(row: StationRow, station: any) {
   if (station.latitude !== undefined && station.latitude !== null) row.latitude = Number(station.latitude);
   if (station.longitude !== undefined && station.longitude !== null) row.longitude = Number(station.longitude);
   if (station.time_zone) row.timezone = String(station.time_zone);
+
+  // Infer WeatherLink subscription tier from station metadata when present
+  const planHint =
+    station.subscription_type ||
+    station.subscription ||
+    station.plan ||
+    station.product_number ||
+    '';
+  const inferred = normalizeWlPlan(String(planHint));
+  if (inferred !== 'unknown') row.wl_plan = inferred;
+  // Product numbers: many Pro/WLL cloud products; treat explicit "basic" strings only as basic
+  if (inferred === 'unknown' && station.subscription_end_date) {
+    // Active paid WeatherLink cloud subscription often implies Pro-capable data; keep unknown until admin/user sets it
+  }
 }
 
 /** Always refresh lat/lon/timezone from WeatherLink /stations (source of truth). */
@@ -174,6 +193,7 @@ async function persistStation(
   await env.DB.prepare(
     `UPDATE stations SET
       cloud_station_id = ?, cloud_station_name = ?, latitude = ?, longitude = ?, timezone = ?,
+      wl_plan = COALESCE(?, wl_plan), poll_interval_sec = COALESCE(?, poll_interval_sec),
       weather_json = ?, last_http_at = ?, last_error = ?, updated_at = ?
      WHERE id = ?`
   )
@@ -183,6 +203,8 @@ async function persistStation(
       row.latitude,
       row.longitude,
       row.timezone || '',
+      row.wl_plan || null,
+      row.poll_interval_sec ?? null,
       JSON.stringify(weather),
       online ? now : row.last_http_at,
       error,
@@ -358,6 +380,7 @@ export async function refreshStation(env: Env, row: StationRow) {
       tzOffsetSeconds = await fetchV2(row, creds, weather);
     }
     applySunMoon(weather, row.latitude, row.longitude, row.timezone, tzOffsetSeconds);
+    await syncPollInterval(env, row);
     await persistStation(env, row, weather, null, true);
     return { weather, error: null as string | null, online: true };
   } catch (err: any) {

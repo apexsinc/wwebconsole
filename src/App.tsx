@@ -27,8 +27,9 @@ import ConfigNavbar from './components/ConfigNavbar.js';
 import { GlassPanel, WeatherMetric } from './components/WeatherPanel.js';
 import { useWeatherStore } from './store.js';
 import { fetchMe, useWeatherQuery } from './services/api.js';
-import { LoginPage, RegisterPage } from './pages/AuthPages.js';
+import { LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage } from './pages/AuthPages.js';
 import TvPage from './pages/TvPage.js';
+import AdminPage from './pages/AdminPage.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -222,16 +223,21 @@ function MainDashboard() {
 
 function ProtectedConsole() {
   const user = useWeatherStore((s) => s.user);
+  const billing = useWeatherStore((s) => s.billing);
   const authChecked = useWeatherStore((s) => s.authChecked);
   const setUser = useWeatherStore((s) => s.setUser);
+  const setBilling = useWeatherStore((s) => s.setBilling);
   const setAuthChecked = useWeatherStore((s) => s.setAuthChecked);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const { user: me } = await fetchMe();
-        if (!cancelled) setUser(me);
+        const me = await fetchMe();
+        if (!cancelled) {
+          setUser(me.user);
+          setBilling(me.billing);
+        }
       } catch {
         if (!cancelled) setUser(null);
       } finally {
@@ -241,7 +247,7 @@ function ProtectedConsole() {
     return () => {
       cancelled = true;
     };
-  }, [setUser, setAuthChecked]);
+  }, [setUser, setBilling, setAuthChecked]);
 
   if (!authChecked) {
     return (
@@ -253,9 +259,16 @@ function ProtectedConsole() {
 
   if (!user) return <Navigate to="/login" replace />;
 
+  const accessBlocked = billing && !billing.accessOk;
+
   return (
     <div className="h-screen bg-[#e1e5eb] flex flex-col overflow-hidden">
       <ConfigNavbar />
+      {accessBlocked && (
+        <div className="bg-amber-950 text-amber-100 text-xs px-4 py-2 border-b border-amber-800 text-center">
+          {billing.accessReason || 'Subscription required'} · Free trial / yearly Pro device plans apply
+        </div>
+      )}
       <div className="flex-1 flex flex-col justify-center">
         <TabletFrame>
           <MainDashboard />
@@ -265,16 +278,40 @@ function ProtectedConsole() {
   );
 }
 
+function HostAwareRoutes() {
+  const isAdminHost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'admin.wwebconsole.com' || window.location.hostname.startsWith('admin.'));
+
+  if (isAdminHost) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/*" element={<AdminPage />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify" element={<VerifyEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/admin" element={<AdminPage />} />
+      <Route path="/admin/*" element={<AdminPage />} />
+      <Route path="/tv/:slug" element={<TvPage />} />
+      <Route path="/*" element={<ProtectedConsole />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/tv/:slug" element={<TvPage />} />
-          <Route path="/*" element={<ProtectedConsole />} />
-        </Routes>
+        <HostAwareRoutes />
       </BrowserRouter>
     </QueryClientProvider>
   );

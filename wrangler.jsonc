@@ -22,10 +22,12 @@
   },
   "routes": [
     { "pattern": "wwebconsole.com", "custom_domain": true },
-    { "pattern": "www.wwebconsole.com", "custom_domain": true }
+    { "pattern": "www.wwebconsole.com", "custom_domain": true },
+    { "pattern": "admin.wwebconsole.com", "custom_domain": true }
   ],
   "vars": {
     "APP_NAME": "WWebConsole",
-    "APP_URL": "https://wwebconsole.com"
+    "APP_URL": "https://wwebconsole.com",
+    "ADMIN_EMAIL": "apexsinc@gmail.com"
   }
 }

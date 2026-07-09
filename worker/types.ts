@@ -40,6 +40,10 @@ export interface PublicConfig {
   hasApiToken: boolean;
   hasApiSecret: boolean;
   stationName: string;
+  wlPlan?: string;
+  subscriptionStatus?: string;
+  subscriptionExpiresAt?: number | null;
+  pollIntervalSec?: number;
 }
 
 export interface StationCredentials {
@@ -62,6 +66,10 @@ export interface Env {
   CREDENTIALS_KEY: string;
   APP_NAME: string;
   APP_URL: string;
+  ADMIN_EMAIL?: string;
+  /** Optional Workers secrets that override D1 settings */
+  TURNSTILE_SECRET_KEY?: string;
+  RESEND_API_KEY?: string;
 }
 
 export interface UserRow {
@@ -69,6 +77,11 @@ export interface UserRow {
   email: string;
   password_hash: string;
   name: string;
+  role: string;
+  suspended: number;
+  email_verified: number;
+  free_until: number | null;
+  notes: string;
   created_at: number;
   updated_at: number;
 }
@@ -93,6 +106,11 @@ export interface StationRow {
   last_http_at: number | null;
   last_error: string | null;
   weather_json: string | null;
+  wl_plan?: string;
+  device_label?: string;
+  subscription_status?: string;
+  subscription_expires_at?: number | null;
+  poll_interval_sec?: number;
   created_at: number;
   updated_at: number;
 }
@@ -107,3 +125,19 @@ export interface ShareLinkRow {
   created_at: number;
   updated_at: number;
 }
+
+export interface DeviceRow {
+  id: string;
+  user_id: string;
+  station_id: string | null;
+  label: string;
+  wl_plan: string;
+  subscription_status: string;
+  subscription_expires_at: number | null;
+  poll_interval_sec: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export type WlPlan = 'basic' | 'pro' | 'unknown';
+export type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'none';

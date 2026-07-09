@@ -1,8 +1,8 @@
 # WWebConsole
 
-Davis WeatherLink web console on **Cloudflare Workers + D1**, with user auth and public TV share URLs.
+Davis WeatherLink web console on **Cloudflare Workers + D1**, with user auth, billing tiers, and public TV share URLs.
 
-**Domain:** [https://wwebconsole.com](https://wwebconsole.com)
+**Domain:** [https://wwebconsole.com](https://wwebconsole.com) · **Admin:** [https://admin.wwebconsole.com](https://admin.wwebconsole.com)
 
 ## Stack (free → paid upgrade path)
 
@@ -11,18 +11,21 @@ Davis WeatherLink web console on **Cloudflare Workers + D1**, with user auth and
 | Edge API | Cloudflare Workers + Hono | Free tier, global, scales with Workers Paid |
 | Database | Cloudflare D1 (SQLite) | Free tier; upgrade storage/queries later |
 | Frontend | React 19 + Vite + Tailwind | Same console UI, SPA on Workers Assets |
-| Auth | Cookie sessions (PBKDF2) | No third-party auth cost on free tier |
+| Auth | Cookie sessions (PBKDF2) + optional Turnstile/Resend | No third-party auth cost on free tier |
 | Secrets | AES-GCM in D1 + Workers secrets | WeatherLink keys never returned to browser |
-| Polling | Cron Triggers (every 2 min) | Keeps TV displays fresh without client load |
+| Polling | Cron Triggers (plan-aware) | Basic 15 min · Pro faster |
 
 **Not on Workers:** Local LAN / UDP WeatherLink Live. Use WeatherLink Cloud (v1/v2).
 
 ## Features
 
-- Register / login
-- Store WeatherLink Cloud credentials (encrypted)
-- Live console dashboard
-- Public TV URLs: `https://wwebconsole.com/tv/<slug>` for big monitors
+- Register / login with optional Turnstile + Resend OTP (verify + forgot password)
+- Free users: 1 month access; paid: yearly subscription **per device** (WeatherLink Pro required)
+- Polling: WeatherLink Basic → 15 min; Pro → faster (admin-configurable)
+- Admin subdomain: suspend users, activate devices, Turnstile/Resend settings
+- Encrypted WeatherLink Cloud credentials
+- Live console dashboard + public TV URLs (`/tv/<slug>`)
+- See `CHANGELOG.md` for release notes
 
 ## Develop
 
@@ -35,12 +38,13 @@ npm run dev
 ## Deploy
 
 ```bash
-npx wrangler d1 create wwebconsole-db   # once — paste database_id into wrangler.jsonc
 npx wrangler d1 migrations apply wwebconsole-db --remote
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put CREDENTIALS_KEY
+# optional overrides:
+# npx wrangler secret put TURNSTILE_SECRET_KEY
+# npx wrangler secret put RESEND_API_KEY
 npm run deploy
-npx wrangler domains add wwebconsole.com
 ```
 
-`SESSION_SECRET` and `CREDENTIALS_KEY` must be 32+ byte hex strings (64 hex chars for the AES key).
+Set `ADMIN_EMAIL` in `wrangler.jsonc` so that account becomes admin on registration (or promote via D1).

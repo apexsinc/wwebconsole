@@ -41,14 +41,19 @@ export default function ConfigNavbar() {
   const [apiToken, setApiToken] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [stationId, setStationId] = useState(config.cloudStationId ?? '');
+  const [wlPlan, setWlPlan] = useState<'basic' | 'pro' | 'unknown'>(
+    (config.wlPlan as 'basic' | 'pro' | 'unknown') || 'unknown'
+  );
   const [shareLabel, setShareLabel] = useState('Lobby TV');
   const [shareBusy, setShareBusy] = useState(false);
   const [copied, setCopied] = useState('');
+  const billing = useWeatherStore((s) => s.billing);
 
   useEffect(() => {
     setApiVersion(config.cloudApiVersion ?? 'v2');
     setDid(config.cloudDid ?? '');
     setStationId(config.cloudStationId ?? '');
+    setWlPlan((config.wlPlan as 'basic' | 'pro' | 'unknown') || 'unknown');
   }, [config]);
 
   const handleSave = () => {
@@ -62,6 +67,7 @@ export default function ConfigNavbar() {
         stationId,
         latitude: '',
         longitude: '',
+        wlPlan,
       }),
       {
         onSuccess: () => {
@@ -313,6 +319,34 @@ export default function ConfigNavbar() {
                       <HelpCircle className="w-3.5 h-3.5 shrink-0 text-gray-600 mt-0.5" />
                       Credentials are encrypted in D1. Secrets are never sent back to the browser.
                     </p>
+                  </div>
+
+                  <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-3">
+                    <h3 className="text-sm font-bold text-white">WeatherLink plan & polling</h3>
+                    <p className="text-[10px] text-gray-500 leading-relaxed">
+                      Basic WeatherLink plans poll every 15 minutes. Pro plans poll faster. Paid WWebConsole access is yearly per device and requires WeatherLink Pro.
+                    </p>
+                    <div className="flex bg-gray-950 border border-gray-800 rounded-lg p-1">
+                      {(['basic', 'pro', 'unknown'] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setWlPlan(p)}
+                          className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase ${
+                            wlPlan === p ? 'bg-gray-800 text-white' : 'text-gray-500'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                    {billing && (
+                      <p className="text-[10px] text-gray-400 font-mono">
+                        Access: {billing.subscriptionStatus}
+                        {billing.freeUntil ? ` · free until ${new Date(billing.freeUntil).toLocaleDateString()}` : ''}
+                        {' · '}poll {billing.pollIntervalSec}s
+                      </p>
+                    )}
                   </div>
 
                   <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-2">

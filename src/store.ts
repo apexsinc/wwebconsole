@@ -4,13 +4,14 @@
  */
 
 import { create } from 'zustand';
-import { WeatherData, WLLConfig, ConnectionState, AuthUser } from './types.js';
+import { WeatherData, WLLConfig, ConnectionState, AuthUser, BillingInfo } from './types.js';
 
 interface WeatherStore {
   weather: WeatherData;
   connection: ConnectionState;
   config: WLLConfig;
   user: AuthUser | null;
+  billing: BillingInfo | null;
   stationId: string | null;
   authChecked: boolean;
 
@@ -18,6 +19,7 @@ interface WeatherStore {
   updateConnection: (conn: Partial<ConnectionState>) => void;
   updateConfig: (cfg: Partial<WLLConfig>) => void;
   setUser: (user: AuthUser | null) => void;
+  setBilling: (billing: BillingInfo | null) => void;
   setAuthChecked: (v: boolean) => void;
   setAll: (payload: {
     weather: WeatherData;
@@ -70,6 +72,7 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
     unitRain: 'mm',
   },
   user: null,
+  billing: null,
   stationId: null,
   authChecked: false,
 
@@ -77,6 +80,7 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   updateConnection: (conn) => set((state) => ({ connection: { ...state.connection, ...conn } })),
   updateConfig: (cfg) => set((state) => ({ config: { ...state.config, ...cfg } })),
   setUser: (user) => set({ user }),
+  setBilling: (billing) => set({ billing }),
   setAuthChecked: (authChecked) => set({ authChecked }),
   setAll: (payload) =>
     set(() => ({

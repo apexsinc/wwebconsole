@@ -46,6 +46,10 @@ export interface WLLConfig {
   hasApiToken?: boolean;
   hasApiSecret?: boolean;
   stationName?: string;
+  wlPlan?: string;
+  subscriptionStatus?: string;
+  subscriptionExpiresAt?: number | null;
+  pollIntervalSec?: number;
   /** @deprecated LAN mode is not available on Cloudflare Workers */
   wllIpAddress?: string;
   useCloudApi?: boolean;
@@ -62,6 +66,24 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  role?: string;
+  emailVerified?: boolean;
+  suspended?: boolean;
+  freeUntil?: number | null;
+}
+
+export interface BillingInfo {
+  role: string;
+  suspended: boolean;
+  emailVerified: boolean;
+  freeUntil: number | null;
+  accessOk: boolean;
+  accessReason: string | null;
+  subscriptionStatus: string;
+  wlPlan: string;
+  subscriptionExpiresAt: number | null;
+  pollIntervalSec: number;
+  deviceLabel: string;
 }
 
 export interface ShareLink {
@@ -71,4 +93,14 @@ export interface ShareLink {
   enabled: boolean;
   url: string;
   created_at?: number;
+}
+
+export class ApiError extends Error {
+  code?: string;
+  status: number;
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
 }

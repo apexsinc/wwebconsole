@@ -1,6 +1,8 @@
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { Context, Next } from 'hono';
+import { freeTrialMs } from './billing';
 import { hashPassword, newId, verifyPassword } from './crypto';
+import { isEnabled } from './settings';
 import type { Env, UserRow } from './types';
 
 const SESSION_COOKIE = 'wwc_session';
@@ -16,11 +18,14 @@ export async function createSession(c: Context<{ Bindings: Env; Variables: AppVa
     .bind(id, userId, expires, now)
     .run();
   const isHttps = new URL(c.req.url).protocol === 'https:';
+  const host = new URL(c.req.url).hostname;
+  const domain = host.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
   setCookie(c, SESSION_COOKIE, id, {
     httpOnly: true,
     secure: isHttps,
     sameSite: 'Lax',
     path: '/',
+    domain,
     expires: new Date(expires),
   });
   return id;
@@ -31,26 +36,43 @@ export async function destroySession(c: Context<{ Bindings: Env; Variables: AppV
   if (sid) {
     await c.env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sid).run();
   }
-  deleteCookie(c, SESSION_COOKIE, { path: '/' });
+  const host = new URL(c.req.url).hostname;
+  const domain = host.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
+  deleteCookie(c, SESSION_COOKIE, { path: '/', domain });
 }
 
-export async function requireAuth(c: Context<{ Bindings: Env; Variables: AppVars }>, next: Next) {
-  const sid = getCookie(c, SESSION_COOKIE);
-  if (!sid) return c.json({ error: 'Unauthorized' }, 401);
-
-  const row = await c.env.DB.prepare(
+async function loadUserFromSession(env: Env, sid: string): Promise<UserRow | null> {
+  return env.DB.prepare(
     `SELECT u.* FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.id = ? AND s.expires_at > ?`
   )
     .bind(sid, Date.now())
     .first<UserRow>();
+}
 
+export async function requireAuth(c: Context<{ Bindings: Env; Variables: AppVars }>, next: Next) {
+  const sid = getCookie(c, SESSION_COOKIE);
+  if (!sid) return c.json({ error: 'Unauthorized' }, 401);
+
+  const row = await loadUserFromSession(c.env, sid);
   if (!row) {
-    deleteCookie(c, SESSION_COOKIE, { path: '/' });
+    await destroySession(c);
     return c.json({ error: 'Unauthorized' }, 401);
   }
+  if (row.suspended) return c.json({ error: 'Account suspended' }, 403);
 
+  c.set('user', row);
+  await next();
+}
+
+export async function requireAdmin(c: Context<{ Bindings: Env; Variables: AppVars }>, next: Next) {
+  const sid = getCookie(c, SESSION_COOKIE);
+  if (!sid) return c.json({ error: 'Unauthorized' }, 401);
+  const row = await loadUserFromSession(c.env, sid);
+  if (!row) return c.json({ error: 'Unauthorized' }, 401);
+  if (row.suspended) return c.json({ error: 'Account suspended' }, 403);
+  if (row.role !== 'admin') return c.json({ error: 'Admin only' }, 403);
   c.set('user', row);
   await next();
 }
@@ -58,14 +80,8 @@ export async function requireAuth(c: Context<{ Bindings: Env; Variables: AppVars
 export async function optionalAuth(c: Context<{ Bindings: Env; Variables: AppVars }>, next: Next) {
   const sid = getCookie(c, SESSION_COOKIE);
   if (sid) {
-    const row = await c.env.DB.prepare(
-      `SELECT u.* FROM sessions s
-       JOIN users u ON u.id = s.user_id
-       WHERE s.id = ? AND s.expires_at > ?`
-    )
-      .bind(sid, Date.now())
-      .first<UserRow>();
-    if (row) c.set('user', row);
+    const row = await loadUserFromSession(c.env, sid);
+    if (row && !row.suspended) c.set('user', row);
   }
   await next();
 }
@@ -79,25 +95,62 @@ export async function registerUser(env: Env, email: string, password: string, na
   const id = newId();
   const now = Date.now();
   const passwordHash = await hashPassword(password);
+  const trialMs = await freeTrialMs(env);
+  const freeUntil = now + trialMs;
+  const resendOn = await isEnabled(env, 'resend_enabled');
+  const emailVerified = resendOn ? 0 : 1;
+  const adminEmail = (env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const role = adminEmail && email.trim().toLowerCase() === adminEmail ? 'admin' : 'user';
+
   await env.DB.prepare(
-    'INSERT INTO users (id, email, password_hash, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    `INSERT INTO users (
+      id, email, password_hash, name, role, suspended, email_verified, free_until, notes, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, '', ?, ?)`
   )
-    .bind(id, email.trim().toLowerCase(), passwordHash, name.trim() || email.split('@')[0], now, now)
+    .bind(
+      id,
+      email.trim().toLowerCase(),
+      passwordHash,
+      name.trim() || email.split('@')[0],
+      role,
+      emailVerified,
+      freeUntil,
+      now,
+      now
+    )
     .run();
 
-  // Create empty station row for the user
   const stationId = newId();
   await env.DB.prepare(
     `INSERT INTO stations (
       id, user_id, name, cloud_api_version, cloud_did, cloud_station_id, cloud_station_name,
       latitude, longitude, timezone, credentials_enc, credentials_iv,
-      unit_temp, unit_wind, unit_baro, unit_rain, created_at, updated_at
-    ) VALUES (?, ?, ?, 'v2', '', '', '', NULL, NULL, '', '', '', 'C', 'kmh', 'hPa', 'mm', ?, ?)`
+      unit_temp, unit_wind, unit_baro, unit_rain,
+      wl_plan, device_label, subscription_status, subscription_expires_at, poll_interval_sec,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, 'v2', '', '', '', NULL, NULL, '', '', '', 'C', 'kmh', 'hPa', 'mm',
+      'unknown', 'Device 1', 'trial', ?, 900, ?, ?)`
   )
-    .bind(stationId, id, 'My Station', now, now)
+    .bind(stationId, id, 'My Station', freeUntil, now, now)
     .run();
 
-  return { id, email: email.trim().toLowerCase(), name: name.trim() || email.split('@')[0] };
+  await env.DB.prepare(
+    `INSERT INTO devices (
+      id, user_id, station_id, label, wl_plan, subscription_status, subscription_expires_at, poll_interval_sec, created_at, updated_at
+    ) VALUES (?, ?, ?, 'Device 1', 'unknown', 'trial', ?, 900, ?, ?)`
+  )
+    .bind(newId(), id, stationId, freeUntil, now, now)
+    .run();
+
+  return {
+    id,
+    email: email.trim().toLowerCase(),
+    name: name.trim() || email.split('@')[0],
+    role,
+    emailVerified: Boolean(emailVerified),
+    freeUntil,
+    needsVerification: !emailVerified,
+  };
 }
 
 export async function loginUser(env: Env, email: string, password: string) {
@@ -105,9 +158,42 @@ export async function loginUser(env: Env, email: string, password: string) {
     .bind(email.trim())
     .first<UserRow>();
   if (!user) throw new Error('Invalid email or password');
+  if (user.suspended) throw new Error('Account suspended. Contact support.');
   const ok = await verifyPassword(password, user.password_hash);
   if (!ok) throw new Error('Invalid email or password');
+
+  const resendOn = await isEnabled(env, 'resend_enabled');
+  if (resendOn && !user.email_verified) {
+    const err = new Error('Email not verified');
+    (err as any).code = 'EMAIL_NOT_VERIFIED';
+    throw err;
+  }
   return user;
+}
+
+export async function markEmailVerified(env: Env, email: string) {
+  await env.DB.prepare('UPDATE users SET email_verified = 1, updated_at = ? WHERE email = ? COLLATE NOCASE')
+    .bind(Date.now(), email.trim().toLowerCase())
+    .run();
+}
+
+export async function updatePassword(env: Env, email: string, password: string) {
+  const hash = await hashPassword(password);
+  await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE email = ? COLLATE NOCASE')
+    .bind(hash, Date.now(), email.trim().toLowerCase())
+    .run();
+}
+
+export function publicUser(user: UserRow) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role || 'user',
+    emailVerified: Boolean(user.email_verified),
+    suspended: Boolean(user.suspended),
+    freeUntil: user.free_until,
+  };
 }
 
 export { SESSION_COOKIE };
