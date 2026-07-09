@@ -54,13 +54,16 @@ export async function login(email: string, password: string, turnstileToken?: st
 }
 
 export async function register(email: string, password: string, name?: string, turnstileToken?: string) {
-  return api<{ user?: AuthUser; needsVerification?: boolean; email?: string; message?: string }>(
-    '/api/auth/register',
-    {
-      method: 'POST',
-      body: JSON.stringify({ email, password, name, turnstileToken }),
-    }
-  );
+  return api<{
+    user?: AuthUser;
+    needsVerification?: boolean;
+    ok?: boolean;
+    email?: string;
+    message?: string;
+  }>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, name, turnstileToken }),
+  });
 }
 
 export async function verifyEmail(email: string, code: string, turnstileToken?: string) {

@@ -2,6 +2,12 @@
 
 All notable changes to WWebConsole are documented in this file.
 
+## [1.4.1] - 2026-07-09
+
+### Security
+- Close remaining audit items: SPA CSP, HMAC session cookies, anti-enumeration register, PBKDF2 310k, strip `.dev.vars` from dist
+- WAF rate-limit helper script + updated `SECURITY_AUDIT.md` checklist
+
 ## [1.4.0] - 2026-07-09
 
 ### Security

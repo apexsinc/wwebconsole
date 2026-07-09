@@ -48,6 +48,33 @@ export async function securityHeaders(c: Context<{ Bindings: Env }>, next: Next)
   }
 }
 
+/** CSP for HTML document responses (SPA). Allows Vite assets + Turnstile. */
+export const SPA_CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "img-src 'self' data: https:",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  "connect-src 'self' https://challenges.cloudflare.com",
+  "frame-src https://challenges.cloudflare.com",
+  "worker-src 'self' blob:",
+].join('; ');
+
+export function withSpaSecurityHeaders(res: Response): Response {
+  const headers = new Headers(res.headers);
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  headers.set('Content-Security-Policy', SPA_CONTENT_SECURITY_POLICY);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 export async function limitJsonBody(c: Context<{ Bindings: Env }>, next: Next) {
   if (c.req.method === 'GET' || c.req.method === 'HEAD' || c.req.method === 'OPTIONS') {
     return next();

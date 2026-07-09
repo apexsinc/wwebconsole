@@ -53,6 +53,16 @@ npx wrangler secret put RESEND_API_KEY
 
 Prefer secrets over D1 `app_settings` for integration keys. Rotate if `.dev.vars` or build artifacts were ever exposed.
 
+`SESSION_SECRET` HMAC-signs the session cookie (`sessionId.signature`). Legacy unsigned UUID cookies still work until users re-login.
+
+## Rate limiting helper
+
+```bash
+ZONE_ID=<zone> CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… bash scripts/setup-waf-rate-limits.sh
+```
+
+If the API cannot create rules (plan/permission), add the three rules listed in this doc under **Security → WAF → Rate limiting rules**.
+
 ## Monitoring & alerts
 
 - Worker error rate, CPU time, subrequests

@@ -51,6 +51,7 @@ import {
   limitJsonBody,
   safePublicError,
   securityHeaders,
+  withSpaSecurityHeaders,
   WRITABLE_SETTING_KEYS,
 } from './security';
 import { verifyTurnstile } from './turnstile';
@@ -124,7 +125,20 @@ app.post('/api/auth/register', async (c) => {
 
   try {
     await verifyTurnstile(c.env, body.data.turnstileToken, clientIp(c));
-    const user = await registerUser(c.env, body.data.email, body.data.password, body.data.name || '');
+    const outcome = await registerUser(c.env, body.data.email, body.data.password, body.data.name || '');
+    const normalizedEmail = body.data.email.trim().toLowerCase();
+
+    // Uniform non-revealing response for exists / blocked (anti-enumeration)
+    if (outcome.kind !== 'created') {
+      return c.json({
+        ok: true,
+        email: normalizedEmail,
+        message:
+          'If this email can be registered, check your inbox for next steps. If you already have an account, sign in.',
+      });
+    }
+
+    const user = outcome.user;
     if (user.needsVerification) {
       await createAndSendOtp(c.env, user.email, 'verify');
       return c.json({
@@ -861,14 +875,21 @@ export default {
       if (seo) {
         const html = await assetRes.text();
         const injected = injectSeoIntoHtml(html, seo);
-        return new Response(injected, {
-          status: assetRes.status,
-          headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'public, max-age=60',
-          },
-        });
+        return withSpaSecurityHeaders(
+          new Response(injected, {
+            status: assetRes.status,
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'public, max-age=60',
+            },
+          })
+        );
       }
+      return withSpaSecurityHeaders(assetRes);
+    }
+
+    if (assetRes.headers.get('Content-Type')?.includes('text/html')) {
+      return withSpaSecurityHeaders(assetRes);
     }
 
     return assetRes;

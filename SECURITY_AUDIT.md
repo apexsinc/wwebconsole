@@ -54,15 +54,15 @@ WWebConsole has a solid baseline (PBKDF2 passwords, AES-GCM WeatherLink credenti
 | M4 | Medium | Short share slugs (min 4) | **Fixed** — default 16, custom min 12 |
 | M5 | Medium | No session rotation on login/password change | **Fixed** |
 | M6 | Medium | Admin settings arbitrary keys | **Fixed** — allowlist |
-| M7 | Medium | Email enumeration | **Partial** — generic OTP errors; register still distinct |
+| M7 | Medium | Email enumeration | **Fixed** — uniform register response for exists/blocked |
 | M8 | Medium | Public TV leaked `last_error` | **Fixed** — sanitized connection |
 | M9 | Medium | Extra admin emails in wrangler vars | **Improved** — removed demo/contact from allowlist |
-| L1 | Low | Unused `SESSION_SECRET` | Open — sessions are DB UUIDs |
-| L2 | Low | No CSP on SPA HTML | Open — recommend dashboard/CSP later |
-| L3 | Low | Integration secrets can live in D1 | Documented — prefer Wrangler secrets |
-| L4 | Low | PBKDF2 100k iterations | Open — acceptable; raise later |
-| L5 | Low | Turnstile off by default | Ops — enable in production |
-| I1 | Info | `dist/**/.dev.vars` build copy | Documented — do not publish `dist/` |
+| L1 | Low | Unused `SESSION_SECRET` | **Fixed** — HMAC-signs session cookie (legacy UUID still accepted) |
+| L2 | Low | No CSP on SPA HTML | **Fixed** — SPA CSP on HTML responses |
+| L3 | Low | Integration secrets can live in D1 | **Documented** — admin UI prefers Worker secrets |
+| L4 | Low | PBKDF2 100k iterations | **Fixed** — new hashes use 310k (old hashes still verify) |
+| L5 | Low | Turnstile off by default | Ops — enable in production (admin Integrations) |
+| I1 | Info | `dist/**/.dev.vars` build copy | **Fixed** — Vite plugin strips `.dev.vars` from dist |
 | I2 | Info | Frontend XSS via MarkdownLite | **OK** — text nodes only |
 
 ### Evidence (pre-fix)
@@ -132,11 +132,32 @@ Priority:
 - [x] Admin settings allowlist  
 - [x] SECURITY.md + hardening + IR docs  
 - [x] Dependabot + security unit tests  
-- [ ] Enable Cloudflare WAF rate-limit rules (manual)  
+- [x] SPA Content-Security-Policy on HTML responses  
+- [x] HMAC-signed session cookies (`SESSION_SECRET`)  
+- [x] Anti-enumeration register responses  
+- [x] PBKDF2 310k for new password hashes  
+- [x] Strip `.dev.vars` from Vite `dist/` output  
+- [ ] Enable Cloudflare WAF rate-limit rules (manual — see `scripts/setup-waf-rate-limits.sh`)  
 - [ ] Enable Turnstile/Resend in production (manual)  
 - [ ] Rotate secrets if `.dev.vars` ever leaked (manual)  
 - [ ] Move `ADMIN_EMAILS` fully to secrets (optional)  
-- [ ] Add SPA Content-Security-Policy (follow-up)  
+
+---
+
+## Follow-up pass (2026-07-09 evening)
+
+Closed remaining Low/Partial items in code:
+
+| Item | Change |
+|------|--------|
+| L1 | Session cookie = `sessionId.hmac` when `SESSION_SECRET` set |
+| L2 | `withSpaSecurityHeaders()` CSP for HTML |
+| M7 | Register returns generic `ok` for exists/blocked |
+| L4 | `PBKDF2_ITERATIONS = 310_000` for new hashes |
+| I1 | `stripDevVarsFromDist` Vite plugin |
+| L3 | Admin Integrations copy prefers Worker secrets |
+
+**Still manual (Cloudflare dashboard):** WAF rate limits, enable Turnstile/Resend, secret rotation if leaked.
 
 ---
 
@@ -145,8 +166,11 @@ Priority:
 | Control | Location |
 |---------|----------|
 | Rate limiting | `worker/rateLimit.ts`, `worker/security.ts` |
-| Headers / CORS / body limit | `worker/security.ts`, `worker/index.ts` |
+| Headers / CORS / body limit / SPA CSP | `worker/security.ts`, `worker/index.ts` |
 | OTP CSPRNG | `worker/crypto.ts`, `worker/otp.ts`, `worker/auth.ts` |
-| Session rotation | `worker/auth.ts` |
+| Session rotation + HMAC cookie | `worker/auth.ts`, `worker/crypto.ts` |
 | Public TV hardening | `worker/index.ts` |
+| Anti-enumeration register | `worker/auth.ts`, `worker/index.ts` |
+| Strip dist secrets | `vite.config.ts` |
 | Docs / Dependabot / tests | `SECURITY.md`, `docs/security/`, `.github/dependabot.yml`, `worker/__tests__/` |
+| WAF helper script | `scripts/setup-waf-rate-limits.sh` |

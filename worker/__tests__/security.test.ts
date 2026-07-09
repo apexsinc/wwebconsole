@@ -1,12 +1,10 @@
 /**
  * Security unit tests (Node built-in test runner).
  * Run: npm test
- *
- * Imports only modules that do not pull Hono/Workers types, using explicit .ts paths for Node ESM.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateOtpCode, randomSlug, hashPassword, verifyPassword } from '../crypto.ts';
+import { generateOtpCode, randomSlug, hashPassword, verifyPassword, hmacSha256Hex, parseSessionCookieValue } from '../crypto.ts';
 import { __resetRateLimitsForTests, rateLimit } from '../rateLimit.ts';
 
 describe('crypto', () => {
@@ -27,6 +25,14 @@ describe('crypto', () => {
     const hash = await hashPassword('correct-horse-battery');
     assert.equal(await verifyPassword('correct-horse-battery', hash), true);
     assert.equal(await verifyPassword('wrong-password', hash), false);
+    assert.match(hash, /^pbkdf2\$310000\$/);
+  });
+
+  it('hmacSha256Hex is deterministic', async () => {
+    const a = await hmacSha256Hex('secret', 'msg');
+    const b = await hmacSha256Hex('secret', 'msg');
+    assert.equal(a, b);
+    assert.equal(a.length, 64);
   });
 });
 
@@ -60,5 +66,16 @@ describe('sql injection regression (bound params pattern)', () => {
     const bad = "a' OR 1=1 --";
     assert.equal(/^[a-z0-9-]+$/i.test(bad), false);
     assert.equal(/^[a-z0-9-]+$/i.test('lobby-tv-01'), true);
+  });
+});
+
+describe('session cookie parse', () => {
+  it('accepts legacy unsigned UUID and rejects bad HMAC', async () => {
+    const sid = '11111111-1111-4111-8111-111111111111';
+    assert.equal(await parseSessionCookieValue(undefined, sid), sid);
+    assert.equal(await parseSessionCookieValue('secret', 'not-a-uuid'), null);
+    assert.equal(await parseSessionCookieValue('secret', `${sid}.deadbeefdeadbeefdeadbeefdeadbeef`), null);
+    const sig = (await hmacSha256Hex('secret', sid)).slice(0, 32);
+    assert.equal(await parseSessionCookieValue('secret', `${sid}.${sig}`), sid);
   });
 });

@@ -179,6 +179,7 @@ export function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [authCfg, setAuthCfg] = useState({ turnstileEnabled: false, turnstileSiteKey: '', freeTrialDays: 30 });
   const turnstile = useTurnstile(authCfg.turnstileSiteKey, authCfg.turnstileEnabled);
@@ -190,6 +191,7 @@ export function RegisterPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setInfo('');
     setLoading(true);
     try {
       const res = await register(email, password, name, turnstile.token || undefined);
@@ -197,8 +199,13 @@ export function RegisterPage() {
         navigate(`/verify?email=${encodeURIComponent(email)}`);
         return;
       }
-      if (res.user) setUser(res.user);
-      navigate(postAuthPath());
+      if (res.user) {
+        setUser(res.user);
+        navigate(postAuthPath());
+        return;
+      }
+      // Anti-enumeration: existing/blocked emails get a generic message (no verify redirect)
+      setInfo(res.message || 'If this email can be registered, check your inbox. Otherwise sign in.');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -209,14 +216,11 @@ export function RegisterPage() {
   return (
     <AuthShell
       title="Create account"
-      subtitle={
-        isAdminHost()
-          ? 'Create an account (allowlisted emails become admin)'
-          : `${authCfg.freeTrialDays || 30}-day free access · then yearly per device (WeatherLink Pro)`
-      }
+      subtitle={`${authCfg.freeTrialDays || 30}-day free access · then yearly per device (WeatherLink Pro)`}
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
+        {info && <p className="text-emerald-400 text-xs bg-emerald-950/40 border border-emerald-500/20 rounded-lg px-3 py-2">{info}</p>}
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Name</label>
         <input
           type="text"

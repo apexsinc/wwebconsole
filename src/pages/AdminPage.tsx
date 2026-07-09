@@ -400,8 +400,9 @@ export default function AdminPage() {
             className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl p-5 space-y-4"
           >
             <p className="text-xs text-slate-500 dark:text-gray-400">
-              Cloudflare Turnstile, Resend email, and poll intervals. Leave secret fields as •••••••• to keep the
-              current value. Pricing numbers also appear under Site & SEO → Pricing.
+              Prefer Worker secrets for Turnstile/Resend (`wrangler secret put TURNSTILE_SECRET_KEY` /
+              `RESEND_API_KEY`). D1 values are a fallback. Leave secret fields as •••••••• to keep the current value.
+              Enable Turnstile in production (`turnstile_enabled=1`).
             </p>
             {integrationRows.map((s) => renderField(s.key))}
             {integrationRows.length === 0 &&

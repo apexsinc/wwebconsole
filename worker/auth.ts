@@ -1,7 +1,7 @@
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { Context, Next } from 'hono';
 import { freeTrialMs } from './billing';
-import { hashPassword, newId, verifyPassword, generateOtpCode } from './crypto';
+import { hashPassword, newId, parseSessionCookieValue, signSessionCookieValue, verifyPassword, generateOtpCode } from './crypto';
 import { isEnabled } from './settings';
 import type { Env, UserRow } from './types';
 
@@ -60,7 +60,8 @@ export async function createSession(c: Context<{ Bindings: Env; Variables: AppVa
   const host = new URL(c.req.url).hostname;
   const domain = host.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
   const isProd = host.endsWith('wwebconsole.com');
-  setCookie(c, SESSION_COOKIE, id, {
+  const cookieValue = await signSessionCookieValue(c.env.SESSION_SECRET, id);
+  setCookie(c, SESSION_COOKIE, cookieValue, {
     httpOnly: true,
     secure: isProd || isHttps,
     sameSite: 'Lax',
@@ -82,7 +83,8 @@ export async function purgeExpiredAuthRows(env: Env) {
 }
 
 export async function destroySession(c: Context<{ Bindings: Env; Variables: AppVars }>) {
-  const sid = getCookie(c, SESSION_COOKIE);
+  const raw = getCookie(c, SESSION_COOKIE);
+  const sid = await parseSessionCookieValue(c.env.SESSION_SECRET, raw);
   if (sid) {
     await c.env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sid).run();
   }
@@ -101,8 +103,12 @@ async function loadUserFromSession(env: Env, sid: string): Promise<UserRow | nul
     .first<UserRow>();
 }
 
+async function sessionIdFromRequest(c: Context<{ Bindings: Env; Variables: AppVars }>): Promise<string | null> {
+  return parseSessionCookieValue(c.env.SESSION_SECRET, getCookie(c, SESSION_COOKIE));
+}
+
 export async function requireAuth(c: Context<{ Bindings: Env; Variables: AppVars }>, next: Next) {
-  const sid = getCookie(c, SESSION_COOKIE);
+  const sid = await sessionIdFromRequest(c);
   if (!sid) return c.json({ error: 'Unauthorized' }, 401);
 
   const row = await loadUserFromSession(c.env, sid);
@@ -117,7 +123,7 @@ export async function requireAuth(c: Context<{ Bindings: Env; Variables: AppVars
 }
 
 export async function requireAdmin(c: Context<{ Bindings: Env; Variables: AppVars }>, next: Next) {
-  const sid = getCookie(c, SESSION_COOKIE);
+  const sid = await sessionIdFromRequest(c);
   if (!sid) return c.json({ error: 'Unauthorized' }, 401);
   const row = await loadUserFromSession(c.env, sid);
   if (!row) return c.json({ error: 'Unauthorized' }, 401);
@@ -128,7 +134,7 @@ export async function requireAdmin(c: Context<{ Bindings: Env; Variables: AppVar
 }
 
 export async function optionalAuth(c: Context<{ Bindings: Env; Variables: AppVars }>, next: Next) {
-  const sid = getCookie(c, SESSION_COOKIE);
+  const sid = await sessionIdFromRequest(c);
   if (sid) {
     const row = await loadUserFromSession(c.env, sid);
     if (row && !row.suspended) c.set('user', row);
@@ -136,19 +142,27 @@ export async function optionalAuth(c: Context<{ Bindings: Env; Variables: AppVar
   await next();
 }
 
-export async function registerUser(env: Env, email: string, password: string, name: string) {
+/**
+ * Register outcome used to reduce email enumeration.
+ * Callers should return a uniform client response for created vs already-exists.
+ */
+export type RegisterUserResult = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  emailVerified: boolean;
+  freeUntil: number;
+  needsVerification: boolean;
+};
+
+export type RegisterOutcome =
+  | { kind: 'created'; user: RegisterUserResult }
+  | { kind: 'exists' }
+  | { kind: 'blocked' };
+
+async function registerUserCreated(env: Env, email: string, password: string, name: string): Promise<RegisterUserResult> {
   const normalized = email.trim().toLowerCase();
-
-  // Allowlisted admin emails cannot self-register (prevents squatting). Create via invite/ops.
-  if (isAdminEmail(env, normalized)) {
-    throw new Error('This email cannot be used for self-registration. Contact support.');
-  }
-
-  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE')
-    .bind(normalized)
-    .first();
-  if (existing) throw new Error('Email already registered');
-
   const id = newId();
   const now = Date.now();
   const passwordHash = await hashPassword(password);
@@ -156,7 +170,6 @@ export async function registerUser(env: Env, email: string, password: string, na
   const freeUntil = now + trialMs;
   const resendOn = await isEnabled(env, 'resend_enabled');
   const emailVerified = resendOn ? 0 : 1;
-  // Never auto-promote on register — admin role only via login allowlist after account exists
   const role = 'user';
 
   await env.DB.prepare(
@@ -208,6 +221,23 @@ export async function registerUser(env: Env, email: string, password: string, na
     freeUntil,
     needsVerification: !emailVerified,
   };
+}
+
+export async function registerUser(env: Env, email: string, password: string, name: string) {
+  const normalized = email.trim().toLowerCase();
+
+  // Allowlisted admin emails cannot self-register (prevents squatting).
+  if (isAdminEmail(env, normalized)) {
+    return { kind: 'blocked' as const };
+  }
+
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE')
+    .bind(normalized)
+    .first();
+  if (existing) return { kind: 'exists' as const };
+
+  const user = await registerUserCreated(env, normalized, password, name);
+  return { kind: 'created' as const, user };
 }
 
 export async function loginUser(env: Env, email: string, password: string) {
