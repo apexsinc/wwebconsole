@@ -84,6 +84,10 @@ export interface UserRow {
   email_verified: number;
   free_until: number | null;
   notes: string;
+  delete_requested_at: number | null;
+  pending_email: string | null;
+  pending_email_code_hash: string | null;
+  pending_email_expires_at: number | null;
   created_at: number;
   updated_at: number;
 }

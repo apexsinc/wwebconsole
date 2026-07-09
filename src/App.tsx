@@ -30,6 +30,8 @@ import { fetchMe, useWeatherQuery } from './services/api.js';
 import { LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage } from './pages/AuthPages.js';
 import TvPage from './pages/TvPage.js';
 import AdminPage from './pages/AdminPage.js';
+import AccountPage from './pages/AccountPage.js';
+import { applyTheme, getStoredTheme } from './hooks/useTheme.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +40,10 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+if (typeof document !== 'undefined') {
+  applyTheme(getStoredTheme());
+}
 
 function MainDashboard() {
   const weather = useWeatherStore((state) => state.weather);
@@ -251,7 +257,7 @@ function ProtectedConsole() {
 
   if (!authChecked) {
     return (
-      <div className="h-screen bg-[#0a0d14] flex items-center justify-center text-gray-400 text-sm">
+      <div className="h-screen bg-[#e8edf3] dark:bg-[#0a0d14] flex items-center justify-center text-slate-500 dark:text-gray-400 text-sm">
         Loading…
       </div>
     );
@@ -262,11 +268,20 @@ function ProtectedConsole() {
   const accessBlocked = billing && !billing.accessOk;
 
   return (
-    <div className="h-screen bg-[#e1e5eb] flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#e8edf3] dark:bg-[#0a0d14] flex flex-col overflow-hidden">
       <ConfigNavbar />
       {accessBlocked && (
-        <div className="bg-amber-950 text-amber-100 text-xs px-4 py-2 border-b border-amber-800 text-center">
+        <div className="bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-100 text-xs px-4 py-2 border-b border-amber-200 dark:border-amber-800 text-center">
           {billing.accessReason || 'Subscription required'} · Free trial / yearly Pro device plans apply
+        </div>
+      )}
+      {user.deleteRequestedAt && (
+        <div className="bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100 text-xs px-4 py-2 border-b border-rose-200 dark:border-rose-800 text-center">
+          Account deletion scheduled
+          {user.deleteEffectiveAt ? ` for ${new Date(user.deleteEffectiveAt).toLocaleString()}` : ''}.{' '}
+          <a href="/account" className="underline font-semibold">
+            Manage in Account
+          </a>
         </div>
       )}
       <div className="flex-1 flex flex-col justify-center">
@@ -298,6 +313,7 @@ function HostAwareRoutes() {
       <Route path="/verify" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/account" element={<AccountPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/admin/*" element={<AdminPage />} />
       <Route path="/tv/:slug" element={<TvPage />} />

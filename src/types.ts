@@ -70,6 +70,9 @@ export interface AuthUser {
   emailVerified?: boolean;
   suspended?: boolean;
   freeUntil?: number | null;
+  deleteRequestedAt?: number | null;
+  deleteEffectiveAt?: number | null;
+  pendingEmail?: string | null;
 }
 
 export interface BillingInfo {

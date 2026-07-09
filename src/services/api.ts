@@ -145,6 +145,38 @@ export async function adminUpdateSettings(settings: Record<string, string>) {
   });
 }
 
+export async function changeAccountPassword(currentPassword: string, newPassword: string) {
+  return api<{ ok: boolean }>('/api/account/password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export async function requestEmailChange(email: string) {
+  return api<{ ok: boolean; needsVerification?: boolean; email: string; devCode?: string }>(
+    '/api/account/email/request',
+    { method: 'POST', body: JSON.stringify({ email }) }
+  );
+}
+
+export async function confirmEmailChange(code: string) {
+  return api<{ ok: boolean; user: AuthUser; email: string }>('/api/account/email/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function requestAccountDeletion() {
+  return api<{ ok: boolean; deleteRequestedAt: number; deleteEffectiveAt: number; user: AuthUser }>(
+    '/api/account/delete',
+    { method: 'POST', body: JSON.stringify({ confirm: 'DELETE' }) }
+  );
+}
+
+export async function cancelAccountDeletion() {
+  return api<{ ok: boolean; user: AuthUser }>('/api/account/delete/cancel', { method: 'POST' });
+}
+
 export function useWeatherQuery(enabled = true) {
   const setAll = useWeatherStore((state) => state.setAll);
   const pollSec = useWeatherStore((state) => state.billing?.pollIntervalSec || state.config.pollIntervalSec || 120);

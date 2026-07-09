@@ -124,7 +124,7 @@ export function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50"
+          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
         <input
@@ -133,7 +133,7 @@ export function LoginPage() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50"
+          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
         {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
         <button
@@ -203,7 +203,7 @@ export function RegisterPage() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50"
+          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Email</label>
         <input
@@ -211,7 +211,7 @@ export function RegisterPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50"
+          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
         <input
@@ -220,7 +220,7 @@ export function RegisterPage() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50"
+          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
         {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
         <button
@@ -294,7 +294,7 @@ export function VerifyEmailPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50"
+          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
         <input
@@ -302,7 +302,7 @@ export function VerifyEmailPage() {
           required
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white tracking-[0.3em] font-mono outline-none focus:border-sky-500/50"
+          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white tracking-[0.3em] font-mono outline-none focus:border-sky-500/50"
         />
         {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
         <button type="submit" disabled={loading} className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5">
@@ -360,7 +360,7 @@ export function ForgotPasswordPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50"
+            className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
           />
           {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
           <button type="submit" disabled={loading} className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5">
@@ -409,11 +409,11 @@ export function ResetPasswordPage() {
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
-        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50" />
+        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50" />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
-        <input type="text" required value={code} onChange={(e) => setCode(e.target.value)} className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-sky-500/50" />
+        <input type="text" required value={code} onChange={(e) => setCode(e.target.value)} className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white font-mono outline-none focus:border-sky-500/50" />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">New password</label>
-        <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="bg-[#0a0d14] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50" />
+        <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50" />
         {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
         <button type="submit" disabled={loading} className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5">
           {loading ? 'Saving…' : 'Update password'}
@@ -433,20 +433,20 @@ function AuthShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#0a0d14] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#e8edf3] dark:bg-[#0a0d14] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-sky-950/40 border border-sky-500/25 flex items-center justify-center text-sky-400">
+          <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-white font-black tracking-wider text-sm uppercase">WWebConsole</h1>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest">wwebconsole.com</p>
+            <h1 className="text-slate-900 dark:text-white font-black tracking-wider text-sm uppercase">WWebConsole</h1>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest">wwebconsole.com</p>
           </div>
         </div>
-        <div className="bg-[#0e111a] border border-[#2d343f] rounded-2xl p-6 shadow-2xl">
-          <h2 className="text-white font-bold text-lg">{title}</h2>
-          <p className="text-gray-400 text-xs mt-1 mb-5">{subtitle}</p>
+        <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-[#2d343f] rounded-2xl p-6 shadow-xl">
+          <h2 className="text-slate-900 dark:text-white font-bold text-lg">{title}</h2>
+          <p className="text-slate-500 dark:text-gray-400 text-xs mt-1 mb-5">{subtitle}</p>
           {children}
         </div>
       </div>

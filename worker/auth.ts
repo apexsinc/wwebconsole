@@ -228,6 +228,8 @@ export async function updatePassword(env: Env, email: string, password: string) 
 }
 
 export function publicUser(user: UserRow) {
+  const deleteRequestedAt = user.delete_requested_at ?? null;
+  const deleteEffectiveAt = deleteRequestedAt ? deleteRequestedAt + 15 * 24 * 60 * 60 * 1000 : null;
   return {
     id: user.id,
     email: user.email,
@@ -236,7 +238,98 @@ export function publicUser(user: UserRow) {
     emailVerified: Boolean(user.email_verified),
     suspended: Boolean(user.suspended),
     freeUntil: user.free_until,
+    deleteRequestedAt,
+    deleteEffectiveAt,
+    pendingEmail: user.pending_email || null,
   };
+}
+
+export async function changePassword(env: Env, userId: string, currentPassword: string, newPassword: string) {
+  const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<UserRow>();
+  if (!user) throw new Error('User not found');
+  const ok = await verifyPassword(currentPassword, user.password_hash);
+  if (!ok) throw new Error('Current password is incorrect');
+  const hash = await hashPassword(newPassword);
+  await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
+    .bind(hash, Date.now(), userId)
+    .run();
+}
+
+export async function requestEmailChange(env: Env, userId: string, newEmail: string) {
+  const normalized = newEmail.trim().toLowerCase();
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE')
+    .bind(normalized)
+    .first();
+  if (existing) throw new Error('Email already in use');
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const codeHash = await hashPassword(code);
+  const now = Date.now();
+  await env.DB.prepare(
+    `UPDATE users SET pending_email = ?, pending_email_code_hash = ?, pending_email_expires_at = ?, updated_at = ?
+     WHERE id = ?`
+  )
+    .bind(normalized, codeHash, now + 15 * 60 * 1000, now, userId)
+    .run();
+  return { email: normalized, code };
+}
+
+export async function confirmEmailChange(env: Env, userId: string, code: string) {
+  const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<UserRow>();
+  if (!user?.pending_email || !user.pending_email_code_hash) throw new Error('No pending email change');
+  if (!user.pending_email_expires_at || user.pending_email_expires_at < Date.now()) {
+    throw new Error('Email change code expired');
+  }
+  const ok = await verifyPassword(code.trim(), user.pending_email_code_hash);
+  if (!ok) throw new Error('Invalid verification code');
+
+  const taken = await env.DB.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE AND id != ?')
+    .bind(user.pending_email, userId)
+    .first();
+  if (taken) throw new Error('Email already in use');
+
+  const now = Date.now();
+  await env.DB.prepare(
+    `UPDATE users SET email = ?, email_verified = 1, pending_email = NULL, pending_email_code_hash = NULL,
+     pending_email_expires_at = NULL, updated_at = ? WHERE id = ?`
+  )
+    .bind(user.pending_email, now, userId)
+    .run();
+
+  return { email: user.pending_email };
+}
+
+export async function requestAccountDeletion(env: Env, userId: string) {
+  const now = Date.now();
+  await env.DB.prepare('UPDATE users SET delete_requested_at = ?, updated_at = ? WHERE id = ?')
+    .bind(now, now, userId)
+    .run();
+  return { deleteRequestedAt: now, deleteEffectiveAt: now + 15 * 24 * 60 * 60 * 1000 };
+}
+
+export async function cancelAccountDeletion(env: Env, userId: string) {
+  await env.DB.prepare('UPDATE users SET delete_requested_at = NULL, updated_at = ? WHERE id = ?')
+    .bind(Date.now(), userId)
+    .run();
+}
+
+/** Permanently remove accounts past the 15-day grace period. */
+export async function purgeDeletedAccounts(env: Env) {
+  const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
+  const { results } = await env.DB.prepare(
+    `SELECT id FROM users WHERE delete_requested_at IS NOT NULL AND delete_requested_at <= ? LIMIT 50`
+  )
+    .bind(cutoff)
+    .all<{ id: string }>();
+
+  for (const row of results || []) {
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(row.id).run();
+    await env.DB.prepare('DELETE FROM share_links WHERE user_id = ?').bind(row.id).run();
+    await env.DB.prepare('DELETE FROM devices WHERE user_id = ?').bind(row.id).run();
+    await env.DB.prepare('DELETE FROM stations WHERE user_id = ?').bind(row.id).run();
+    await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(row.id).run();
+  }
+  return (results || []).length;
 }
 
 export { SESSION_COOKIE };

@@ -12,6 +12,9 @@ import {
   Copy,
   Trash2,
   Plus,
+  UserRound,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
 import {
@@ -22,9 +25,11 @@ import {
   useConfigMutation,
   useShareLinks,
 } from '../services/api.js';
+import { useTheme } from '../hooks/useTheme.js';
 
 export default function ConfigNavbar() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const config = useWeatherStore((state) => state.config);
   const connection = useWeatherStore((state) => state.connection);
   const user = useWeatherStore((state) => state.user);
@@ -57,27 +62,30 @@ export default function ConfigNavbar() {
   }, [config]);
 
   const handleSave = () => {
-    configMutation.mutate(
-      buildStationPatch({
-        apiVersion,
-        did,
-        password,
-        apiToken,
-        apiSecret,
-        stationId,
-        latitude: '',
-        longitude: '',
-        wlPlan,
-      }),
-      {
-        onSuccess: () => {
-          setPassword('');
-          setApiToken('');
-          setApiSecret('');
-          setIsOpen(false);
-        },
-      }
-    );
+    // Exclusive credential sets: only send fields for the selected API version
+    const patch = buildStationPatch({
+      apiVersion,
+      did,
+      password: apiVersion === 'v1' ? password : password, // v2 optional hybrid password ok
+      apiToken,
+      apiSecret: apiVersion === 'v2' ? apiSecret : '',
+      stationId: apiVersion === 'v2' ? stationId : '',
+      latitude: '',
+      longitude: '',
+      wlPlan,
+    });
+    // Force clear opposite-version secrets on the server
+    if (apiVersion === 'v1') {
+      patch.cloudApiSecret = '';
+    }
+    configMutation.mutate(patch, {
+      onSuccess: () => {
+        setPassword('');
+        setApiToken('');
+        setApiSecret('');
+        setIsOpen(false);
+      },
+    });
   };
 
   const handleLogout = async () => {
@@ -109,7 +117,7 @@ export default function ConfigNavbar() {
 
   return (
     <>
-      <nav id="config-navbar" className="w-full bg-[#0a0d14] border-b border-gray-900 px-6 py-4 flex items-center justify-between select-none">
+      <nav id="config-navbar" className="w-full bg-slate-900 dark:bg-[#0a0d14] border-b border-slate-800 px-6 py-4 flex items-center justify-between select-none">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-sky-950/40 border border-sky-500/25 flex items-center justify-center text-sky-400">
             <Activity className="w-4.5 h-4.5 animate-pulse" />
@@ -134,11 +142,25 @@ export default function ConfigNavbar() {
         <div className="hidden sm:flex items-center">
           <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-mono border px-3 py-1 rounded-full font-bold uppercase tracking-wider text-sky-400 bg-sky-950/40 border-sky-500/25">
             <Network className="w-3.5 h-3.5" />
-            WeatherLink Cloud
+            WeatherLink Cloud · {config.cloudApiVersion?.toUpperCase() || 'V2'}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white rounded-lg"
+            title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+          >
+            {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-300" /> : <Moon className="w-3.5 h-3.5 text-sky-300" />}
+          </button>
+          <button
+            onClick={() => navigate('/account')}
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white rounded-lg"
+          >
+            <UserRound className="w-3.5 h-3.5 text-sky-400" />
+            Account
+          </button>
           <button
             onClick={() => {
               setTab('tv');
@@ -209,26 +231,34 @@ export default function ConfigNavbar() {
                   </p>
 
                   <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-4">
-                    <div className="flex bg-gray-950 border border-gray-800 rounded-lg p-1">
-                      <button
-                        type="button"
-                        onClick={() => setApiVersion('v1')}
-                        className={`flex-1 py-1.5 rounded-md text-[10px] font-bold ${
-                          apiVersion === 'v1' ? 'bg-gray-800 text-white' : 'text-gray-500'
-                        }`}
-                      >
-                        API V1
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setApiVersion('v2')}
-                        className={`flex-1 py-1.5 rounded-md text-[10px] font-bold ${
-                          apiVersion === 'v2' ? 'bg-gray-800 text-white' : 'text-gray-500'
-                        }`}
-                      >
-                        API V2
-                      </button>
-                    </div>
+                  <div className="flex bg-gray-950 border border-gray-800 rounded-lg p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApiVersion('v1');
+                        setApiSecret('');
+                      }}
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold ${
+                        apiVersion === 'v1' ? 'bg-gray-800 text-white' : 'text-gray-500'
+                      }`}
+                    >
+                      API V1 only
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApiVersion('v2');
+                      }}
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold ${
+                        apiVersion === 'v2' ? 'bg-gray-800 text-white' : 'text-gray-500'
+                      }`}
+                    >
+                      API V2 only
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-amber-400/90">
+                    Choose one API version. V1 uses DID + password + token. V2 uses API key + secret (password optional).
+                  </p>
 
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Device ID (DID)</label>

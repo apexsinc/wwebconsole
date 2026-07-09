@@ -405,12 +405,26 @@ export function connectionFromRow(row: StationRow, weather: WeatherData, error: 
 export async function saveCredentials(
   env: Env,
   existing: StationCredentials,
-  patch: Partial<StationCredentials>
+  patch: Partial<StationCredentials> & { apiVersion?: 'v1' | 'v2' }
 ): Promise<{ enc: string; iv: string }> {
+  const version = patch.apiVersion || 'v2';
   const merged: StationCredentials = { ...existing };
-  if (patch.password !== undefined && patch.password !== '') merged.password = patch.password;
-  if (patch.apiToken !== undefined && patch.apiToken !== '') merged.apiToken = patch.apiToken;
-  if (patch.apiSecret !== undefined && patch.apiSecret !== '') merged.apiSecret = patch.apiSecret;
+
+  if (version === 'v1') {
+    // V1 only: DID + password + apiToken. Clear V2 secret.
+    if (patch.password !== undefined && patch.password !== '') merged.password = patch.password;
+    if (patch.apiToken !== undefined && patch.apiToken !== '') merged.apiToken = patch.apiToken;
+    merged.apiSecret = undefined;
+  } else {
+    // V2 only: apiToken + apiSecret (+ optional password for hybrid sunrise). Clear nothing required for v1 password unless empty overwrite.
+    if (patch.apiToken !== undefined && patch.apiToken !== '') merged.apiToken = patch.apiToken;
+    if (patch.apiSecret !== undefined && patch.apiSecret !== '') merged.apiSecret = patch.apiSecret;
+    if (patch.password !== undefined) {
+      if (patch.password === '') merged.password = undefined;
+      else merged.password = patch.password;
+    }
+  }
+
   return encryptJson(env.CREDENTIALS_KEY, merged);
 }
 

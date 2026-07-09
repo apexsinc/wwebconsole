@@ -51,4 +51,16 @@ Set `ADMIN_EMAILS` (comma-separated) in `wrangler.jsonc` and `.dev.vars` so thos
 
 **Local admin:** `npm run dev` → open http://localhost:5173/admin and sign in with an allowlisted email.
 
+### Cloudflare Access OTP for admin.wwebconsole.com
+
+The API token used for Workers deploy may lack Access **Edit**. Create the policy in the dashboard (or with an Access-edit token):
+
+1. Zero Trust → Access → Applications → Add self-hosted app  
+2. Domain: `admin.wwebconsole.com`  
+3. Identity provider: **One-time PIN**  
+4. Policy allow emails: `it.apexsinc@gmail.com`, `ts.apexsinc@gmail.com`, `apexsinc@gmail.com`  
+5. Require login method: One-time PIN  
+
+Or run: `CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… bash scripts/setup-admin-access.sh`
+
 **Remove old davis-console (root-owned):** as root run `bash /home/wwebconsole/remove-davis-console.sh`

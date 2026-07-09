@@ -2,6 +2,17 @@
 
 All notable changes to WWebConsole are documented in this file.
 
+## [1.2.0] - 2026-07-09
+
+### Added
+- Cloudflare Access OTP policy script for `admin.wwebconsole.com` (allowlist: it/ts/apexsinc)
+- Light theme by default with dark-mode toggle
+- Account settings: change email, change password, schedule deletion (15-day grace)
+- Cron purge of accounts past the deletion grace period
+
+### Changed
+- WeatherLink credentials are exclusive: choose **V1 or V2** (not both secret sets)
+
 ## [1.1.1] - 2026-07-09
 
 ### Changed

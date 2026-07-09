@@ -2,17 +2,25 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z } from 'zod';
 import {
+  cancelAccountDeletion,
+  changePassword,
+  confirmEmailChange,
   createSession,
   destroySession,
   loginUser,
   markEmailVerified,
   optionalAuth,
   publicUser,
+  purgeDeletedAccounts,
   registerUser,
+  requestAccountDeletion,
+  requestEmailChange,
   requireAdmin,
   requireAuth,
   updatePassword,
 } from './auth';
+import { sendOtpEmail } from './email';
+import { isEnabled } from './settings';
 import {
   activateYearlySubscription,
   hasAccountAccess,
@@ -198,6 +206,69 @@ app.get('/api/auth/me', optionalAuth, async (c) => {
   return c.json({ user: publicUser(user), billing: publicBilling(user, station) });
 });
 
+// ---------- Account settings ----------
+app.post('/api/account/password', requireAuth, async (c) => {
+  const body = z
+    .object({
+      currentPassword: z.string().min(1),
+      newPassword: z.string().min(8).max(128),
+    })
+    .safeParse(await c.req.json());
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+  try {
+    await changePassword(c.env, c.get('user').id, body.data.currentPassword, body.data.newPassword);
+    return c.json({ ok: true });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Password change failed' }, 400);
+  }
+});
+
+app.post('/api/account/email/request', requireAuth, async (c) => {
+  const body = z.object({ email: z.string().email() }).safeParse(await c.req.json());
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+  try {
+    const { email, code } = await requestEmailChange(c.env, c.get('user').id, body.data.email);
+    const resendOn = await isEnabled(c.env, 'resend_enabled');
+    if (resendOn) {
+      await sendOtpEmail(c.env, email, 'verify', code);
+      return c.json({ ok: true, needsVerification: true, email });
+    }
+    // Dev/local without Resend: apply immediately after confirming with returned code path disabled —
+    // still require confirm endpoint, but include code only when email is disabled (local).
+    return c.json({ ok: true, needsVerification: true, email, devCode: code });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Email change failed' }, 400);
+  }
+});
+
+app.post('/api/account/email/confirm', requireAuth, async (c) => {
+  const body = z.object({ code: z.string().min(4).max(12) }).safeParse(await c.req.json());
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+  try {
+    const result = await confirmEmailChange(c.env, c.get('user').id, body.data.code);
+    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(c.get('user').id).first<UserRow>();
+    return c.json({ ok: true, user: publicUser(user!), email: result.email });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Confirmation failed' }, 400);
+  }
+});
+
+app.post('/api/account/delete', requireAuth, async (c) => {
+  const body = z.object({ confirm: z.literal('DELETE') }).safeParse(await c.req.json());
+  if (!body.success) return c.json({ error: 'Type DELETE to confirm' }, 400);
+  const user = c.get('user');
+  if (user.role === 'admin') return c.json({ error: 'Admin accounts cannot be self-deleted' }, 400);
+  const result = await requestAccountDeletion(c.env, user.id);
+  const fresh = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(user.id).first<UserRow>();
+  return c.json({ ok: true, ...result, user: publicUser(fresh!) });
+});
+
+app.post('/api/account/delete/cancel', requireAuth, async (c) => {
+  await cancelAccountDeletion(c.env, c.get('user').id);
+  const fresh = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(c.get('user').id).first<UserRow>();
+  return c.json({ ok: true, user: publicUser(fresh!) });
+});
+
 async function assertAccess(c: { env: Env; json: Function; get: Function }) {
   const user = c.get('user') as UserRow;
   const station = await getStationForUser(c.env, user.id);
@@ -259,6 +330,15 @@ app.patch('/api/station', requireAuth, async (c) => {
   if (!body.success) return c.json({ error: 'Invalid input', details: body.error.flatten() }, 400);
   const d = body.data;
   const now = Date.now();
+  const nextVersion = d.cloudApiVersion || (station.cloud_api_version === 'v1' ? 'v1' : 'v2');
+
+  // Enforce exclusive credential sets: v1 XOR v2
+  if (nextVersion === 'v1' && d.cloudApiSecret) {
+    return c.json({ error: 'API V1 does not use an API Secret. Switch to V2 or clear the secret.' }, 400);
+  }
+  if (nextVersion === 'v2' && d.cloudPassword && !d.cloudApiToken && !d.cloudApiSecret) {
+    // password alone on v2 is optional hybrid — ok
+  }
 
   const existingCreds = await decryptJson<StationCredentials>(
     c.env.CREDENTIALS_KEY,
@@ -268,8 +348,16 @@ app.patch('/api/station', requireAuth, async (c) => {
   const { enc, iv } = await saveCredentials(c.env, existingCreds, {
     password: d.cloudPassword,
     apiToken: d.cloudApiToken,
-    apiSecret: d.cloudApiSecret,
+    apiSecret: nextVersion === 'v1' ? '' : d.cloudApiSecret,
+    apiVersion: nextVersion,
   });
+
+  // When switching versions, wipe the unused secret fields explicitly
+  if (d.cloudApiVersion === 'v1') {
+    // ensure secret cleared in encrypted blob already via saveCredentials
+  } else if (d.cloudApiVersion === 'v2') {
+    // v2 keeps optional password for sunrise hybrid only
+  }
 
   await c.env.DB.prepare(
     `UPDATE stations SET
@@ -661,7 +749,12 @@ export default {
     return env.ASSETS.fetch(request);
   },
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(pollAllStations(env));
+    ctx.waitUntil(
+      (async () => {
+        await purgeDeletedAccounts(env);
+        await pollAllStations(env);
+      })()
+    );
   },
 };
 
