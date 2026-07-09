@@ -48,20 +48,22 @@ npx wrangler secret put CREDENTIALS_KEY
 npm run deploy
 ```
 
-Set `ADMIN_EMAILS` (comma-separated) in `wrangler.jsonc` and `.dev.vars` so those accounts are admins in **production, staging, and local**. They auto-promote on login.
+Set `ADMIN_EMAILS` (comma-separated) in `wrangler.jsonc` and `.dev.vars` so those accounts are admins in **production, staging, and local**. They auto-promote on login. The admin subdomain does **not** allow registration — create accounts on `wwebconsole.com` (or promote via allowlist).
 
 **Local admin:** `npm run dev` → open http://localhost:5173/admin and sign in with an allowlisted email.
 
 ### Cloudflare Access OTP for admin.wwebconsole.com
 
-The API token used for Workers deploy may lack Access **Edit**. Create the policy in the dashboard (or with an Access-edit token):
+Configured as self-hosted Access app **WWebConsole Admin** on `admin.wwebconsole.com`:
 
-1. Zero Trust → Access → Applications → Add self-hosted app  
-2. Domain: `admin.wwebconsole.com`  
-3. Identity provider: **One-time PIN**  
-4. Policy allow emails: `it.apexsinc@gmail.com`, `ts.apexsinc@gmail.com`, `apexsinc@gmail.com`  
-5. Require login method: One-time PIN  
+- Identity: **One-time PIN** only  
+- Allow: `it.apexsinc@gmail.com`, `ts.apexsinc@gmail.com`, `apexsinc@gmail.com`  
+- Session: 24h  
 
-Or run: `CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… bash scripts/setup-admin-access.sh`
+Visitors hit Cloudflare email OTP before the admin login page. Re-apply with:
+
+```bash
+CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… bash scripts/setup-admin-access.sh
+```
 
 **Remove old davis-console (root-owned):** as root run `bash /home/wwebconsole/remove-davis-console.sh`

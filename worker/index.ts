@@ -81,8 +81,17 @@ function clientIp(c: { req: { header: (n: string) => string | undefined } }) {
   return c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || null;
 }
 
+function isAdminHostname(hostname: string): boolean {
+  return hostname === 'admin.wwebconsole.com' || hostname.startsWith('admin.') || hostname === 'admin.localhost';
+}
+
 // ---------- Auth ----------
 app.post('/api/auth/register', async (c) => {
+  // Admin subdomain is invite/allowlist only — never create accounts here
+  if (isAdminHostname(new URL(c.req.url).hostname)) {
+    return c.json({ error: 'Registration is not available on the admin site. Use wwebconsole.com.' }, 403);
+  }
+
   const body = z
     .object({
       email: z.string().email(),

@@ -2,6 +2,12 @@
 
 All notable changes to WWebConsole are documented in this file.
 
+## [1.3.1] - 2026-07-09
+
+### Changed
+- Admin subdomain is login-only (no registration); register API blocked on admin host
+- Cloudflare Access email OTP protects `admin.wwebconsole.com` (allowlist: apexsinc / it / ts)
+
 ## [1.3.0] - 2026-07-09
 
 ### Added

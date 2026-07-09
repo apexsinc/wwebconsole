@@ -158,10 +158,14 @@ export function LoginPage() {
           <Link to="/forgot-password" className="text-sky-400 hover:underline">
             Forgot password?
           </Link>
-          {' · '}
-          <Link to="/register" className="text-sky-400 hover:underline">
-            Create account
-          </Link>
+          {!isAdminHost() && (
+            <>
+              {' · '}
+              <Link to="/register" className="text-sky-400 hover:underline">
+                Create account
+              </Link>
+            </>
+          )}
         </p>
       </form>
     </AuthShell>

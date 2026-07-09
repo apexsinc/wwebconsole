@@ -307,15 +307,15 @@ function ProtectedConsole() {
 function HostAwareRoutes() {
   const host = typeof window !== 'undefined' ? window.location.hostname : '';
 
-  // Dedicated admin host (prod/staging/local admin.localhost) always shows admin UI
+  // Dedicated admin host: login only (no public registration). Cloudflare Access OTP sits in front.
   if (host === 'admin.wwebconsole.com' || host.startsWith('admin.') || host === 'admin.localhost') {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/verify" element={<VerifyEmailPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/register" element={<Navigate to="/login" replace />} />
+        <Route path="/verify" element={<Navigate to="/login" replace />} />
         <Route path="/*" element={<AdminPage />} />
       </Routes>
     );
