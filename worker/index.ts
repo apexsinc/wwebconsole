@@ -513,12 +513,19 @@ app.patch('/api/station', requireAuth, async (c) => {
     station.credentials_enc,
     station.credentials_iv
   );
-  const { enc, iv } = await saveCredentials(c.env, existingCreds, {
-    password: d.cloudPassword,
-    apiToken: d.cloudApiToken,
-    apiSecret: nextVersion === 'v1' ? '' : d.cloudApiSecret,
-    apiVersion: nextVersion,
-  });
+  let enc: string, iv: string;
+  try {
+    const res = await saveCredentials(c.env, existingCreds, {
+      password: d.cloudPassword,
+      apiToken: d.cloudApiToken,
+      apiSecret: nextVersion === 'v1' ? '' : d.cloudApiSecret,
+      apiVersion: nextVersion,
+    });
+    enc = res.enc;
+    iv = res.iv;
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to encrypt credentials' }, 500);
+  }
 
   await c.env.DB.prepare(
     `UPDATE stations SET
