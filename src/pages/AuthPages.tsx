@@ -285,6 +285,7 @@ export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -295,17 +296,27 @@ export function RegisterPage() {
     fetchAuthConfig().then(setAuthCfg).catch(() => undefined);
   }, []);
 
+  const passwordsMatch = confirmPassword === '' || password === confirmPassword;
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setInfo('');
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter your password.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
     if (turnstile.required && !turnstile.token) {
       setError('Complete the security check before creating an account.');
       return;
     }
     setLoading(true);
     try {
-      const res = await register(email, password, name, turnstile.token || undefined);
+      const res = await register(email, password, name || undefined, turnstile.token || undefined);
       if (res.needsVerification) {
         navigate(`/verify?email=${encodeURIComponent(email)}`);
         return;
@@ -320,7 +331,7 @@ export function RegisterPage() {
       turnstile.reset();
     } catch (err: any) {
       turnstile.reset();
-      setError(err.message || 'Registration failed');
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -332,21 +343,38 @@ export function RegisterPage() {
       subtitle={`${authCfg.freeTrialDays || 30}-day free access · then yearly per device (WeatherLink Pro)`}
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
-        {info && <p className="text-emerald-400 text-xs bg-emerald-950/40 border border-emerald-500/20 rounded-lg px-3 py-2">{info}</p>}
+        {error && (
+          <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3">
+            <svg className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <p className="text-rose-700 dark:text-rose-400 text-xs font-semibold leading-relaxed">{error}</p>
+          </div>
+        )}
+        {info && (
+          <div className="flex items-start gap-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/20 rounded-xl px-4 py-3">
+            <svg className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <p className="text-emerald-700 dark:text-emerald-400 text-xs font-semibold leading-relaxed">{info}</p>
+          </div>
+        )}
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Name</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          placeholder="Your full name"
           className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Email</label>
         <input
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
           className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
@@ -356,12 +384,45 @@ export function RegisterPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
+          placeholder="Min. 8 characters"
           className="w-full bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
         />
+        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Confirm Password</label>
+        <PasswordInput
+          required
+          minLength={8}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          autoComplete="new-password"
+          placeholder="Re-enter your password"
+          className={`w-full bg-slate-50 dark:bg-[#05080f] border rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-4 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 ${
+            !passwordsMatch
+              ? 'border-rose-400 dark:border-rose-500 focus:border-rose-400 focus:ring-rose-400/10'
+              : confirmPassword && password === confirmPassword
+              ? 'border-emerald-400 dark:border-emerald-500 focus:border-emerald-400 focus:ring-emerald-400/10'
+              : 'border-slate-200 dark:border-gray-800 focus:border-[#073075] dark:focus:border-[#073075] focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20'
+          }`}
+        />
+        {confirmPassword && !passwordsMatch && (
+          <p className="text-rose-500 dark:text-rose-400 text-xs font-semibold -mt-1 flex items-center gap-1">
+            <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            Passwords don't match
+          </p>
+        )}
+        {confirmPassword && password === confirmPassword && (
+          <p className="text-emerald-500 dark:text-emerald-400 text-xs font-semibold -mt-1 flex items-center gap-1">
+            <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Passwords match
+          </p>
+        )}
         <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
           type="submit"
-          disabled={loading || (turnstile.required && !turnstile.token)}
+          disabled={loading || (turnstile.required && !turnstile.token) || (!passwordsMatch && confirmPassword !== '')}
           className="w-full mt-4 bg-[#073075] hover:bg-[#0a3f99] disabled:opacity-50 text-white font-bold text-sm rounded-xl py-3.5 shadow-lg hover:shadow-[0_8px_20px_-4px_rgba(7,48,117,0.4)] transition-all"
         >
           {loading ? 'Creating…' : 'Create account'}
