@@ -243,7 +243,10 @@ export default function ConfigNavbar() {
             {/* ── WeatherLink Tab ── */}
             {tab === 'link' ? (
               <>
-                <div className="p-6 flex flex-col gap-5 max-h-[60vh] overflow-y-auto">
+                <div className="p-6 flex flex-col gap-5 max-h-[60vh] overflow-y-auto relative">
+                  {/* Fake inputs to absorb aggressive browser autofill */}
+                  <input type="text" name="dummy-email" className="absolute top-[-9999px] opacity-0" tabIndex={-1} aria-hidden="true" />
+                  <input type="password" name="dummy-password" className="absolute top-[-9999px] opacity-0" tabIndex={-1} aria-hidden="true" />
 
                   {/* Info banner */}
                   <p className="text-[11px] text-amber-300/90 bg-amber-950/30 border border-amber-500/30 rounded-lg px-3 py-2.5 leading-relaxed">
