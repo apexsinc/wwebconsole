@@ -143,7 +143,7 @@ export function HomePage() {
   return (
     <div>
       {/* Full-bleed product hero — one composition: brand, headline, line, CTAs, console image */}
-      <section className="relative min-h-[100svh] flex flex-col justify-end overflow-hidden bg-[#040a10]">
+      <section className="relative min-h-[100svh] flex flex-col justify-end overflow-hidden bg-gradient-to-br from-[#073075] to-[#041a45]">
         <motion.div
           className="absolute inset-0"
           initial={reduceMotion ? false : { scale: 1.06 }}
@@ -153,7 +153,7 @@ export function HomePage() {
           <img
             src={HERO_IMG}
             alt="Weatherlink Web Console live weather dashboard"
-            className="h-full w-full object-cover object-[center_35%]"
+            className="h-full w-full object-cover object-[center_35%] opacity-40 mix-blend-overlay"
             width={1439}
             height={1079}
             fetchPriority="high"
@@ -164,46 +164,51 @@ export function HomePage() {
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgba(4,10,16,0.72) 0%, rgba(4,10,16,0.45) 28%, rgba(4,10,16,0.55) 48%, rgba(4,10,16,0.88) 78%, rgba(4,10,16,0.97) 100%)',
+              'linear-gradient(180deg, rgba(7,48,117,0.3) 0%, rgba(4,26,69,0.7) 50%, rgba(4,26,69,1) 100%)',
           }}
         />
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'radial-gradient(ellipse 90% 55% at 50% 100%, rgba(2,100,160,0.28), transparent 55%), linear-gradient(90deg, rgba(4,10,16,0.55) 0%, transparent 42%, transparent 58%, rgba(4,10,16,0.35) 100%)',
+              'radial-gradient(ellipse 90% 55% at 50% 100%, rgba(14,165,233,0.15), transparent 55%)',
           }}
         />
-        <div className="pointer-events-none absolute inset-0 bg-black/25" />
 
         <div className="relative z-10 w-full max-w-5xl mx-auto px-4 pb-14 pt-28 sm:pb-20 sm:pt-32">
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 px-5 py-6 sm:px-8 sm:py-8 max-w-2xl shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+            className="rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 p-8 sm:p-10 max-w-2xl shadow-[0_30px_80px_-15px_rgba(0,0,0,0.5)]"
           >
-            <p className="font-[family-name:var(--font-display)] text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              {brand}
-            </p>
-            <h1 className="mt-3 max-w-2xl font-[family-name:var(--font-display)] text-3xl sm:text-4xl md:text-[2.75rem] font-bold tracking-tight text-white leading-[1.12]">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center border border-white/20 p-1.5 shadow-lg">
+                <img src="/apexs-logo.png" alt="APEXS Logo" className="w-full h-full object-contain" />
+              </div>
+              <p className="font-[family-name:var(--font-display)] text-xl sm:text-2xl font-bold tracking-widest uppercase text-white drop-shadow-md">
+                {brand}
+              </p>
+            </div>
+            
+            <h1 className="mt-6 max-w-2xl font-[family-name:var(--font-display)] text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-sky-300/80 leading-[1.05] drop-shadow-lg pb-1">
               {site?.home_hero_headline || 'Your station console, on the web'}
             </h1>
-            <p className="mt-4 max-w-lg text-base sm:text-lg text-white/80 leading-relaxed">
+            <p className="mt-5 max-w-lg text-lg sm:text-xl text-sky-100/90 leading-relaxed font-medium">
               {site?.home_hero_subhead ||
                 site?.site_tagline ||
                 'Live dashboard and TV share links — open from any browser.'}
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-10 flex flex-wrap gap-4">
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 transition-colors shadow-lg shadow-sky-900/40"
+                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-white text-[#073075] text-sm font-black hover:bg-sky-50 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:shadow-[0_10px_40px_rgba(255,255,255,0.4)] hover:scale-[1.02]"
               >
                 {site?.home_hero_cta_primary || 'Start free'}
               </Link>
               <Link
                 to="/pricing"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white/30 bg-white/10 text-white text-sm font-semibold backdrop-blur-sm hover:bg-white/15 transition-colors"
+                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl border border-white/30 bg-white/10 text-white text-sm font-bold backdrop-blur-md hover:bg-white/20 transition-all shadow-lg hover:scale-[1.02]"
               >
                 {site?.home_hero_cta_secondary || 'See pricing'}
               </Link>
@@ -221,14 +226,14 @@ export function HomePage() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-3xl font-bold tracking-tight">
+            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-black tracking-tight text-[var(--wwc-text)] leading-tight">
               The console you know — in the browser
             </h2>
-            <p className="mt-4 text-[var(--wwc-muted)] text-sm sm:text-base leading-relaxed max-w-md">
+            <p className="mt-5 text-[var(--wwc-muted)] text-base sm:text-lg leading-relaxed max-w-md font-medium">
               Temperature, wind, rain, pressure, and sun times in one clear view. Share a fullscreen link for TVs,
               lobbies, and wall displays.
             </p>
-            <Link to="/features" className="inline-flex mt-6 text-sm font-semibold text-[var(--wwc-accent)] hover:underline">
+            <Link to="/features" className="inline-flex mt-8 text-sm font-bold text-[#073075] dark:text-sky-400 hover:underline">
               Explore features →
             </Link>
           </motion.div>
@@ -258,12 +263,12 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-4 py-16 sm:py-20">
-        <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-3xl font-bold">Built for WeatherLink</h2>
-        <p className="text-[var(--wwc-muted)] text-sm mt-3 max-w-xl leading-relaxed">
+      <section className="max-w-5xl mx-auto px-4 py-16 sm:py-24">
+        <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-black text-[var(--wwc-text)]">Built for WeatherLink</h2>
+        <p className="text-[var(--wwc-muted)] text-lg mt-4 max-w-xl leading-relaxed font-medium">
           Everything you need to run a station console online — nothing to install on site.
         </p>
-        <div className="mt-12 grid sm:grid-cols-2 gap-x-12 gap-y-10">
+        <div className="mt-14 grid sm:grid-cols-2 gap-6">
           {features.map((f, i) => (
             <motion.div
               key={f.title}
@@ -271,29 +276,33 @@ export function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ duration: 0.45, delay: reduceMotion ? 0 : i * 0.06 }}
+              className="bg-[var(--wwc-surface)] border border-[var(--wwc-border)] p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
             >
-              <h3 className="font-semibold text-[var(--wwc-text)] text-base">{f.title}</h3>
-              <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">{f.body}</p>
+              <h3 className="font-bold text-[var(--wwc-text)] text-lg font-[family-name:var(--font-display)]">{f.title}</h3>
+              <p className="text-base text-[var(--wwc-muted)] mt-3 leading-relaxed font-medium">{f.body}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
-      <section className="border-t border-[var(--wwc-border)] bg-[var(--wwc-surface)]">
-        <div className="max-w-5xl mx-auto px-4 py-14 sm:py-16 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <div>
-            <h2 className="font-[family-name:var(--font-display)] text-xl sm:text-2xl font-bold">
+      <section className="px-4 py-16 sm:py-24 bg-[var(--wwc-page)]">
+        <div className="max-w-5xl mx-auto bg-gradient-to-br from-[#073075] to-[#041a45] rounded-3xl p-10 sm:p-14 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 shadow-2xl relative overflow-hidden">
+          {/* Subtle glow in CTA */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-sky-400/20 blur-[100px] pointer-events-none rounded-full" />
+          
+          <div className="relative z-10">
+            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-black text-white">
               Free for {site?.freeTrialDays ?? 30} days
             </h2>
-            <p className="text-sm text-[var(--wwc-muted)] mt-2">
+            <p className="text-base text-sky-100/90 mt-3 font-medium">
               Then {price.formatted}
               {price.periodLabel} for WeatherLink Pro.
             </p>
-            {price.note ? <p className="text-[11px] text-[var(--wwc-muted)] mt-1">{price.note}</p> : null}
+            {price.note ? <p className="text-xs text-sky-200/60 mt-2 font-medium">{price.note}</p> : null}
           </div>
           <Link
             to="/register"
-            className="inline-flex self-start px-6 py-3 rounded-md bg-[var(--wwc-accent)] text-white text-sm font-semibold hover:opacity-90"
+            className="relative z-10 inline-flex shrink-0 self-start sm:self-auto px-8 py-4 rounded-xl bg-white text-[#073075] text-sm font-black hover:bg-sky-50 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
           >
             Create account
           </Link>
