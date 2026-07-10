@@ -62,18 +62,16 @@ export default function ConfigNavbar() {
 
   const handleSave = () => {
     setConfigError('');
-    // Exclusive credential sets: only send fields for the selected API version
     const patch = buildStationPatch({
       apiVersion,
       did,
-      password: apiVersion === 'v1' ? password : password, // v2 optional hybrid password ok
+      password: apiVersion === 'v1' ? password : password,
       apiToken,
       apiSecret: apiVersion === 'v2' ? apiSecret : '',
       stationId: apiVersion === 'v2' ? stationId : '',
       latitude: '',
       longitude: '',
     });
-    // Force clear opposite-version secrets on the server
     if (apiVersion === 'v1') {
       patch.cloudApiSecret = '';
     }
@@ -87,7 +85,7 @@ export default function ConfigNavbar() {
       },
       onError: (err: any) => {
         setConfigError(err.message || 'Failed to save configuration');
-      }
+      },
     });
   };
 
@@ -124,6 +122,12 @@ export default function ConfigNavbar() {
     await deleteShareLink(id);
     await shareQuery.refetch();
   };
+
+  /* ─── shared input className ─── */
+  const inputCls =
+    'bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-500 text-xs focus:outline-none transition-all w-full';
+  const monoInputCls = inputCls + ' font-mono';
+  const labelCls = 'text-[11px] text-slate-200 uppercase tracking-wider font-bold';
 
   return (
     <>
@@ -212,200 +216,248 @@ export default function ConfigNavbar() {
               </button>
             </div>
 
+            {/* Tabs */}
             <div className="px-6 pt-4 flex gap-2">
               <button
                 onClick={() => setTab('link')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${
-                  tab === 'link' ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'border-white/10 text-slate-300'
+                className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all ${
+                  tab === 'link'
+                    ? 'bg-sky-500/10 border-sky-500 text-sky-400'
+                    : 'border-white/10 text-slate-300 hover:text-white hover:border-white/20'
                 }`}
               >
                 WeatherLink
               </button>
               <button
                 onClick={() => setTab('tv')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${
-                  tab === 'tv' ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'border-white/10 text-slate-300'
+                className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all ${
+                  tab === 'tv'
+                    ? 'bg-sky-500/10 border-sky-500 text-sky-400'
+                    : 'border-white/10 text-slate-300 hover:text-white hover:border-white/20'
                 }`}
               >
                 TV Broadcast URL
               </button>
             </div>
 
+            {/* ── WeatherLink Tab ── */}
             {tab === 'link' ? (
               <>
                 <div className="p-6 flex flex-col gap-5 max-h-[60vh] overflow-y-auto">
-                  <p className="text-[10px] text-amber-400/90 bg-amber-950/20 border border-amber-500/20 rounded-lg px-3 py-2">
-                    Connect with WeatherLink Cloud credentials. Local network / UDP discovery is not available in this
-                    console.
+
+                  {/* Info banner */}
+                  <p className="text-[11px] text-amber-300/90 bg-amber-950/30 border border-amber-500/30 rounded-lg px-3 py-2.5 leading-relaxed">
+                    Connect with WeatherLink Cloud credentials. Local network / UDP discovery is not available in this console.
                   </p>
 
                   {configError && (
-                    <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 text-rose-400 text-xs">
+                    <div className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-3 py-2.5 text-rose-300 text-xs font-semibold">
                       {configError}
                     </div>
                   )}
 
-                  <div className="bg-slate-900/30 border border-white/10 rounded-xl p-4 flex flex-col gap-4">
-                  <div className="flex bg-slate-900/50 border border-white/10 rounded-lg p-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setApiVersion('v1');
-                        setApiSecret('');
-                      }}
-                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold ${
-                        apiVersion === 'v1' ? 'bg-slate-700/70 text-white' : 'text-slate-400'
-                      }`}
-                    >
-                      API V1 only
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setApiVersion('v2');
-                      }}
-                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold ${
-                        apiVersion === 'v2' ? 'bg-slate-700/70 text-white' : 'text-slate-400'
-                      }`}
-                    >
-                      API V2 only
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-amber-400/90">
-                    Choose one API version. V1 uses DID + password + token. V2 uses API key + secret (password optional).
-                  </p>
+                  {/* Credentials card */}
+                  <div className="bg-slate-900/60 border border-white/15 rounded-xl p-4 flex flex-col gap-4">
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">Device ID (DID)</label>
+                    {/* API version toggle */}
+                    <div className="flex bg-slate-950/70 border border-white/10 rounded-lg p-1">
+                      <button
+                        type="button"
+                        onClick={() => { setApiVersion('v1'); setApiSecret(''); }}
+                        className={`flex-1 py-2 rounded-md text-[11px] font-bold transition-all ${
+                          apiVersion === 'v1'
+                            ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        API V1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setApiVersion('v2')}
+                        className={`flex-1 py-2 rounded-md text-[11px] font-bold transition-all ${
+                          apiVersion === 'v2'
+                            ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        API V2
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-amber-300/80 leading-relaxed">
+                      V1: DID + password + API token.&nbsp;&nbsp;V2: API key + secret (password optional).
+                    </p>
+
+                    {/* Device ID — always shown */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelCls}>Device ID (DID)</label>
                       <input
                         type="text"
                         value={did}
                         onChange={(e) => setDid(e.target.value)}
                         placeholder="e.g. 001D0A00DE6A"
-                        className="bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
+                        className={monoInputCls}
                       />
                     </div>
 
                     {apiVersion === 'v1' ? (
                       <>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
-                            Account Password {config.hasPassword ? '(saved — leave blank to keep)' : ''}
+                        {/* V1: Password */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>
+                            Account Password
+                            {config.hasPassword && (
+                              <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved — leave blank to keep</span>
+                            )}
                           </label>
                           <PasswordInput
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoComplete="off"
-                            className="w-full bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            placeholder={config.hasPassword ? 'Leave blank to keep current' : 'Enter WeatherLink password'}
+                            className={inputCls}
                           />
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
-                            API Token {config.hasApiToken ? '(saved — leave blank to keep)' : ''}
+
+                        {/* V1: API Token */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>
+                            API Token
+                            {config.hasApiToken && (
+                              <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved — leave blank to keep</span>
+                            )}
                           </label>
                           <input
                             type="text"
                             value={apiToken}
                             onChange={(e) => setApiToken(e.target.value)}
-                            className="bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
+                            placeholder={config.hasApiToken ? 'Leave blank to keep current' : 'Paste your API token here'}
+                            className={monoInputCls}
                           />
                         </div>
                       </>
                     ) : (
                       <>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
-                            API Key {config.hasApiToken ? '(saved — leave blank to keep)' : ''}
+                        {/* V2: API Key */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>
+                            API Key
+                            {config.hasApiToken && (
+                              <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved — leave blank to keep</span>
+                            )}
                           </label>
                           <input
                             type="text"
                             value={apiToken}
                             onChange={(e) => setApiToken(e.target.value)}
-                            className="bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
+                            placeholder={config.hasApiToken ? 'Leave blank to keep current' : 'Paste your V2 API key here'}
+                            className={monoInputCls}
                           />
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
-                            API Secret {config.hasApiSecret ? '(saved — leave blank to keep)' : ''}
+
+                        {/* V2: API Secret */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>
+                            API Secret
+                            {config.hasApiSecret && (
+                              <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved — leave blank to keep</span>
+                            )}
                           </label>
                           <PasswordInput
                             value={apiSecret}
                             onChange={(e) => setApiSecret(e.target.value)}
                             autoComplete="off"
-                            className="w-full bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            placeholder={config.hasApiSecret ? 'Leave blank to keep current' : 'Paste your V2 API secret here'}
+                            className={inputCls}
                           />
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
-                            Station ID (optional — auto-detected)
+
+                        {/* V2: Station ID */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>
+                            Station ID
+                            <span className="ml-2 text-slate-400 normal-case font-normal text-[10px]">optional — auto-detected</span>
                           </label>
                           <input
                             type="text"
                             value={stationId}
                             onChange={(e) => setStationId(e.target.value)}
-                            className="bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
+                            placeholder="Auto-detected from your account"
+                            className={monoInputCls}
                           />
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
-                            Password (optional for sunrise/sunset)
+
+                        {/* V2: Password (optional) */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>
+                            Password
+                            <span className="ml-2 text-slate-400 normal-case font-normal text-[10px]">optional — for sunrise/sunset</span>
+                            {config.hasPassword && (
+                              <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved</span>
+                            )}
                           </label>
                           <PasswordInput
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoComplete="off"
-                            className="w-full bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            placeholder={config.hasPassword ? 'Leave blank to keep current' : 'WeatherLink account password'}
+                            className={inputCls}
                           />
                         </div>
                       </>
                     )}
 
-                    <p className="text-slate-400 text-[10px] leading-relaxed flex items-start gap-1">
+                    <p className="text-slate-400 text-[10px] leading-relaxed flex items-start gap-1.5">
                       <HelpCircle className="w-3.5 h-3.5 shrink-0 text-slate-400 mt-0.5" />
                       Credentials stay private to your account. Secrets are never shown again after you save.
                     </p>
                   </div>
 
-                  <div className="bg-slate-900/30 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
+                  {/* Plan & polling card */}
+                  <div className="bg-slate-900/60 border border-white/15 rounded-xl p-4 flex flex-col gap-3">
                     <h3 className="text-sm font-bold text-white">WeatherLink plan & polling</h3>
-                    <p className="text-[10px] text-slate-400 leading-relaxed">
-                      Plan and poll interval are set from your WeatherLink subscription and WWebConsole billing. Contact
-                      support or an admin to change Pro access.
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Plan and poll interval are set from your WeatherLink subscription and WWebConsole billing. Contact support or an admin to change Pro access.
                     </p>
-                    <p className="text-xs font-mono text-gray-300 uppercase">
-                      Plan: {config.wlPlan || 'unknown'}
+                    <p className="text-xs font-mono text-slate-200 uppercase bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2">
+                      Plan: <span className="text-sky-300">{config.wlPlan || 'unknown'}</span>
                     </p>
                     {billing && (
-                      <p className="text-[10px] text-slate-300 font-mono">
-                        Access: {billing.subscriptionStatus}
-                        {billing.freeUntil ? ` · free until ${new Date(billing.freeUntil).toLocaleDateString()}` : ''}
-                        {' · '}poll {billing.pollIntervalSec}s
+                      <p className="text-[11px] text-slate-300 font-mono bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2">
+                        Access: <span className="text-emerald-300">{billing.subscriptionStatus}</span>
+                        {billing.freeUntil != null ? (
+                          <span className="text-amber-300"> · free until {new Date(billing.freeUntil).toLocaleDateString()}</span>
+                        ) : null}
+                        {' · '}poll <span className="text-sky-300">{billing.pollIntervalSec}s</span>
                       </p>
                     )}
                   </div>
 
-                  <div className="bg-slate-900/30 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
-                    <h3 className="text-sm font-bold text-white">Station location (auto from WeatherLink)</h3>
-                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                  {/* Location card */}
+                  <div className="bg-slate-900/60 border border-white/15 rounded-xl p-4 flex flex-col gap-3">
+                    <h3 className="text-sm font-bold text-white">
+                      Station location <span className="text-slate-400 font-normal text-xs">(auto from WeatherLink)</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
                       Latitude, longitude, and timezone are pulled from the WeatherLink Cloud station profile on each refresh — no manual entry needed for sunrise/sunset.
                     </p>
-                    <div className="grid grid-cols-3 gap-2 mt-1">
-                      <div className="bg-slate-900/50 border border-white/10 rounded-lg px-2.5 py-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-2.5 py-2">
                         <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Latitude</p>
                         <p className="text-xs text-white font-mono mt-0.5">
-                          {config.latitude != null ? Number(config.latitude).toFixed(5) : '—'}
+                          {config.latitude != null ? Number(config.latitude).toFixed(5) : <span className="text-slate-500">—</span>}
                         </p>
                       </div>
-                      <div className="bg-slate-900/50 border border-white/10 rounded-lg px-2.5 py-2">
+                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-2.5 py-2">
                         <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Longitude</p>
                         <p className="text-xs text-white font-mono mt-0.5">
-                          {config.longitude != null ? Number(config.longitude).toFixed(5) : '—'}
+                          {config.longitude != null ? Number(config.longitude).toFixed(5) : <span className="text-slate-500">—</span>}
                         </p>
                       </div>
-                      <div className="bg-slate-900/50 border border-white/10 rounded-lg px-2.5 py-2">
+                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-2.5 py-2">
                         <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Timezone</p>
                         <p className="text-[10px] text-white font-mono mt-0.5 truncate" title={config.timezone || ''}>
-                          {config.timezone || '—'}
+                          {config.timezone || <span className="text-slate-500">—</span>}
                         </p>
                       </div>
                     </div>
@@ -413,13 +465,13 @@ export default function ConfigNavbar() {
                 </div>
 
                 <div className="px-6 py-4 border-t border-white/10 bg-slate-900/30 flex items-center justify-end gap-2.5">
-                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg">
+                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg transition-colors">
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={configMutation.isPending}
-                    className="px-4 py-2 text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-2 text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-all"
                   >
                     <Save className="w-3.5 h-3.5" />
                     {configMutation.isPending ? 'Saving…' : 'Apply Config'}
@@ -427,13 +479,14 @@ export default function ConfigNavbar() {
                 </div>
               </>
             ) : (
+              /* ── TV Tab ── */
               <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
-                <p className="text-xs text-slate-300">
+                <p className="text-[11px] text-slate-200 leading-relaxed">
                   Create a public URL for big-screen TVs. Anyone with the link can view live weather — no login required.
                 </p>
-                
+
                 {shareError && (
-                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 text-rose-400 text-xs">
+                  <div className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-3 py-2.5 text-rose-300 text-xs font-semibold">
                     {shareError}
                   </div>
                 )}
@@ -442,13 +495,13 @@ export default function ConfigNavbar() {
                   <input
                     value={shareLabel}
                     onChange={(e) => setShareLabel(e.target.value)}
-                    placeholder="Label"
-                    className="flex-1 bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:border-sky-500 focus:outline-none"
+                    placeholder="Label, e.g. Lobby TV"
+                    className="flex-1 bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-500 text-xs focus:outline-none transition-all"
                   />
                   <button
                     onClick={handleCreateShare}
                     disabled={shareBusy}
-                    className="px-3 py-2 text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-3 py-2 text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Create
@@ -468,14 +521,14 @@ export default function ConfigNavbar() {
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => handleCopy(link.url)}
-                          className="p-1.5 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-white"
+                          className="p-1.5 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-white transition-colors"
                           title="Copy"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteShare(link.id)}
-                          className="p-1.5 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-rose-400"
+                          className="p-1.5 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-rose-400 transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -486,11 +539,11 @@ export default function ConfigNavbar() {
                   {!shareQuery.data?.links?.length && (
                     <p className="text-[11px] text-slate-400 text-center py-4">No TV links yet. Create one to broadcast.</p>
                   )}
-                  {copied && <p className="text-[10px] text-emerald-400 text-center">Copied to clipboard</p>}
+                  {copied && <p className="text-[10px] text-emerald-400 text-center">Copied to clipboard ✓</p>}
                 </div>
 
-                <div className="px-0 pt-2 flex justify-end">
-                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg">
+                <div className="pt-2 flex justify-end">
+                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg transition-colors">
                     Close
                   </button>
                 </div>
