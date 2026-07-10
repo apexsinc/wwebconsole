@@ -111,8 +111,8 @@ function applySunMoon(
   if (lat == null || lon == null || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
   try {
     const times = SunCalc.getTimes(dateObj, lat, lon);
-    weather.sunrise = formatStationTime(times.sunrise, timeZone, tzOffsetSeconds);
-    weather.sunset = formatStationTime(times.sunset, timeZone, tzOffsetSeconds);
+    if (times.sunrise) weather.sunrise = formatStationTime(times.sunrise, timeZone, tzOffsetSeconds);
+    if (times.sunset) weather.sunset = formatStationTime(times.sunset, timeZone, tzOffsetSeconds);
   } catch {
     /* ignore */
   }

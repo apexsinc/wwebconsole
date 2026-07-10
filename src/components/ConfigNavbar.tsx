@@ -50,6 +50,8 @@ export default function ConfigNavbar() {
   const [shareLabel, setShareLabel] = useState('Lobby TV');
   const [shareBusy, setShareBusy] = useState(false);
   const [copied, setCopied] = useState('');
+  const [configError, setConfigError] = useState('');
+  const [shareError, setShareError] = useState('');
   const billing = useWeatherStore((s) => s.billing);
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export default function ConfigNavbar() {
   }, [config]);
 
   const handleSave = () => {
+    setConfigError('');
     // Exclusive credential sets: only send fields for the selected API version
     const patch = buildStationPatch({
       apiVersion,
@@ -79,8 +82,12 @@ export default function ConfigNavbar() {
         setPassword('');
         setApiToken('');
         setApiSecret('');
+        setConfigError('');
         setIsOpen(false);
       },
+      onError: (err: any) => {
+        setConfigError(err.message || 'Failed to save configuration');
+      }
     });
   };
 
@@ -91,10 +98,17 @@ export default function ConfigNavbar() {
   };
 
   const handleCreateShare = async () => {
+    if (!config.hasApiToken && !config.hasPassword) {
+      setShareError('Please configure your WeatherLink API credentials first.');
+      return;
+    }
+    setShareError('');
     setShareBusy(true);
     try {
       await createShareLink(shareLabel);
       await shareQuery.refetch();
+    } catch (err: any) {
+      setShareError(err.message || 'Failed to create share link');
     } finally {
       setShareBusy(false);
     }
@@ -226,6 +240,12 @@ export default function ConfigNavbar() {
                     Connect with WeatherLink Cloud credentials. Local network / UDP discovery is not available in this
                     console.
                   </p>
+
+                  {configError && (
+                    <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 text-rose-400 text-xs">
+                      {configError}
+                    </div>
+                  )}
 
                   <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-4">
                   <div className="flex bg-gray-950 border border-gray-800 rounded-lg p-1">
@@ -413,6 +433,13 @@ export default function ConfigNavbar() {
                 <p className="text-xs text-gray-400">
                   Create a public URL for big-screen TVs. Anyone with the link can view live weather — no login required.
                 </p>
+                
+                {shareError && (
+                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 text-rose-400 text-xs">
+                    {shareError}
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <input
                     value={shareLabel}

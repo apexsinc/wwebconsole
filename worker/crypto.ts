@@ -48,7 +48,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
     ['deriveBits']
   );
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: salt as any, iterations, hash: 'SHA-256' },
     keyMaterial,
     256
   );
@@ -87,9 +87,9 @@ export async function decryptJson<T>(keyHex: string | undefined, enc: string, iv
   try {
     const key = await importAesKey(keyHex);
     const plaintext = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: b64decode(iv) },
+      { name: 'AES-GCM', iv: b64decode(iv) as any },
       key,
-      b64decode(enc)
+      b64decode(enc) as any
     );
     return JSON.parse(new TextDecoder().decode(plaintext)) as T;
   } catch (err) {

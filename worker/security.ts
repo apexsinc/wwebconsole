@@ -91,7 +91,7 @@ export function clientIp(c: { req: { header: (n: string) => string | undefined }
 }
 
 export function enforceRateLimit(
-  c: Context<{ Bindings: Env }>,
+  c: Context<any>,
   bucket: keyof typeof RATE_LIMITS,
   extraKey = ''
 ): Response | null {

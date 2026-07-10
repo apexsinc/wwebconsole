@@ -875,7 +875,7 @@ app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
 
   const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
   if (!user) return c.json({ error: 'Not found' }, 404);
-  const station = await getStationForUser(c.env, id);
+  const station = await getStationForUser(c.env, id!);
   return c.json({ user: publicUser(user), billing: publicBilling(user, station) });
 });
 
@@ -888,7 +888,7 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
     .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
 
-  const station = await getStationForUser(c.env, c.req.param('id'));
+  const station = await getStationForUser(c.env, c.req.param('id')!);
   if (!station) return c.json({ error: 'Station not found' }, 404);
   if (body.data.wlPlan !== 'pro') {
     return c.json({ error: 'Paid yearly activation requires WeatherLink Pro' }, 400);
@@ -906,7 +906,7 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
   }
 
   const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(c.req.param('id')).first<UserRow>();
-  const updated = await getStationForUser(c.env, c.req.param('id'));
+  const updated = await getStationForUser(c.env, c.req.param('id')!);
   return c.json({ ok: true, billing: publicBilling(user!, updated) });
 });
 

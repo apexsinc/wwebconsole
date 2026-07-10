@@ -31,7 +31,8 @@ export async function fetchAuthConfig() {
   }>('/api/auth/config');
 }
 
-export type PublicSiteConfig = Record<string, string> & {
+export type PublicSiteConfig = {
+  [key: string]: any;
   yearlyPriceUsd: number;
   freeTrialDays: number;
   indexable: boolean;

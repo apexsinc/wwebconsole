@@ -300,7 +300,8 @@ export async function getPublicAuthConfig(env: Env) {
   };
 }
 
-export type PublicSiteConfig = Record<string, string> & {
+export type PublicSiteConfig = {
+  [key: string]: any;
   yearlyPriceUsd: number;
   freeTrialDays: number;
   indexable: boolean;
