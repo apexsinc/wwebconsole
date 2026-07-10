@@ -152,16 +152,16 @@ export default function TvPage() {
                 </GlassPanel>
               </div>
 
-              <div className="flex flex-col justify-between bg-[#0e1930]/75 border border-[#01497c]/30 rounded-2xl pt-2.5 px-2.5 pb-0 md:pt-3.5 md:px-3.5 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible backdrop-blur-md min-h-[300px] md:min-h-0 z-50">
-                <div className="relative z-20">
+              <div className="flex flex-col justify-between bg-[#0e1930]/75 border border-[#01497c]/30 rounded-2xl pt-2.5 px-2.5 pb-0 md:pt-3.5 md:px-3.5 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible backdrop-blur-md min-h-[380px] md:min-h-0 z-50">
+                <div className="relative z-20 shrink-0">
                   <Header />
                 </div>
-                <div className="relative md:absolute md:top-[55%] md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 pointer-events-none z-0 my-4 md:my-0 flex justify-center">
+                <div className="relative md:absolute md:top-[55%] md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 pointer-events-none z-0 my-4 md:my-0 flex justify-center shrink-0">
                   <div className="pointer-events-auto">
                     <CompassRose />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-1 border-t border-white/10 pt-1.5 select-none mt-auto z-20 relative">
+                <div className="grid grid-cols-3 gap-1 border-t border-white/10 pt-1.5 select-none mt-auto z-20 relative shrink-0">
                   <div className="flex flex-col items-center justify-center text-center">
                     <div className="w-8 h-8 rounded-full bg-amber-950/20 border border-amber-500/15 flex items-center justify-center text-amber-500/80">
                       <Sunrise className="w-4 h-4" />

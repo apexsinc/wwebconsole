@@ -83,7 +83,7 @@ export default function CompassRose() {
 
   return (
     <div className="flex flex-col items-center justify-center p-4">
-      <div className="relative w-[240px] h-[240px] md:w-[300px] md:h-[300px] flex items-center justify-center">
+      <div className="relative w-[220px] h-[220px] md:w-[300px] md:h-[300px] flex items-center justify-center">
         {/* Slate-Blue Translucent Outer Bezel Ring */}
         <div className="absolute inset-0 rounded-full border border-[#01497c]/35 bg-[#013a63]/70 shadow-[inset_0_4px_12px_rgba(0,0,0,0.6)]" />
 
