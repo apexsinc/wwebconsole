@@ -261,14 +261,14 @@ export function LoginPage() {
         >
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
-        <p className="text-xs text-gray-500 text-center mt-2">
-          <Link to="/forgot-password" className="text-sky-400 hover:underline">
+        <p className="text-xs text-gray-500 text-center mt-3 font-medium">
+          <Link to="/forgot-password" className="text-[#073075] dark:text-sky-400 hover:underline font-bold">
             Forgot password?
           </Link>
           {!isAdminHost() && (
             <>
-              {' · '}
-              <Link to="/register" className="text-sky-400 hover:underline">
+              <span className="mx-2 opacity-50">&middot;</span>
+              <Link to="/register" className="text-[#073075] dark:text-sky-400 hover:underline font-bold">
                 Create account
               </Link>
             </>
@@ -366,9 +366,9 @@ export function RegisterPage() {
         >
           {loading ? 'Creating…' : 'Create account'}
         </button>
-        <p className="text-xs text-gray-500 text-center mt-2">
+        <p className="text-xs text-gray-500 text-center mt-3 font-medium">
           Already have an account?{' '}
-          <Link to="/login" className="text-sky-400 hover:underline">
+          <Link to="/login" className="text-[#073075] dark:text-sky-400 hover:underline font-bold">
             Sign in
           </Link>
         </p>
@@ -459,7 +459,7 @@ export function VerifyEmailPage() {
         >
           {loading ? 'Verifying…' : 'Verify & continue'}
         </button>
-        <button type="button" onClick={onResend} className="text-xs text-sky-400 hover:underline">
+        <button type="button" onClick={onResend} className="text-xs text-[#073075] dark:text-sky-400 hover:underline mt-2 font-bold">
           Resend code
         </button>
       </form>
@@ -503,7 +503,7 @@ export function ForgotPasswordPage() {
       {sent ? (
         <div className="text-sm text-gray-300 space-y-3">
           <p>If that email exists, a reset code was sent.</p>
-          <Link to={`/reset-password?email=${encodeURIComponent(email)}`} className="text-sky-400 hover:underline">
+          <Link to={`/reset-password?email=${encodeURIComponent(email)}`} className="text-[#073075] dark:text-sky-400 hover:underline font-bold mt-2 inline-block">
             Enter reset code →
           </Link>
         </div>
@@ -526,7 +526,7 @@ export function ForgotPasswordPage() {
           >
             {loading ? 'Sending…' : 'Send reset code'}
           </button>
-          <Link to="/login" className="text-xs text-sky-400 hover:underline text-center">
+          <Link to="/login" className="text-xs text-[#073075] dark:text-sky-400 hover:underline text-center mt-2 font-bold">
             Back to sign in
           </Link>
         </form>
@@ -622,10 +622,10 @@ function AuthShell({
 
       {/* Left Branding Panel (Hidden on Mobile) */}
       <div className="hidden md:flex flex-col justify-between p-12 relative overflow-hidden z-10">
-        <div className="relative animate-[fadeIn_0.8s_ease-out]">
+        <div className="relative z-10 animate-[fadeIn_0.8s_ease-out]">
           <a href={brandHref} className="flex items-center gap-4 group inline-flex">
-            <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-xl group-hover:scale-105 group-hover:bg-white/20 transition-all duration-300 overflow-hidden p-2">
-              <img src="/apexs-logo.png" alt="APEXS Logo" className="w-full h-full object-contain drop-shadow-md" />
+            <div className="flex items-center justify-center group-hover:scale-105 transition-all duration-300">
+              <img src="/apexs-logo.png" alt="APEXS Logo" className="h-10 w-auto object-contain drop-shadow-md" />
             </div>
             <div>
               <h1 className="text-white font-black tracking-wider text-base uppercase drop-shadow-md">
@@ -639,7 +639,7 @@ function AuthShell({
         </div>
 
         <div className="relative max-w-xl animate-[slideInUp_0.8s_ease-out]">
-          <h2 className="text-5xl lg:text-6xl font-black mb-6 tracking-tighter leading-[1.05] drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-sky-300/80 pb-1">
+          <h2 className="text-5xl lg:text-6xl font-black font-display mb-6 tracking-tighter leading-[1.05] drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-sky-300/80 pb-1">
             Your weather,<br/>beautifully visualized.
           </h2>
           <p className="text-sky-100 text-base lg:text-lg leading-relaxed max-w-md font-medium">
@@ -658,8 +658,8 @@ function AuthShell({
       <div className="flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden z-10">
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="md:hidden flex flex-col items-center mb-10 relative text-center animate-[fadeIn_0.5s_ease-out]">
-          <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shadow-xl mb-5 border border-white/20 p-2.5">
-            <img src="/apexs-logo.png" alt="APEXS Logo" className="w-full h-full object-contain drop-shadow-md" />
+          <div className="flex items-center justify-center mb-5">
+            <img src="/apexs-logo.png" alt="APEXS Logo" className="h-12 w-auto object-contain drop-shadow-md" />
           </div>
           <h1 className="text-white font-black tracking-wider text-xl uppercase drop-shadow-md">
             Weatherlink Console{admin ? ' Admin' : ''}
