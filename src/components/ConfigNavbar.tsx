@@ -125,9 +125,9 @@ export default function ConfigNavbar() {
 
   /* ─── shared input className ─── */
   const inputCls =
-    'bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-500 text-xs focus:outline-none transition-all w-full';
+    'bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-500 text-sm focus:outline-none transition-all w-full';
   const monoInputCls = inputCls + ' font-mono';
-  const labelCls = 'text-[11px] text-slate-200 uppercase tracking-wider font-bold';
+  const labelCls = 'text-xs text-slate-200 uppercase tracking-wider font-bold';
 
   return (
     <>
@@ -135,7 +135,7 @@ export default function ConfigNavbar() {
         <div className="flex items-center gap-3">
           <img src="/apexs-logo.png" alt="APEXS Logo" className="h-9 w-auto object-contain" />
           <div>
-            <h1 className="text-white font-sans font-black tracking-wider text-xs md:text-sm uppercase leading-none">
+            <h1 className="text-white font-sans font-black tracking-wider text-sm md:text-base uppercase leading-none">
               Weatherlink Web Console
             </h1>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -209,10 +209,10 @@ export default function ConfigNavbar() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
               <div className="flex items-center gap-2">
                 <Network className="w-5 h-5 text-sky-400" />
-                <h2 className="text-white font-sans font-bold text-base tracking-tight">Console Settings</h2>
+                <h2 className="text-white font-sans font-bold text-lg tracking-tight">Console Settings</h2>
               </div>
               <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60">
-                <X className="w-4.5 h-4.5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -220,7 +220,7 @@ export default function ConfigNavbar() {
             <div className="px-6 pt-4 flex gap-2">
               <button
                 onClick={() => setTab('link')}
-                className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all ${
+                className={`px-4 py-2 text-sm font-bold rounded-lg border transition-all ${
                   tab === 'link'
                     ? 'bg-sky-500/10 border-sky-500 text-sky-400'
                     : 'border-white/10 text-slate-300 hover:text-white hover:border-white/20'
@@ -230,7 +230,7 @@ export default function ConfigNavbar() {
               </button>
               <button
                 onClick={() => setTab('tv')}
-                className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all ${
+                className={`px-4 py-2 text-sm font-bold rounded-lg border transition-all ${
                   tab === 'tv'
                     ? 'bg-sky-500/10 border-sky-500 text-sky-400'
                     : 'border-white/10 text-slate-300 hover:text-white hover:border-white/20'
@@ -249,12 +249,12 @@ export default function ConfigNavbar() {
                   <input type="password" name="dummy-password" className="absolute top-[-9999px] opacity-0" tabIndex={-1} aria-hidden="true" />
 
                   {/* Info banner */}
-                  <p className="text-[11px] text-amber-300/90 bg-amber-950/30 border border-amber-500/30 rounded-lg px-3 py-2.5 leading-relaxed">
+                  <p className="text-sm text-amber-300/90 bg-amber-950/30 border border-amber-500/30 rounded-lg px-4 py-3 leading-relaxed">
                     Connect with WeatherLink Cloud credentials. Local network / UDP discovery is not available in this console.
                   </p>
 
                   {configError && (
-                    <div className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-3 py-2.5 text-rose-300 text-xs font-semibold">
+                    <div className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-4 py-3 text-rose-300 text-sm font-semibold">
                       {configError}
                     </div>
                   )}
@@ -267,7 +267,7 @@ export default function ConfigNavbar() {
                       <button
                         type="button"
                         onClick={() => { setApiVersion('v1'); setApiSecret(''); }}
-                        className={`flex-1 py-2 rounded-md text-[11px] font-bold transition-all ${
+                        className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${
                           apiVersion === 'v1'
                             ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300'
                             : 'text-slate-400 hover:text-slate-200'
@@ -278,7 +278,7 @@ export default function ConfigNavbar() {
                       <button
                         type="button"
                         onClick={() => setApiVersion('v2')}
-                        className={`flex-1 py-2 rounded-md text-[11px] font-bold transition-all ${
+                        className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${
                           apiVersion === 'v2'
                             ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300'
                             : 'text-slate-400 hover:text-slate-200'
@@ -287,7 +287,7 @@ export default function ConfigNavbar() {
                         API V2
                       </button>
                     </div>
-                    <p className="text-[10px] text-amber-300/80 leading-relaxed">
+                    <p className="text-xs text-amber-300/80 leading-relaxed">
                       V1: DID + password + API token.&nbsp;&nbsp;V2: API key + secret (password optional).
                     </p>
 
@@ -414,23 +414,23 @@ export default function ConfigNavbar() {
                       </>
                     )}
 
-                    <p className="text-slate-400 text-[10px] leading-relaxed flex items-start gap-1.5">
-                      <HelpCircle className="w-3.5 h-3.5 shrink-0 text-slate-400 mt-0.5" />
+                    <p className="text-xs text-slate-400 leading-relaxed flex items-start gap-1.5">
+                      <HelpCircle className="w-4 h-4 shrink-0 text-slate-400 mt-0.5" />
                       Credentials stay private to your account. Secrets are never shown again after you save.
                     </p>
                   </div>
 
                   {/* Plan & polling card */}
-                  <div className="bg-slate-900/60 border border-white/15 rounded-xl p-4 flex flex-col gap-3">
-                    <h3 className="text-sm font-bold text-white">WeatherLink plan & polling</h3>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                  <div className="bg-slate-900/60 border border-white/15 rounded-xl p-5 flex flex-col gap-3">
+                    <h3 className="text-base font-bold text-white">WeatherLink plan & polling</h3>
+                    <p className="text-sm text-slate-300 leading-relaxed">
                       Plan and poll interval are set from your WeatherLink subscription and WWebConsole billing. Contact support or an admin to change Pro access.
                     </p>
-                    <p className="text-xs font-mono text-slate-200 uppercase bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2">
+                    <p className="text-sm font-mono text-slate-200 uppercase bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2.5">
                       Plan: <span className="text-sky-300">{config.wlPlan || 'unknown'}</span>
                     </p>
                     {billing && (
-                      <p className="text-[11px] text-slate-300 font-mono bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2">
+                      <p className="text-sm text-slate-300 font-mono bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2.5">
                         Access: <span className="text-emerald-300">{billing.subscriptionStatus}</span>
                         {billing.freeUntil != null ? (
                           <span className="text-amber-300"> · free until {new Date(billing.freeUntil).toLocaleDateString()}</span>
@@ -441,29 +441,29 @@ export default function ConfigNavbar() {
                   </div>
 
                   {/* Location card */}
-                  <div className="bg-slate-900/60 border border-white/15 rounded-xl p-4 flex flex-col gap-3">
-                    <h3 className="text-sm font-bold text-white">
-                      Station location <span className="text-slate-400 font-normal text-xs">(auto from WeatherLink)</span>
+                  <div className="bg-slate-900/60 border border-white/15 rounded-xl p-5 flex flex-col gap-3">
+                    <h3 className="text-base font-bold text-white">
+                      Station location <span className="text-slate-400 font-normal text-sm">(auto from WeatherLink)</span>
                     </h3>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                    <p className="text-sm text-slate-300 leading-relaxed">
                       Latitude, longitude, and timezone are pulled from the WeatherLink Cloud station profile on each refresh — no manual entry needed for sunrise/sunset.
                     </p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-2.5 py-2">
-                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Latitude</p>
-                        <p className="text-xs text-white font-mono mt-0.5">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2.5">
+                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Latitude</p>
+                        <p className="text-sm text-white font-mono mt-1">
                           {config.latitude != null ? Number(config.latitude).toFixed(5) : <span className="text-slate-500">—</span>}
                         </p>
                       </div>
-                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-2.5 py-2">
-                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Longitude</p>
-                        <p className="text-xs text-white font-mono mt-0.5">
+                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2.5">
+                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Longitude</p>
+                        <p className="text-sm text-white font-mono mt-1">
                           {config.longitude != null ? Number(config.longitude).toFixed(5) : <span className="text-slate-500">—</span>}
                         </p>
                       </div>
-                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-2.5 py-2">
-                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Timezone</p>
-                        <p className="text-[10px] text-white font-mono mt-0.5 truncate" title={config.timezone || ''}>
+                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2.5">
+                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Timezone</p>
+                        <p className="text-xs text-white font-mono mt-1 truncate" title={config.timezone || ''}>
                           {config.timezone || <span className="text-slate-500">—</span>}
                         </p>
                       </div>
@@ -471,16 +471,16 @@ export default function ConfigNavbar() {
                   </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-white/10 bg-slate-900/30 flex items-center justify-end gap-2.5">
-                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg transition-colors">
+                <div className="px-6 py-4 border-t border-white/10 bg-slate-900/30 flex items-center justify-end gap-3">
+                  <button onClick={() => setIsOpen(false)} className="px-5 py-2.5 text-sm font-semibold text-slate-300 hover:text-white rounded-lg transition-colors">
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={configMutation.isPending}
-                    className="px-4 py-2 text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-all"
+                    className="px-5 py-2.5 text-sm font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-all"
                   >
-                    <Save className="w-3.5 h-3.5" />
+                    <Save className="w-4 h-4" />
                     {configMutation.isPending ? 'Saving…' : 'Apply Config'}
                   </button>
                 </div>
@@ -488,12 +488,12 @@ export default function ConfigNavbar() {
             ) : (
               /* ── TV Tab ── */
               <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
-                <p className="text-[11px] text-slate-200 leading-relaxed">
+                <p className="text-sm text-slate-200 leading-relaxed">
                   Create a public URL for big-screen TVs. Anyone with the link can view live weather — no login required.
                 </p>
 
                 {shareError && (
-                  <div className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-3 py-2.5 text-rose-300 text-xs font-semibold">
+                  <div className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-4 py-3 text-rose-300 text-sm font-semibold">
                     {shareError}
                   </div>
                 )}
@@ -503,14 +503,14 @@ export default function ConfigNavbar() {
                     value={shareLabel}
                     onChange={(e) => setShareLabel(e.target.value)}
                     placeholder="Label, e.g. Lobby TV"
-                    className="flex-1 bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-500 text-xs focus:outline-none transition-all"
+                    className="flex-1 bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-500 text-sm focus:outline-none transition-all"
                   />
                   <button
                     onClick={handleCreateShare}
                     disabled={shareBusy}
-                    className="px-3 py-2 text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-all"
+                    className="px-4 py-2.5 text-sm font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-all"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
                     Create
                   </button>
                 </div>
@@ -519,38 +519,38 @@ export default function ConfigNavbar() {
                   {(shareQuery.data?.links || []).map((link) => (
                     <div
                       key={link.id}
-                      className="bg-slate-900/40 border border-white/10 rounded-xl px-3 py-2.5 flex items-center justify-between gap-2"
+                      className="bg-slate-900/40 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs text-white font-semibold truncate">{link.label}</p>
-                        <p className="text-[10px] text-sky-400 font-mono truncate">{link.url}</p>
+                        <p className="text-sm text-white font-semibold truncate">{link.label}</p>
+                        <p className="text-xs text-sky-400 font-mono truncate">{link.url}</p>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => handleCopy(link.url)}
-                          className="p-1.5 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-white transition-colors"
+                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-white transition-colors"
                           title="Copy"
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteShare(link.id)}
-                          className="p-1.5 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-rose-400 transition-colors"
+                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-rose-400 transition-colors"
                           title="Delete"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   ))}
                   {!shareQuery.data?.links?.length && (
-                    <p className="text-[11px] text-slate-400 text-center py-4">No TV links yet. Create one to broadcast.</p>
+                    <p className="text-xs text-slate-400 text-center py-6">No TV links yet. Create one to broadcast.</p>
                   )}
-                  {copied && <p className="text-[10px] text-emerald-400 text-center">Copied to clipboard ✓</p>}
+                  {copied && <p className="text-xs text-emerald-400 text-center">Copied to clipboard ✓</p>}
                 </div>
 
-                <div className="pt-2 flex justify-end">
-                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg transition-colors">
+                <div className="pt-4 flex justify-end">
+                  <button onClick={() => setIsOpen(false)} className="px-5 py-2.5 text-sm font-semibold text-slate-300 hover:text-white rounded-lg transition-colors">
                     Close
                   </button>
                 </div>

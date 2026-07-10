@@ -32,8 +32,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const selectCls =
-    'w-full bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white font-sans text-xs focus:outline-none transition-all cursor-pointer appearance-none';
-  const labelCls = 'text-[11px] text-slate-200 uppercase tracking-wider font-bold';
+    'w-full bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white font-sans text-sm focus:outline-none transition-all cursor-pointer appearance-none';
+  const labelCls = 'text-xs text-slate-200 uppercase tracking-wider font-bold';
 
   return (
     <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -43,7 +43,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-950/40">
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-sky-400" />
-            <h2 className="text-white font-sans font-bold text-base tracking-tight">
+            <h2 className="text-white font-sans font-bold text-lg tracking-tight">
               Console Unit Settings
             </h2>
           </div>
@@ -51,13 +51,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-all cursor-pointer p-1 rounded-lg hover:bg-gray-800 focus:outline-none"
           >
-            <X className="w-4.5 h-4.5" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
         <div className="p-6 flex flex-col gap-5 select-none max-h-[50vh] overflow-y-auto custom-scrollbar">
-          <p className="text-slate-300 text-xs leading-relaxed">
+          <p className="text-slate-300 text-sm leading-relaxed">
             Configure unit measurements displayed on the console. Connection credentials can be managed via the <span className="text-sky-400 font-semibold">Configure</span> button in the top bar.
           </p>
 
@@ -137,19 +137,19 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-gray-800 bg-gray-950/40 flex items-center justify-end gap-2.5">
+        <div className="px-6 py-4 border-t border-gray-800 bg-gray-950/40 flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-gray-300 hover:text-white transition-all cursor-pointer rounded-lg hover:bg-gray-800 focus:outline-none"
+            className="px-5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white transition-all cursor-pointer rounded-lg hover:bg-gray-800 focus:outline-none"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={configMutation.isPending}
-            className="px-4 py-2 text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 focus:outline-none disabled:opacity-50"
+            className="px-5 py-2.5 text-sm font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 focus:outline-none disabled:opacity-50"
           >
-            <Save className="w-3.5 h-3.5" />
+            <Save className="w-4 h-4" />
             {configMutation.isPending ? 'Saving...' : 'Apply Units'}
           </button>
         </div>
