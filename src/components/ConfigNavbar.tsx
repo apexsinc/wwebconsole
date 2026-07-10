@@ -129,9 +129,7 @@ export default function ConfigNavbar() {
     <>
       <nav id="config-navbar" className="w-full bg-slate-900 dark:bg-[#0a0d14] border-b border-slate-800 px-6 py-4 flex items-center justify-between select-none">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sky-950/40 border border-sky-500/25 flex items-center justify-center text-sky-400">
-            <Activity className="w-4.5 h-4.5 animate-pulse" />
-          </div>
+          <img src="/apexs-logo.png" alt="APEXS Logo" className="h-9 w-auto object-contain" />
           <div>
             <h1 className="text-white font-sans font-black tracking-wider text-xs md:text-sm uppercase leading-none">
               Weatherlink Web Console
@@ -149,7 +147,7 @@ export default function ConfigNavbar() {
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center">
+        <div className="hidden sm:flex items-center absolute left-1/2 -translate-x-1/2 pointer-events-none">
           <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-mono border px-3 py-1 rounded-full font-bold uppercase tracking-wider text-sky-400 bg-sky-950/40 border-sky-500/25">
             <Network className="w-3.5 h-3.5" />
             WeatherLink Cloud · {config.cloudApiVersion?.toUpperCase() || 'V2'}
