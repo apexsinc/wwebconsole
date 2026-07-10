@@ -105,10 +105,10 @@ export function MarketingLayout() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `px-3 py-1.5 text-sm rounded-md transition-all ${
+                  `px-4 py-2 text-[15px] rounded-lg transition-all ${
                     isActive
-                      ? 'text-sky-300 font-semibold bg-white/5'
-                      : 'text-white/70 hover:text-white hover:bg-white/5'
+                      ? 'text-sky-300 font-bold bg-white/10 shadow-sm'
+                      : 'text-white/80 font-medium hover:text-white hover:bg-white/5'
                   }`
                 }
               >
@@ -127,7 +127,7 @@ export function MarketingLayout() {
             </button>
             <Link
               to="/login"
-              className="hidden sm:inline-flex text-sm font-medium text-white/70 hover:text-white transition-colors px-2"
+              className="hidden sm:inline-flex text-[15px] font-medium text-white/80 hover:text-white transition-colors px-3"
             >
               Sign in
             </Link>
