@@ -1,7 +1,7 @@
 /** Password hashing (PBKDF2-SHA256) + AES-GCM for WeatherLink credentials */
 
 /** New password hashes use this iteration count. verifyPassword still accepts older hashes. */
-const PBKDF2_ITERATIONS = 310_000;
+const PBKDF2_ITERATIONS = 100_000; // Cloudflare Workers Web Crypto caps PBKDF2 at 100,000
 
 function b64encode(buf: ArrayBuffer | Uint8Array): string {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
