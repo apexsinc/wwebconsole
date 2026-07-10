@@ -123,8 +123,8 @@ function MainDashboard() {
         </div>
       )}
 
-      <div className="pt-2 px-2 pb-0 md:pt-3 md:px-3 md:pb-0 grid grid-cols-1 md:grid-cols-[1fr_240px_1fr] lg:grid-cols-[1fr_280px_1fr] gap-2.5 md:gap-4 items-stretch flex-1 overflow-hidden min-h-0">
-        <div className="flex flex-col min-h-0 relative z-10 h-full gap-2.5 md:gap-4">
+      <div className="pt-2 px-2 pb-0 md:pt-3 md:px-3 md:pb-0 grid grid-cols-1 md:grid-cols-[1fr_240px_1fr] lg:grid-cols-[1fr_280px_1fr] gap-4 md:gap-4 items-stretch flex-1 overflow-y-auto md:overflow-hidden min-h-0">
+        <div className="flex flex-col min-h-[350px] md:min-h-0 relative z-10 h-full gap-2.5 md:gap-4">
           <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
             <WeatherMetric
               title="Outside Temperature"
@@ -163,7 +163,7 @@ function MainDashboard() {
           </GlassPanel>
         </div>
 
-        <div className="flex flex-col justify-between bg-[#0e1930]/75 border border-[#01497c]/30 rounded-2xl pt-2.5 px-2.5 pb-0 md:pt-3.5 md:px-3.5 md:pb-0 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible backdrop-blur-md min-h-0 z-50">
+        <div className="flex flex-col justify-between bg-[#0e1930]/75 border border-[#01497c]/30 rounded-2xl pt-2.5 px-2.5 pb-0 md:pt-3.5 md:px-3.5 md:pb-0 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible backdrop-blur-md min-h-[300px] md:min-h-0 z-50">
           <div className="relative z-20">
             <Header />
           </div>
@@ -199,7 +199,7 @@ function MainDashboard() {
           </div>
         </div>
 
-        <div className="flex flex-col min-h-0 relative z-10 h-full gap-2.5 md:gap-4">
+        <div className="flex flex-col min-h-[350px] md:min-h-0 relative z-10 h-full gap-2.5 md:gap-4 pb-2 md:pb-0">
           <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
             <WeatherMetric
               title="Current Barometer"
@@ -290,7 +290,7 @@ function ProtectedConsole() {
   const accessBlocked = billing && !billing.accessOk;
 
   return (
-    <div className="h-screen bg-[#e8edf3] dark:bg-[#0a0d14] flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-[#e8edf3] dark:bg-[#0a0d14] flex flex-col overflow-y-auto md:overflow-hidden">
       <ConfigNavbar />
       {accessBlocked && (
         <div className="bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-100 text-xs px-4 py-2 border-b border-amber-200 dark:border-amber-800 text-center">

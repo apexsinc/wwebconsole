@@ -98,7 +98,7 @@ export default function TvPage() {
   }
 
   return (
-    <div className="h-screen bg-[#0a0d14] flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-[#0a0d14] flex flex-col overflow-y-auto md:overflow-hidden">
       <div className="flex-1 flex flex-col justify-center">
         <TabletFrame>
           <div className="flex-1 flex flex-col justify-between h-full relative">
@@ -112,8 +112,8 @@ export default function TvPage() {
               </div>
             )}
 
-            <div className="pt-2 px-2 pb-0 md:pt-3 md:px-3 grid grid-cols-1 md:grid-cols-[1fr_240px_1fr] lg:grid-cols-[1fr_280px_1fr] gap-2.5 md:gap-4 items-stretch flex-1 overflow-hidden min-h-0">
-              <div className="flex flex-col min-h-0 h-full gap-2.5 md:gap-4">
+            <div className="pt-2 px-2 pb-0 md:pt-3 md:px-3 grid grid-cols-1 md:grid-cols-[1fr_240px_1fr] lg:grid-cols-[1fr_280px_1fr] gap-4 md:gap-4 items-stretch flex-1 overflow-y-auto md:overflow-hidden min-h-0">
+              <div className="flex flex-col min-h-[350px] md:min-h-0 h-full gap-2.5 md:gap-4">
                 <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
                   <WeatherMetric
                     title="Outside Temperature"
@@ -152,7 +152,7 @@ export default function TvPage() {
                 </GlassPanel>
               </div>
 
-              <div className="flex flex-col justify-between bg-[#0e1930]/75 border border-[#01497c]/30 rounded-2xl pt-2.5 px-2.5 pb-0 md:pt-3.5 md:px-3.5 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible backdrop-blur-md min-h-0 z-50">
+              <div className="flex flex-col justify-between bg-[#0e1930]/75 border border-[#01497c]/30 rounded-2xl pt-2.5 px-2.5 pb-0 md:pt-3.5 md:px-3.5 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible backdrop-blur-md min-h-[300px] md:min-h-0 z-50">
                 <div className="relative z-20">
                   <Header />
                 </div>
@@ -186,7 +186,7 @@ export default function TvPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col min-h-0 h-full gap-2.5 md:gap-4">
+              <div className="flex flex-col min-h-[350px] md:min-h-0 h-full gap-2.5 md:gap-4 pb-2 md:pb-0">
                 <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
                   <WeatherMetric
                     title="Current Barometer"

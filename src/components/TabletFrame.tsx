@@ -23,10 +23,10 @@ export default function TabletFrame({ children }: TabletFrameProps) {
   }, []);
 
   return (
-    <div className={`w-full mx-auto flex flex-col items-center justify-center overflow-hidden ${
+    <div className={`w-full mx-auto flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden ${
       isFullscreen 
         ? 'max-w-full h-screen max-h-screen p-0' 
-        : 'max-w-[1400px] h-[calc(100vh-80px)] max-h-[calc(100vh-80px)] px-4 py-2'
+        : 'max-w-[1400px] h-auto min-h-[calc(100vh-80px)] md:h-[calc(100vh-80px)] md:max-h-[calc(100vh-80px)] px-4 py-2'
     }`}>
       {/* Outer Tablet Bezel (Black rim, White inner bezel) */}
       <div className={`relative w-full shadow-[0_20px_50px_-15px_rgba(0,0,0,0.15)] flex flex-col ${
@@ -49,10 +49,10 @@ export default function TabletFrame({ children }: TabletFrameProps) {
         )}
 
         {/* Inner Screen Shell */}
-        <div className={`relative w-full tablet-screen-shell screen-bg overflow-hidden flex flex-col justify-between ${
+        <div className={`relative w-full tablet-screen-shell screen-bg overflow-y-auto md:overflow-hidden flex flex-col justify-between ${
           isFullscreen
             ? 'rounded-none border-0 h-full max-h-full flex-1'
-            : 'rounded-[1rem] md:rounded-[1.5rem] border border-white/10 h-[calc(100vh-170px)] max-h-[calc(100vh-170px)]'
+            : 'rounded-[1rem] md:rounded-[1.5rem] border border-white/10 h-auto min-h-[calc(100vh-170px)] md:h-[calc(100vh-170px)] md:max-h-[calc(100vh-170px)]'
         }`}>
 
           {/* Main Weather Console Content */}
