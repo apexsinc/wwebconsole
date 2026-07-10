@@ -137,8 +137,9 @@ Priority:
 - [x] Anti-enumeration register responses  
 - [x] PBKDF2 310k for new password hashes  
 - [x] Strip `.dev.vars` from Vite `dist/` output  
-- [~] Enable Cloudflare WAF rate-limit rules — script ready (`npm run waf:rate-limits`); **API token lacks Zone WAF Edit** → create Free-plan rule in dashboard (1 rule: `/api/auth/*`)  
+- [x] Enable Cloudflare WAF rate-limit rules — Free-plan rule live (`/api/auth/*`, 20/10s/IP) via `npm run waf:rate-limits`  
 - [x] Enable Turnstile in production (`turnstile_enabled=1`, site key in D1, secret as Worker secret)  
+- [x] Fix swapped Turnstile site/secret keys + widget domains (www/admin) + auth form mount/reset  
 - [~] Enable Resend — blocked until `RESEND_API_KEY` is added to `.env` then `npm run secrets:push`  
 - [ ] Rotate secrets if `.dev.vars` ever leaked (manual)  
 - [x] Move `ADMIN_EMAIL` / `ADMIN_EMAILS` to Worker secrets (removed from `wrangler.jsonc` vars)  
@@ -166,7 +167,7 @@ Closed remaining Low/Partial items in code:
 | Worker secrets (session, credentials, Turnstile, admin emails) | Live |
 | Turnstile production | On |
 | Resend production | Off until API key in `.env` |
-| WAF rate limits via API | Blocked: token needs **Zone WAF Edit**; Free = 1 rule — use dashboard or widen token + `npm run waf:rate-limits` |
+| WAF rate limits via API | Done — Free-plan 1 rule on `/api/auth/*` (20 req / 10s / IP) |
 
 ---
 

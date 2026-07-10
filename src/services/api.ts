@@ -36,10 +36,32 @@ export type PublicSiteConfig = Record<string, string> & {
   freeTrialDays: number;
   indexable: boolean;
   features: { title: string; body: string }[];
+  pricing?: {
+    currency: string;
+    amount: number;
+    formatted: string;
+    periodLabel: string;
+    note: string;
+    country: string;
+  };
 };
 
 export async function fetchSiteConfig() {
   return api<PublicSiteConfig>('/api/public/site');
+}
+
+export async function submitContact(payload: {
+  name?: string;
+  email: string;
+  subject?: string;
+  message: string;
+  turnstileToken?: string;
+  website?: string;
+}) {
+  return api<{ ok: boolean }>('/api/public/contact', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchMe() {

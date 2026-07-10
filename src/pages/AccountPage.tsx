@@ -11,6 +11,7 @@ import {
   requestEmailChange,
 } from '../services/api.js';
 import { useTheme } from '../hooks/useTheme.js';
+import { PasswordInput } from '../components/PasswordInput.js';
 
 export default function AccountPage() {
   const user = useWeatherStore((s) => s.user);
@@ -176,21 +177,21 @@ export default function AccountPage() {
           <div className="flex items-center gap-2 font-bold text-sm">
             <KeyRound className="w-4 h-4 text-sky-500" /> Change password
           </div>
-          <input
-            type="password"
+          <PasswordInput
             required
             placeholder="Current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
             className={`w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500 ${input}`}
           />
-          <input
-            type="password"
+          <PasswordInput
             required
             minLength={8}
             placeholder="New password (min 8)"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
             className={`w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500 ${input}`}
           />
           <button disabled={busy} className="px-4 py-2 text-xs font-semibold bg-sky-600 text-white rounded-lg disabled:opacity-50">

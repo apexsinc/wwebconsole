@@ -20,7 +20,7 @@ import {
   requireAuth,
   updatePassword,
 } from './auth';
-import { sendOtpEmail } from './email';
+import { sendEmail, sendOtpEmail } from './email';
 import {
   activateYearlySubscription,
   hasAccountAccess,
@@ -36,6 +36,7 @@ import {
   getPublicAuthConfig,
   getPublicSiteConfig,
   getSeoForPath,
+  getSetting,
   injectSeoIntoHtml,
   isEnabled,
   listSettingsForAdmin,
@@ -47,6 +48,7 @@ import {
   clientIp,
   corsOriginAllowlist,
   enforceRateLimit,
+  escapeHtml,
   isDevEnvironment,
   limitJsonBody,
   safePublicError,
@@ -85,7 +87,75 @@ app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME }));
 
 app.get('/api/auth/config', async (c) => c.json(await getPublicAuthConfig(c.env)));
 
-app.get('/api/public/site', async (c) => c.json(await getPublicSiteConfig(c.env)));
+app.get('/api/public/site', async (c) => {
+  const country = c.req.header('cf-ipcountry') || c.req.header('CF-IPCountry') || null;
+  return c.json(await getPublicSiteConfig(c.env, country));
+});
+
+app.post('/api/public/contact', async (c) => {
+  const limited = enforceRateLimit(c, 'contact');
+  if (limited) return limited;
+
+  const body = z
+    .object({
+      name: z.string().max(80).optional(),
+      email: z.string().email().max(254),
+      subject: z.string().max(120).optional(),
+      message: z.string().min(10).max(4000),
+      turnstileToken: z.string().max(2048).optional(),
+      website: z.string().max(200).optional(), // honeypot — must stay empty
+    })
+    .safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+  if (body.data.website) return c.json({ ok: true }); // bot trap
+
+  try {
+    await verifyTurnstile(c.env, body.data.turnstileToken, clientIp(c));
+  } catch (err) {
+    return c.json({ error: safePublicError(err, 'Security check failed') }, 400);
+  }
+
+  const id = newId();
+  const now = Date.now();
+  const name = (body.data.name || '').trim();
+  const email = body.data.email.trim().toLowerCase();
+  const subject = (body.data.subject || 'Website contact').trim() || 'Website contact';
+  const message = body.data.message.trim();
+  const ip = clientIp(c);
+  const ua = (c.req.header('user-agent') || '').slice(0, 300);
+
+  await c.env.DB.prepare(
+    `INSERT INTO contact_messages (id, name, email, subject, message, ip, user_agent, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(id, name, email, subject, message, ip, ua, now)
+    .run();
+
+  const supportTo = (await getSetting(c.env, 'site_support_email')) || 'support@wwebconsole.com';
+
+  try {
+    const html = `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:20px">
+        <h2 style="margin:0 0 12px">Contact form</h2>
+        <p><strong>From:</strong> ${escapeHtml(name || '(no name)')} &lt;${escapeHtml(email)}&gt;</p>
+        <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+        <pre style="white-space:pre-wrap;background:#f4f7fb;padding:12px;border-radius:8px">${escapeHtml(message)}</pre>
+        <p style="color:#64748b;font-size:12px">IP ${escapeHtml(ip)} · ${escapeHtml(ua.slice(0, 120))}</p>
+      </div>`;
+    await sendEmail(
+      c.env,
+      supportTo,
+      `[WWebConsole] ${subject}`,
+      html,
+      `From: ${name} <${email}>\nSubject: ${subject}\n\n${message}`
+    );
+  } catch (err) {
+    console.error('contact email failed', err);
+    // Message is stored; still acknowledge so users aren't blocked when Resend is off
+  }
+
+  return c.json({ ok: true });
+});
 
 app.get('/robots.txt', async (c) => {
   const body = await buildRobotsTxt(c.env);

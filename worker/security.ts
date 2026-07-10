@@ -147,6 +147,7 @@ export const WRITABLE_SETTING_KEYS = new Set([
   'site_support_email',
   'site_company_name',
   'site_footer_text',
+  'site_trademark_note',
   'seo_home_title',
   'seo_home_description',
   'seo_features_title',
@@ -181,3 +182,13 @@ export const WRITABLE_SETTING_KEYS = new Set([
   'robots_extra',
   'seo_indexable',
 ]);
+
+/** Escape text for safe inclusion in HTML email bodies. */
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}

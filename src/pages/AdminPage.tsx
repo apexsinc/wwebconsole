@@ -30,6 +30,7 @@ const TEXTAREA_KEYS = new Set([
   'site_description',
   'site_keywords',
   'site_footer_text',
+  'site_trademark_note',
   'home_hero_subhead',
   'home_features_json',
   'pricing_basic_blurb',

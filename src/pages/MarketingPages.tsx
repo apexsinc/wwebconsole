@@ -1,32 +1,111 @@
-import { useEffect } from 'react';
+import { FormEvent, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
+import { motion, useReducedMotion } from 'motion/react';
 import type { PublicSiteConfig } from '../services/api.js';
+import { fetchAuthConfig, submitContact } from '../services/api.js';
 import { applyDocumentSeo } from '../components/MarketingLayout.js';
+
+const HERO_IMG = '/marketing/console-gallery.webp';
+const DEVICE_IMG = '/marketing/console-device.png';
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        el: HTMLElement,
+        opts: {
+          sitekey: string;
+          callback: (token: string) => void;
+          'expired-callback'?: () => void;
+          'error-callback'?: () => void;
+          theme?: 'light' | 'dark' | 'auto';
+        }
+      ) => string;
+      reset: (id?: string) => void;
+      remove: (id?: string) => void;
+    };
+  }
+}
 
 type Ctx = { site: PublicSiteConfig | null };
 
+const FEATURE_FALLBACKS = [
+  { title: 'Live dashboard', body: 'Temperature, wind, rain, pressure, and sun times.' },
+  { title: 'TV share links', body: 'Fullscreen public URLs for wall displays.' },
+  { title: 'Secure credentials', body: 'Your WeatherLink credentials stay private to your account.' },
+  { title: 'Works in the browser', body: 'Open your console from any device — nothing to install on site.' },
+];
+
 function MarkdownLite({ text }: { text: string }) {
-  const blocks = (text || '').split(/\n\n+/);
-  return (
-    <div className="prose-wwc space-y-4 text-sm leading-relaxed text-[var(--wwc-muted)]">
-      {blocks.map((block, i) => {
-        const trimmed = block.trim();
-        if (!trimmed) return null;
-        if (trimmed.startsWith('## ')) {
-          return (
-            <h2 key={i} className="text-lg font-bold text-[var(--wwc-text)] font-[family-name:var(--font-display)] mt-6 mb-2">
-              {trimmed.slice(3)}
-            </h2>
-          );
-        }
-        return (
-          <p key={i} className="whitespace-pre-wrap">
-            {trimmed}
-          </p>
-        );
-      })}
-    </div>
-  );
+  const lines = (text || '').split(/\n/);
+  const nodes: ReactNode[] = [];
+  let list: string[] = [];
+
+  const flushList = (key: string) => {
+    if (!list.length) return;
+    nodes.push(
+      <ul key={key} className="list-disc pl-5 space-y-1.5 text-sm text-[var(--wwc-muted)]">
+        {list.map((item, i) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ul>
+    );
+    list = [];
+  };
+
+  lines.forEach((raw, i) => {
+    const line = raw.trimEnd();
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushList(`ul-gap-${i}`);
+      return;
+    }
+    if (trimmed.startsWith('## ')) {
+      flushList(`ul-before-h-${i}`);
+      const heading = trimmed.slice(3).replace(/^\[|\]$/g, '').trim();
+      nodes.push(
+        <h2
+          key={`h-${i}`}
+          className="text-lg font-bold text-[var(--wwc-text)] font-[family-name:var(--font-display)] mt-8 mb-3 first:mt-0"
+        >
+          {heading}
+        </h2>
+      );
+      return;
+    }
+    if (trimmed.startsWith('- ')) {
+      list.push(trimmed.slice(2));
+      return;
+    }
+    flushList(`ul-before-p-${i}`);
+    nodes.push(
+      <p key={`p-${i}`} className="text-sm leading-relaxed text-[var(--wwc-muted)] whitespace-pre-wrap">
+        {trimmed}
+      </p>
+    );
+  });
+  flushList('ul-end');
+
+  return <div className="prose-wwc space-y-3">{nodes}</div>;
+}
+
+function useLocalizedPrice(site: PublicSiteConfig | null) {
+  const usd = site?.yearlyPriceUsd ?? 49;
+  const p = site?.pricing;
+  if (p?.formatted) {
+    return {
+      formatted: p.formatted,
+      periodLabel: p.periodLabel || '/ year / device',
+      note: p.note || '',
+      usd,
+    };
+  }
+  return {
+    formatted: `$${usd}`,
+    periodLabel: '/ year / device',
+    note: '',
+    usd,
+  };
 }
 
 function usePageSeo(
@@ -54,82 +133,166 @@ function usePageSeo(
 
 export function HomePage() {
   const { site } = useOutletContext<Ctx>();
-  usePageSeo(site, 'seo_home_title', 'seo_home_description', '/', 'WWebConsole', '');
-
-  const features = site?.features?.length
-    ? site.features
-    : [
-        { title: 'Live dashboard', body: 'Temperature, wind, rain, pressure, and sun times.' },
-        { title: 'TV share links', body: 'Fullscreen public URLs for wall displays.' },
-        { title: 'Secure credentials', body: 'Your WeatherLink credentials stay private to your account.' },
-        { title: 'Works in the browser', body: 'Open your console from any device — nothing to install on site.' },
-      ];
+  usePageSeo(site, 'seo_home_title', 'seo_home_description', '/', 'Weatherlink Web Console', '');
+  const price = useLocalizedPrice(site);
+  const reduceMotion = useReducedMotion();
+  const features = site?.features?.length ? site.features : FEATURE_FALLBACKS;
+  const brand = site?.site_name || 'Weatherlink Web Console';
 
   return (
     <div>
-      <section className="relative overflow-hidden border-b border-[var(--wwc-border)]">
+      {/* Full-bleed product hero — one composition: brand, headline, line, CTAs, console image */}
+      <section className="relative min-h-[100svh] flex flex-col justify-end overflow-hidden bg-[#040a10]">
+        <motion.div
+          className="absolute inset-0"
+          initial={reduceMotion ? false : { scale: 1.06 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <img
+            src={HERO_IMG}
+            alt="Weatherlink Web Console live weather dashboard"
+            className="h-full w-full object-cover object-[center_35%]"
+            width={1439}
+            height={1079}
+            fetchPriority="high"
+            decoding="async"
+          />
+        </motion.div>
         <div
-          className="absolute inset-0 opacity-90"
+          className="absolute inset-0"
           style={{
             background:
-              'radial-gradient(ellipse 80% 60% at 70% 20%, rgba(2,132,199,0.18), transparent 55%), radial-gradient(ellipse 60% 50% at 10% 80%, rgba(14,165,233,0.12), transparent 50%), linear-gradient(180deg, var(--wwc-surface) 0%, var(--wwc-page) 100%)',
+              'linear-gradient(180deg, rgba(4,10,16,0.72) 0%, rgba(4,10,16,0.45) 28%, rgba(4,10,16,0.55) 48%, rgba(4,10,16,0.88) 78%, rgba(4,10,16,0.97) 100%)',
           }}
         />
-        <div className="relative max-w-5xl mx-auto px-4 pt-16 pb-20 sm:pt-24 sm:pb-28">
-          <p className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[var(--wwc-text)] max-w-3xl leading-[1.1]">
-            {site?.site_name || 'WWebConsole'}
-          </p>
-          <h1 className="mt-5 text-xl sm:text-2xl font-medium text-[var(--wwc-text)] max-w-2xl leading-snug">
-            {site?.home_hero_headline || 'Your WeatherLink station, on the web'}
-          </h1>
-          <p className="mt-4 text-[var(--wwc-muted)] max-w-xl text-base leading-relaxed">
-            {site?.home_hero_subhead || site?.site_tagline || ''}
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-[var(--wwc-accent)] text-white text-sm font-semibold hover:opacity-90"
-            >
-              {site?.home_hero_cta_primary || 'Start free'}
-            </Link>
-            <Link
-              to="/pricing"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-md border border-[var(--wwc-border)] bg-[var(--wwc-surface)] text-sm font-semibold hover:bg-[var(--wwc-surface-2)]"
-            >
-              {site?.home_hero_cta_secondary || 'See pricing'}
-            </Link>
-          </div>
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 90% 55% at 50% 100%, rgba(2,100,160,0.28), transparent 55%), linear-gradient(90deg, rgba(4,10,16,0.55) 0%, transparent 42%, transparent 58%, rgba(4,10,16,0.35) 100%)',
+          }}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-black/25" />
+
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 pb-14 pt-28 sm:pb-20 sm:pt-32">
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 px-5 py-6 sm:px-8 sm:py-8 max-w-2xl shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+          >
+            <p className="font-[family-name:var(--font-display)] text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              {brand}
+            </p>
+            <h1 className="mt-3 max-w-2xl font-[family-name:var(--font-display)] text-3xl sm:text-4xl md:text-[2.75rem] font-bold tracking-tight text-white leading-[1.12]">
+              {site?.home_hero_headline || 'Your station console, on the web'}
+            </h1>
+            <p className="mt-4 max-w-lg text-base sm:text-lg text-white/80 leading-relaxed">
+              {site?.home_hero_subhead ||
+                site?.site_tagline ||
+                'Live dashboard and TV share links — open from any browser.'}
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 transition-colors shadow-lg shadow-sky-900/40"
+              >
+                {site?.home_hero_cta_primary || 'Start free'}
+              </Link>
+              <Link
+                to="/pricing"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white/30 bg-white/10 text-white text-sm font-semibold backdrop-blur-sm hover:bg-white/15 transition-colors"
+              >
+                {site?.home_hero_cta_secondary || 'See pricing'}
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-4 py-16">
-        <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold">Built for WeatherLink</h2>
-        <p className="text-[var(--wwc-muted)] text-sm mt-2 max-w-xl">
-          Everything you need to run a station console in the browser — without a local server.
+      {/* Product in context — device shot */}
+      <section className="border-b border-[var(--wwc-border)] bg-[var(--wwc-page)]">
+        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-20 grid md:grid-cols-2 gap-10 md:gap-14 items-center">
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-3xl font-bold tracking-tight">
+              The console you know — in the browser
+            </h2>
+            <p className="mt-4 text-[var(--wwc-muted)] text-sm sm:text-base leading-relaxed max-w-md">
+              Temperature, wind, rain, pressure, and sun times in one clear view. Share a fullscreen link for TVs,
+              lobbies, and wall displays.
+            </p>
+            <Link to="/features" className="inline-flex mt-6 text-sm font-semibold text-[var(--wwc-accent)] hover:underline">
+              Explore features →
+            </Link>
+          </motion.div>
+          <motion.div
+            className="relative"
+            initial={reduceMotion ? false : { opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div
+              className="absolute -inset-6 -z-10 rounded-full opacity-60 blur-3xl"
+              style={{
+                background: 'radial-gradient(circle at 50% 40%, rgba(2,132,199,0.22), transparent 65%)',
+              }}
+            />
+            <img
+              src={DEVICE_IMG}
+              alt="Weather console display showing live station data"
+              className="w-full h-auto drop-shadow-2xl"
+              width={882}
+              height={634}
+              loading="lazy"
+              decoding="async"
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="max-w-5xl mx-auto px-4 py-16 sm:py-20">
+        <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-3xl font-bold">Built for WeatherLink</h2>
+        <p className="text-[var(--wwc-muted)] text-sm mt-3 max-w-xl leading-relaxed">
+          Everything you need to run a station console online — nothing to install on site.
         </p>
-        <div className="mt-10 grid sm:grid-cols-2 gap-8">
-          {features.map((f) => (
-            <div key={f.title}>
-              <h3 className="font-semibold text-[var(--wwc-text)]">{f.title}</h3>
+        <div className="mt-12 grid sm:grid-cols-2 gap-x-12 gap-y-10">
+          {features.map((f, i) => (
+            <motion.div
+              key={f.title}
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.45, delay: reduceMotion ? 0 : i * 0.06 }}
+            >
+              <h3 className="font-semibold text-[var(--wwc-text)] text-base">{f.title}</h3>
               <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">{f.body}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
       <section className="border-t border-[var(--wwc-border)] bg-[var(--wwc-surface)]">
-        <div className="max-w-5xl mx-auto px-4 py-14 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="max-w-5xl mx-auto px-4 py-14 sm:py-16 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div>
-            <h2 className="font-[family-name:var(--font-display)] text-xl font-bold">
+            <h2 className="font-[family-name:var(--font-display)] text-xl sm:text-2xl font-bold">
               Free for {site?.freeTrialDays ?? 30} days
             </h2>
-            <p className="text-sm text-[var(--wwc-muted)] mt-1">
-              Then ${site?.yearlyPriceUsd ?? 49}/year per device for WeatherLink Pro.
+            <p className="text-sm text-[var(--wwc-muted)] mt-2">
+              Then {price.formatted}
+              {price.periodLabel} for WeatherLink Pro.
             </p>
+            {price.note ? <p className="text-[11px] text-[var(--wwc-muted)] mt-1">{price.note}</p> : null}
           </div>
           <Link
             to="/register"
-            className="inline-flex self-start px-5 py-2.5 rounded-md bg-[var(--wwc-accent)] text-white text-sm font-semibold"
+            className="inline-flex self-start px-6 py-3 rounded-md bg-[var(--wwc-accent)] text-white text-sm font-semibold hover:opacity-90"
           >
             Create account
           </Link>
@@ -142,33 +305,50 @@ export function HomePage() {
 export function FeaturesPage() {
   const { site } = useOutletContext<Ctx>();
   usePageSeo(site, 'seo_features_title', 'seo_features_description', '/features', 'Features', '');
-  const features = site?.features || [];
+  const features = site?.features?.length ? site.features : FEATURE_FALLBACKS;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-14">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold">Features</h1>
-      <p className="text-[var(--wwc-muted)] mt-3 max-w-2xl text-sm leading-relaxed">
-        {site?.seo_features_description || 'What you get with WWebConsole.'}
-      </p>
-      <div className="mt-12 grid gap-10 sm:grid-cols-2">
-        {features.map((f) => (
-          <div key={f.title} className="border-t border-[var(--wwc-border)] pt-5">
-            <h2 className="font-semibold text-lg">{f.title}</h2>
-            <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">{f.body}</p>
+    <div>
+      <div className="border-b border-[var(--wwc-border)] bg-[var(--wwc-surface)]">
+        <div className="max-w-5xl mx-auto px-4 py-12 sm:py-14 grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-bold">Features</h1>
+            <p className="text-[var(--wwc-muted)] mt-4 max-w-md text-sm leading-relaxed">
+              {site?.seo_features_description || 'What you get with Weatherlink Web Console.'}
+            </p>
           </div>
-        ))}
-        <div className="border-t border-[var(--wwc-border)] pt-5">
-          <h2 className="font-semibold text-lg">Account security</h2>
-          <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">
-            Sign-in protection, email verification when enabled, password and email change, and account deletion with
-            a short grace period.
-          </p>
+          <img
+            src={HERO_IMG}
+            alt="Live weather console dashboard"
+            className="w-full h-auto rounded-lg shadow-lg"
+            width={1439}
+            height={1079}
+            loading="lazy"
+            decoding="async"
+          />
         </div>
-        <div className="border-t border-[var(--wwc-border)] pt-5">
-          <h2 className="font-semibold text-lg">Simple setup</h2>
-          <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">
-            Connect your WeatherLink station, open the live console, and share a TV display link when you need it.
-          </p>
+      </div>
+      <div className="max-w-5xl mx-auto px-4 py-14">
+        <div className="grid gap-10 sm:grid-cols-2">
+          {features.map((f) => (
+            <div key={f.title} className="border-t border-[var(--wwc-border)] pt-5">
+              <h2 className="font-semibold text-lg">{f.title}</h2>
+              <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">{f.body}</p>
+            </div>
+          ))}
+          <div className="border-t border-[var(--wwc-border)] pt-5">
+            <h2 className="font-semibold text-lg">Account security</h2>
+            <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">
+              Sign-in protection, email verification when enabled, password and email change, and account deletion with
+              a short grace period.
+            </p>
+          </div>
+          <div className="border-t border-[var(--wwc-border)] pt-5">
+            <h2 className="font-semibold text-lg">Simple setup</h2>
+            <p className="text-sm text-[var(--wwc-muted)] mt-2 leading-relaxed">
+              Connect your WeatherLink station, open the live console, and share a TV display link when you need it.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -178,6 +358,7 @@ export function FeaturesPage() {
 export function PricingPage() {
   const { site } = useOutletContext<Ctx>();
   usePageSeo(site, 'seo_pricing_title', 'seo_pricing_description', '/pricing', 'Pricing', '');
+  const price = useLocalizedPrice(site);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-14">
@@ -200,9 +381,10 @@ export function PricingPage() {
         <div className="border border-[var(--wwc-accent)]/40 rounded-xl p-6 bg-[var(--wwc-surface)]">
           <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--wwc-accent)]">Pro device</p>
           <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold">
-            ${site?.yearlyPriceUsd ?? 49}
-            <span className="text-base font-medium text-[var(--wwc-muted)]"> / year / device</span>
+            {price.formatted}
+            <span className="text-base font-medium text-[var(--wwc-muted)]"> {price.periodLabel}</span>
           </p>
+          {price.note ? <p className="text-[11px] text-[var(--wwc-muted)] mt-2">{price.note}</p> : null}
           <p className="text-sm text-[var(--wwc-muted)] mt-4 leading-relaxed">{site?.pricing_pro_blurb || ''}</p>
           <Link to="/contact" className="inline-flex mt-6 text-sm font-semibold text-[var(--wwc-accent)]">
             Ask about activation →
@@ -230,17 +412,195 @@ export function AboutPage() {
 export function ContactPage() {
   const { site } = useOutletContext<Ctx>();
   usePageSeo(site, 'seo_contact_title', 'seo_contact_description', '/contact', 'Contact', '');
-  const email = site?.site_support_email || 'support@wwebconsole.com';
+  const supportEmail = site?.site_support_email || 'support@wwebconsole.com';
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [authCfg, setAuthCfg] = useState({ turnstileEnabled: false, turnstileSiteKey: '' });
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [widgetEpoch, setWidgetEpoch] = useState(0);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    fetchAuthConfig().then(setAuthCfg).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!authCfg.turnstileEnabled || !authCfg.turnstileSiteKey) return;
+    let cancelled = false;
+
+    const mount = () => {
+      if (cancelled || !hostRef.current || !window.turnstile) return;
+      if (widgetIdRef.current) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch {
+          /* ignore */
+        }
+        widgetIdRef.current = null;
+      }
+      hostRef.current.innerHTML = '';
+      widgetIdRef.current = window.turnstile.render(hostRef.current, {
+        sitekey: authCfg.turnstileSiteKey,
+        theme: 'auto',
+        callback: (t) => setTurnstileToken(t),
+        'expired-callback': () => setTurnstileToken(''),
+        'error-callback': () => setTurnstileToken(''),
+      });
+    };
+
+    if (window.turnstile?.render) {
+      mount();
+    } else {
+      const existing = document.querySelector('script[data-wwc-turnstile]');
+      if (!existing) {
+        const s = document.createElement('script');
+        s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        s.async = true;
+        s.dataset.wwcTurnstile = '1';
+        s.onload = mount;
+        document.head.appendChild(s);
+      } else {
+        let tries = 0;
+        const id = window.setInterval(() => {
+          if (window.turnstile?.render) {
+            window.clearInterval(id);
+            mount();
+          } else if (++tries > 40) window.clearInterval(id);
+        }, 100);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      if (widgetIdRef.current && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch {
+          /* ignore */
+        }
+        widgetIdRef.current = null;
+      }
+    };
+  }, [authCfg.turnstileEnabled, authCfg.turnstileSiteKey, widgetEpoch]);
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (authCfg.turnstileEnabled && !turnstileToken) {
+      setError('Complete the security check before sending.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await submitContact({
+        name,
+        email,
+        subject,
+        message,
+        turnstileToken: turnstileToken || undefined,
+        website,
+      });
+      setSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Could not send message');
+      setTurnstileToken('');
+      setWidgetEpoch((n) => n + 1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-14">
       <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold">Contact</h1>
       <p className="text-[var(--wwc-muted)] mt-4 text-sm leading-relaxed">{site?.contact_intro || ''}</p>
-      <a
-        href={`mailto:${email}`}
-        className="inline-flex mt-8 text-lg font-semibold text-[var(--wwc-accent)] hover:underline"
-      >
-        {email}
-      </a>
+
+      {sent ? (
+        <div className="mt-10 rounded-xl border border-[var(--wwc-border)] bg-[var(--wwc-surface)] p-6">
+          <p className="font-semibold text-[var(--wwc-text)]">Message received</p>
+          <p className="text-sm text-[var(--wwc-muted)] mt-2">
+            Thanks — we will get back to you at {email}. You can also reach us at{' '}
+            <a href={`mailto:${supportEmail}`} className="text-[var(--wwc-accent)] hover:underline">
+              {supportEmail}
+            </a>
+            .
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} className="mt-10 space-y-4 max-w-xl relative">
+          {error && (
+            <p className="text-rose-600 dark:text-rose-400 text-xs bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-[var(--wwc-muted)] font-bold">Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1 w-full bg-[var(--wwc-surface)] border border-[var(--wwc-border)] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[var(--wwc-accent)]"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-[var(--wwc-muted)] font-bold">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full bg-[var(--wwc-surface)] border border-[var(--wwc-border)] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[var(--wwc-accent)]"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-[var(--wwc-muted)] font-bold">Subject</label>
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Billing, setup, partnership…"
+              className="mt-1 w-full bg-[var(--wwc-surface)] border border-[var(--wwc-border)] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[var(--wwc-accent)]"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-[var(--wwc-muted)] font-bold">Message</label>
+            <textarea
+              required
+              minLength={10}
+              rows={6}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="mt-1 w-full bg-[var(--wwc-surface)] border border-[var(--wwc-border)] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[var(--wwc-accent)] resize-y"
+            />
+          </div>
+          <div className="absolute -left-[9999px] opacity-0 h-0 overflow-hidden" aria-hidden="true">
+            <label>
+              Website
+              <input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            </label>
+          </div>
+          {authCfg.turnstileEnabled && <div ref={hostRef} className="pt-1" />}
+          <button
+            type="submit"
+            disabled={loading || (authCfg.turnstileEnabled && !turnstileToken)}
+            className="inline-flex px-5 py-2.5 rounded-md bg-[var(--wwc-accent)] text-white text-sm font-semibold disabled:opacity-50"
+          >
+            {loading ? 'Sending…' : 'Send message'}
+          </button>
+          <p className="text-xs text-[var(--wwc-muted)]">
+            Prefer email?{' '}
+            <a href={`mailto:${supportEmail}`} className="text-[var(--wwc-accent)] hover:underline">
+              {supportEmail}
+            </a>
+          </p>
+        </form>
+      )}
     </div>
   );
 }

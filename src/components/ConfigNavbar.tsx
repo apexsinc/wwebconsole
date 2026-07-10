@@ -26,6 +26,7 @@ import {
   useShareLinks,
 } from '../services/api.js';
 import { useTheme } from '../hooks/useTheme.js';
+import { PasswordInput } from './PasswordInput.js';
 
 export default function ConfigNavbar() {
   const navigate = useNavigate();
@@ -119,7 +120,7 @@ export default function ConfigNavbar() {
           </div>
           <div>
             <h1 className="text-white font-sans font-black tracking-wider text-xs md:text-sm uppercase leading-none">
-              WWebConsole
+              Weatherlink Web Console
             </h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span
@@ -273,11 +274,11 @@ export default function ConfigNavbar() {
                           <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
                             Account Password {config.hasPassword ? '(saved — leave blank to keep)' : ''}
                           </label>
-                          <input
-                            type="password"
+                          <PasswordInput
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            autoComplete="off"
+                            className="w-full bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -309,11 +310,11 @@ export default function ConfigNavbar() {
                           <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
                             API Secret {config.hasApiSecret ? '(saved — leave blank to keep)' : ''}
                           </label>
-                          <input
-                            type="password"
+                          <PasswordInput
                             value={apiSecret}
                             onChange={(e) => setApiSecret(e.target.value)}
-                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            autoComplete="off"
+                            className="w-full bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -331,11 +332,11 @@ export default function ConfigNavbar() {
                           <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
                             Password (optional for sunrise/sunset)
                           </label>
-                          <input
-                            type="password"
+                          <PasswordInput
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            autoComplete="off"
+                            className="w-full bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
                           />
                         </div>
                       </>

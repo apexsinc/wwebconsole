@@ -27,7 +27,7 @@ Manual dashboard actions that complement app-level controls.
 3. Add **Rate limiting** rules (edge layer; Worker still has app-level limits):
 
 **Free plan (1 rule only):** path starts with `/api/auth/` · 20 req / 10 s / IP · Block  
-Dashboard: **Security → WAF → Rate limiting rules**
+Applied via `npm run waf:rate-limits` (or dashboard: **Security → WAF → Rate limiting rules**)
 
 **Pro+ (script default when `CF_PLAN=pro`):**
 

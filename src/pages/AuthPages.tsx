@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Activity } from 'lucide-react';
 import {
@@ -11,6 +11,7 @@ import {
   verifyEmail,
 } from '../services/api.js';
 import { useWeatherStore } from '../store.js';
+import { PasswordInput } from '../components/PasswordInput.js';
 
 function isAdminHost() {
   if (typeof window === 'undefined') return false;
@@ -28,10 +29,17 @@ declare global {
     turnstile?: {
       render: (
         el: HTMLElement,
-        opts: { sitekey: string; callback: (token: string) => void; theme?: string }
+        opts: {
+          sitekey: string;
+          callback: (token: string) => void;
+          'expired-callback'?: () => void;
+          'error-callback'?: () => void;
+          theme?: 'light' | 'dark' | 'auto';
+        }
       ) => string;
       reset: (id?: string) => void;
       remove: (id?: string) => void;
+      ready?: (cb: () => void) => void;
     };
   }
 }
@@ -39,11 +47,32 @@ declare global {
 function useTurnstile(siteKey: string, enabled: boolean) {
   const ref = useRef<HTMLDivElement>(null);
   const [token, setToken] = useState('');
+  const [ready, setReady] = useState(false);
+  const [scriptError, setScriptError] = useState('');
   const widgetId = useRef<string | null>(null);
 
+  const reset = useCallback(() => {
+    setToken('');
+    if (widgetId.current && window.turnstile) {
+      try {
+        window.turnstile.reset(widgetId.current);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
+
   useEffect(() => {
-    if (!enabled || !siteKey) return;
+    if (!enabled || !siteKey) {
+      setReady(false);
+      setToken('');
+      return;
+    }
+
     let cancelled = false;
+    setReady(false);
+    setToken('');
+    setScriptError('');
 
     const mount = () => {
       if (cancelled || !ref.current || !window.turnstile) return;
@@ -53,27 +82,81 @@ function useTurnstile(siteKey: string, enabled: boolean) {
         } catch {
           /* ignore */
         }
+        widgetId.current = null;
       }
-      widgetId.current = window.turnstile.render(ref.current, {
-        sitekey: siteKey,
-        theme: 'dark',
-        callback: (t) => setToken(t),
-      });
+      // Clear any leftover iframe markup before re-render
+      ref.current.innerHTML = '';
+      try {
+        widgetId.current = window.turnstile.render(ref.current, {
+          sitekey: siteKey,
+          theme: 'auto',
+          callback: (t) => {
+            if (!cancelled) {
+              setToken(t);
+              setReady(true);
+            }
+          },
+          'expired-callback': () => {
+            if (!cancelled) {
+              setToken('');
+              setReady(false);
+            }
+          },
+          'error-callback': () => {
+            if (!cancelled) {
+              setToken('');
+              setReady(false);
+              setScriptError('Turnstile failed to load. Refresh and try again.');
+            }
+          },
+        });
+      } catch (err: any) {
+        if (!cancelled) setScriptError(err?.message || 'Turnstile failed to render');
+      }
     };
 
-    if (window.turnstile) {
+    const whenApiReady = (cb: () => void) => {
+      if (window.turnstile?.render) {
+        cb();
+        return;
+      }
+      if (typeof window.turnstile?.ready === 'function') {
+        window.turnstile.ready(cb);
+        return;
+      }
+      // Poll briefly if script tag exists but API not yet attached
+      let tries = 0;
+      const id = window.setInterval(() => {
+        if (cancelled) {
+          window.clearInterval(id);
+          return;
+        }
+        if (window.turnstile?.render) {
+          window.clearInterval(id);
+          cb();
+        } else if (++tries > 40) {
+          window.clearInterval(id);
+          if (!cancelled) setScriptError('Turnstile script timed out');
+        }
+      }, 100);
+    };
+
+    if (window.turnstile?.render) {
       mount();
     } else {
-      const existing = document.querySelector('script[data-wwc-turnstile]');
+      const existing = document.querySelector('script[data-wwc-turnstile]') as HTMLScriptElement | null;
       if (!existing) {
         const s = document.createElement('script');
         s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
         s.async = true;
         s.dataset.wwcTurnstile = '1';
-        s.onload = mount;
+        s.onload = () => whenApiReady(mount);
+        s.onerror = () => {
+          if (!cancelled) setScriptError('Could not load Turnstile. Check network / ad blockers.');
+        };
         document.head.appendChild(s);
       } else {
-        existing.addEventListener('load', mount);
+        whenApiReady(mount);
       }
     }
 
@@ -85,11 +168,30 @@ function useTurnstile(siteKey: string, enabled: boolean) {
         } catch {
           /* ignore */
         }
+        widgetId.current = null;
       }
     };
   }, [enabled, siteKey]);
 
-  return { ref, token, setToken };
+  return { ref, token, ready, scriptError, reset, required: enabled && Boolean(siteKey) };
+}
+
+function TurnstileField({
+  enabled,
+  turnstile,
+}: {
+  enabled: boolean;
+  turnstile: ReturnType<typeof useTurnstile>;
+}) {
+  if (!enabled) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      <div ref={turnstile.ref} />
+      {turnstile.scriptError && (
+        <p className="text-rose-400 text-xs">{turnstile.scriptError}</p>
+      )}
+    </div>
+  );
 }
 
 export function LoginPage() {
@@ -109,12 +211,17 @@ export function LoginPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    if (turnstile.required && !turnstile.token) {
+      setError('Complete the security check before signing in.');
+      return;
+    }
     setLoading(true);
     try {
       const { user } = await login(email, password, turnstile.token || undefined);
       setUser(user);
       navigate(postAuthPath());
     } catch (err: any) {
+      turnstile.reset();
       if (err.code === 'EMAIL_NOT_VERIFIED') {
         navigate(`/verify?email=${encodeURIComponent(email)}`);
         return;
@@ -138,18 +245,18 @@ export function LoginPage() {
           className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
-        <input
-          type="password"
+        <PasswordInput
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
+          autoComplete="current-password"
+          className="w-full bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
-        {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
+        <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (turnstile.required && !turnstile.token)}
           className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5"
         >
           {loading ? 'Signing in…' : 'Sign in'}
@@ -192,6 +299,10 @@ export function RegisterPage() {
     e.preventDefault();
     setError('');
     setInfo('');
+    if (turnstile.required && !turnstile.token) {
+      setError('Complete the security check before creating an account.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await register(email, password, name, turnstile.token || undefined);
@@ -206,7 +317,9 @@ export function RegisterPage() {
       }
       // Anti-enumeration: existing/blocked emails get a generic message (no verify redirect)
       setInfo(res.message || 'If this email can be registered, check your inbox. Otherwise sign in.');
+      turnstile.reset();
     } catch (err: any) {
+      turnstile.reset();
       setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
@@ -237,18 +350,18 @@ export function RegisterPage() {
           className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
-        <input
-          type="password"
+        <PasswordInput
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
+          autoComplete="new-password"
+          className="w-full bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
         />
-        {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
+        <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (turnstile.required && !turnstile.token)}
           className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5"
         >
           {loading ? 'Creating…' : 'Create account'}
@@ -282,13 +395,18 @@ export function VerifyEmailPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    if (turnstile.required && !turnstile.token) {
+      setError('Complete the security check first.');
+      return;
+    }
+    setLoading(true);
     try {
       const { user } = await verifyEmail(email, code, turnstile.token || undefined);
       setUser(user);
       navigate(postAuthPath());
     } catch (err: any) {
+      turnstile.reset();
       setError(err.message || 'Verification failed');
     } finally {
       setLoading(false);
@@ -298,10 +416,16 @@ export function VerifyEmailPage() {
   const onResend = async () => {
     setInfo('');
     setError('');
+    if (turnstile.required && !turnstile.token) {
+      setError('Complete the security check before resending.');
+      return;
+    }
     try {
       await resendVerification(email, turnstile.token || undefined);
       setInfo('A new code was sent if the account exists.');
+      turnstile.reset();
     } catch (err: any) {
+      turnstile.reset();
       setError(err.message || 'Could not resend');
     }
   };
@@ -327,8 +451,12 @@ export function VerifyEmailPage() {
           onChange={(e) => setCode(e.target.value)}
           className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white tracking-[0.3em] font-mono outline-none focus:border-sky-500/50"
         />
-        {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
-        <button type="submit" disabled={loading} className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5">
+        <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
+        <button
+          type="submit"
+          disabled={loading || (turnstile.required && !turnstile.token)}
+          className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5"
+        >
           {loading ? 'Verifying…' : 'Verify & continue'}
         </button>
         <button type="button" onClick={onResend} className="text-xs text-sky-400 hover:underline">
@@ -353,12 +481,17 @@ export function ForgotPasswordPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    if (turnstile.required && !turnstile.token) {
+      setError('Complete the security check first.');
+      return;
+    }
+    setLoading(true);
     try {
       await forgotPassword(email, turnstile.token || undefined);
       setSent(true);
     } catch (err: any) {
+      turnstile.reset();
       setError(err.message || 'Request failed');
     } finally {
       setLoading(false);
@@ -385,8 +518,12 @@ export function ForgotPasswordPage() {
             onChange={(e) => setEmail(e.target.value)}
             className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
           />
-          {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
-          <button type="submit" disabled={loading} className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5">
+          <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
+          <button
+            type="submit"
+            disabled={loading || (turnstile.required && !turnstile.token)}
+            className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5"
+          >
             {loading ? 'Sending…' : 'Send reset code'}
           </button>
           <Link to="/login" className="text-xs text-sky-400 hover:underline text-center">
@@ -415,12 +552,17 @@ export function ResetPasswordPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    if (turnstile.required && !turnstile.token) {
+      setError('Complete the security check first.');
+      return;
+    }
+    setLoading(true);
     try {
       await resetPassword(email, code, password, turnstile.token || undefined);
       navigate('/login');
     } catch (err: any) {
+      turnstile.reset();
       setError(err.message || 'Reset failed');
     } finally {
       setLoading(false);
@@ -436,9 +578,20 @@ export function ResetPasswordPage() {
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
         <input type="text" required value={code} onChange={(e) => setCode(e.target.value)} className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white font-mono outline-none focus:border-sky-500/50" />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">New password</label>
-        <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50" />
-        {authCfg.turnstileEnabled && <div ref={turnstile.ref} className="mt-2" />}
-        <button type="submit" disabled={loading} className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5">
+        <PasswordInput
+          required
+          minLength={8}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+          className="w-full bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50"
+        />
+        <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
+        <button
+          type="submit"
+          disabled={loading || (turnstile.required && !turnstile.token)}
+          className="mt-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm rounded-lg py-2.5"
+        >
           {loading ? 'Saving…' : 'Update password'}
         </button>
       </form>
@@ -469,7 +622,7 @@ function AuthShell({
           </div>
           <div>
             <h1 className="text-slate-900 dark:text-white font-black tracking-wider text-sm uppercase group-hover:text-sky-600 dark:group-hover:text-sky-400">
-              WWebConsole{admin ? ' Admin' : ''}
+              Weatherlink Web Console{admin ? ' Admin' : ''}
             </h1>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest">
               {admin ? 'admin.wwebconsole.com' : 'wwebconsole.com'}

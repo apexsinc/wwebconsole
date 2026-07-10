@@ -79,13 +79,29 @@ export function MarketingLayout() {
     setOpen(false);
   }, [location.pathname]);
 
-  const name = site?.site_name || 'WWebConsole';
+  const name = site?.site_name || 'Weatherlink Web Console';
+  const isHome = location.pathname === '/';
+
+  const trademarkNote =
+    site?.site_trademark_note ||
+    'WeatherLink® and Davis® are registered trademarks of Davis Instruments Corp. Weatherlink Web Console is an independent product and is not affiliated with, endorsed by, or connected to Davis Instruments or WeatherLink.';
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--wwc-page)] text-[var(--wwc-text)]">
-      <header className="sticky top-0 z-40 border-b border-[var(--wwc-border)] bg-[var(--wwc-surface)]/90 backdrop-blur-md">
+      <header
+        className={`sticky top-0 z-40 border-b transition-colors ${
+          isHome
+            ? 'border-white/10 bg-[#040a10]/80 text-white backdrop-blur-md'
+            : 'border-[var(--wwc-border)] bg-[var(--wwc-surface)]/90 backdrop-blur-md'
+        }`}
+      >
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <Link to="/" className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--wwc-text)]">
+          <Link
+            to="/"
+            className={`font-[family-name:var(--font-display)] text-base sm:text-lg font-bold tracking-tight ${
+              isHome ? 'text-white' : 'text-[var(--wwc-text)]'
+            }`}
+          >
             {name}
           </Link>
           <nav className="hidden md:flex items-center gap-1">
@@ -95,9 +111,13 @@ export function MarketingLayout() {
                 to={item.to}
                 className={({ isActive }) =>
                   `px-3 py-1.5 text-sm rounded-md transition-colors ${
-                    isActive
-                      ? 'text-[var(--wwc-accent)] font-semibold'
-                      : 'text-[var(--wwc-muted)] hover:text-[var(--wwc-text)]'
+                    isHome
+                      ? isActive
+                        ? 'text-sky-300 font-semibold'
+                        : 'text-white/70 hover:text-white'
+                      : isActive
+                        ? 'text-[var(--wwc-accent)] font-semibold'
+                        : 'text-[var(--wwc-muted)] hover:text-[var(--wwc-text)]'
                   }`
                 }
               >
@@ -109,26 +129,30 @@ export function MarketingLayout() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 rounded-md text-[var(--wwc-muted)] hover:bg-[var(--wwc-surface-2)]"
+              className={`p-2 rounded-md ${
+                isHome ? 'text-white/70 hover:bg-white/10' : 'text-[var(--wwc-muted)] hover:bg-[var(--wwc-surface-2)]'
+              }`}
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <Link
               to="/login"
-              className="hidden sm:inline-flex text-sm text-[var(--wwc-muted)] hover:text-[var(--wwc-text)] px-2"
+              className={`hidden sm:inline-flex text-sm px-2 ${
+                isHome ? 'text-white/70 hover:text-white' : 'text-[var(--wwc-muted)] hover:text-[var(--wwc-text)]'
+              }`}
             >
               Sign in
             </Link>
             <Link
               to="/register"
-              className="hidden sm:inline-flex text-sm font-semibold bg-[var(--wwc-accent)] text-white px-3 py-1.5 rounded-md hover:opacity-90"
+              className="hidden sm:inline-flex text-sm font-semibold bg-sky-500 text-white px-3 py-1.5 rounded-md hover:bg-sky-400"
             >
               Start free
             </Link>
             <button
               type="button"
-              className="md:hidden p-2 rounded-md text-[var(--wwc-muted)]"
+              className={`md:hidden p-2 rounded-md ${isHome ? 'text-white/70' : 'text-[var(--wwc-muted)]'}`}
               onClick={() => setOpen((v) => !v)}
               aria-label="Menu"
             >
@@ -137,16 +161,24 @@ export function MarketingLayout() {
           </div>
         </div>
         {open && (
-          <div className="md:hidden border-t border-[var(--wwc-border)] bg-[var(--wwc-surface)] px-4 py-3 flex flex-col gap-1">
+          <div
+            className={`md:hidden border-t px-4 py-3 flex flex-col gap-1 ${
+              isHome ? 'border-white/10 bg-[#040a10] text-white' : 'border-[var(--wwc-border)] bg-[var(--wwc-surface)]'
+            }`}
+          >
             {NAV.map((item) => (
-              <Link key={item.to} to={item.to} className="py-2 text-sm text-[var(--wwc-muted)]">
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`py-2 text-sm ${isHome ? 'text-white/80' : 'text-[var(--wwc-muted)]'}`}
+              >
                 {item.label}
               </Link>
             ))}
             <Link to="/login" className="py-2 text-sm">
               Sign in
             </Link>
-            <Link to="/register" className="py-2 text-sm font-semibold text-[var(--wwc-accent)]">
+            <Link to="/register" className="py-2 text-sm font-semibold text-sky-400">
               Start free
             </Link>
           </div>
@@ -196,8 +228,12 @@ export function MarketingLayout() {
             </Link>
           </div>
         </div>
-        <div className="border-t border-[var(--wwc-border)] px-4 py-4 text-center text-[11px] text-[var(--wwc-muted)]">
-          © {new Date().getFullYear()} {site?.site_company_name || name}
+        <div className="border-t border-[var(--wwc-border)] px-4 py-3">
+          <p className="max-w-5xl mx-auto text-center text-[10px] leading-relaxed text-[var(--wwc-muted)]/70">
+            © {new Date().getFullYear()} {site?.site_company_name || name}
+            <span className="mx-1.5 opacity-40">·</span>
+            {trademarkNote}
+          </p>
         </div>
       </footer>
     </div>

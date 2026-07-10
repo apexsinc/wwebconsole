@@ -126,14 +126,15 @@ if plan in ("pro", "business", "enterprise"):
         },
     ]
 else:
-    # Free Website: 1 rule, characteristics=["ip.src"], period & mitigation_timeout = 10
+    # Free Website: 1 rule; API still requires cf.colo.id with ip.src.
+    # Free counting/mitigation windows are 10s only.
     rules_payload = [
         {
             "action": "block",
             "expression": '(starts_with(http.request.uri.path, "/api/auth/"))',
             "description": "WWC rate limit auth API",
             "ratelimit": {
-                "characteristics": ["ip.src"],
+                "characteristics": ["cf.colo.id", "ip.src"],
                 "period": 10,
                 "requests_per_period": 20,
                 "mitigation_timeout": 10,

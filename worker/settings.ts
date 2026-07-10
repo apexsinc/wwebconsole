@@ -1,4 +1,5 @@
 import type { Env } from './types';
+import { localizeYearlyPrice } from './pricing';
 
 const SECRET_KEYS = new Set(['turnstile_secret_key', 'resend_api_key']);
 
@@ -14,6 +15,7 @@ export const PUBLIC_SITE_KEYS = [
   'site_support_email',
   'site_company_name',
   'site_footer_text',
+  'site_trademark_note',
   'seo_home_title',
   'seo_home_description',
   'seo_features_title',
@@ -53,43 +55,45 @@ export const PUBLIC_SITE_KEYS = [
 export type PublicSiteKey = (typeof PUBLIC_SITE_KEYS)[number];
 
 const SITE_DEFAULTS: Record<string, string> = {
-  site_name: 'WWebConsole',
-  site_tagline: 'WeatherLink console for the web',
+  site_name: 'Weatherlink Web Console',
+  site_tagline: 'Your station console, on the web',
   site_description:
-    'WWebConsole is a web console for Davis WeatherLink stations. Live dashboard, TV share links, and private WeatherLink credentials — free to start.',
+    'Weatherlink Web Console is an independent web console for Davis WeatherLink® stations. Live dashboard, TV share links, and private credentials — free to start. Not affiliated with Davis Instruments.',
   site_keywords:
-    'WeatherLink, Davis Instruments, weather console, weather dashboard, weather station display, TV weather display',
+    'WeatherLink, weather console, weather dashboard, weather station display, TV weather display',
   site_og_image: 'https://wwebconsole.com/og.png',
   site_canonical_base: 'https://wwebconsole.com',
   site_twitter_handle: '',
   site_support_email: 'support@wwebconsole.com',
   site_company_name: 'APEXs Inc',
-  site_footer_text: 'Built for Davis WeatherLink stations.',
-  seo_home_title: 'WWebConsole — WeatherLink console for the web',
-  seo_home_description: 'Live WeatherLink dashboard and TV share links. Start free.',
-  seo_features_title: 'Features — WWebConsole',
-  seo_features_description: 'Live weather dashboard, WeatherLink connection, TV share URLs, and account tools.',
-  seo_pricing_title: 'Pricing — WWebConsole',
-  seo_pricing_description: 'Free trial, then yearly per-device pricing for WeatherLink Pro stations.',
-  seo_about_title: 'About — WWebConsole',
-  seo_about_description: 'WWebConsole is a simple web console for Davis WeatherLink stations.',
-  seo_contact_title: 'Contact — WWebConsole',
-  seo_contact_description: 'Contact the WWebConsole team for support or billing questions.',
-  seo_privacy_title: 'Privacy Policy — WWebConsole',
-  seo_privacy_description: 'How WWebConsole handles account and WeatherLink-related information.',
-  seo_terms_title: 'Terms of Service — WWebConsole',
-  seo_terms_description: 'Terms for using WWebConsole and related billing.',
-  seo_changelog_title: 'Changelog — WWebConsole',
-  seo_changelog_description: 'Product updates for WWebConsole.',
-  home_hero_headline: 'Your WeatherLink station, on the web',
+  site_footer_text: 'Independent web console for WeatherLink® stations.',
+  site_trademark_note:
+    'WeatherLink® and Davis® are registered trademarks of Davis Instruments Corp. Weatherlink Web Console is an independent product and is not affiliated with, endorsed by, or connected to Davis Instruments or WeatherLink.',
+  seo_home_title: 'Weatherlink Web Console — station console for the web',
+  seo_home_description: 'Live station dashboard and TV share links. Start free. Independent of Davis Instruments.',
+  seo_features_title: 'Features — Weatherlink Web Console',
+  seo_features_description: 'Live weather dashboard, station connection, TV share URLs, and account tools.',
+  seo_pricing_title: 'Pricing — Weatherlink Web Console',
+  seo_pricing_description: 'Free trial, then yearly per-device pricing for Pro stations.',
+  seo_about_title: 'About — Weatherlink Web Console',
+  seo_about_description: 'An independent web console for WeatherLink® stations. Not affiliated with Davis Instruments.',
+  seo_contact_title: 'Contact — Weatherlink Web Console',
+  seo_contact_description: 'Contact us for support or billing questions.',
+  seo_privacy_title: 'Privacy Policy — Weatherlink Web Console',
+  seo_privacy_description: 'How we handle account and station-related information.',
+  seo_terms_title: 'Terms of Service — Weatherlink Web Console',
+  seo_terms_description: 'Terms for using Weatherlink Web Console and related billing.',
+  seo_changelog_title: 'Changelog — Weatherlink Web Console',
+  seo_changelog_description: 'Product updates for Weatherlink Web Console.',
+  home_hero_headline: 'Your station console, on the web',
   home_hero_subhead:
-    'A simple web console for Davis WeatherLink. Live dashboard and TV share links — start free.',
+    'Live dashboard and TV share links for your WeatherLink® station — start free. Independent product, not affiliated with Davis Instruments.',
   home_hero_cta_primary: 'Start free',
   home_hero_cta_secondary: 'See pricing',
   home_features_json: JSON.stringify([
     {
       title: 'Live dashboard',
-      body: 'Temperature, wind, rain, pressure, and sun times from your WeatherLink station.',
+      body: 'Temperature, wind, rain, pressure, and sun times from your station.',
     },
     {
       title: 'TV share links',
@@ -97,7 +101,7 @@ const SITE_DEFAULTS: Record<string, string> = {
     },
     {
       title: 'Secure credentials',
-      body: 'Connect with your WeatherLink API credentials. Your keys stay private to your account.',
+      body: 'Connect with your WeatherLink® API credentials. Your keys stay private to your account.',
     },
     {
       title: 'Works in the browser',
@@ -107,21 +111,21 @@ const SITE_DEFAULTS: Record<string, string> = {
   pricing_headline: 'Simple yearly pricing',
   pricing_subhead: 'Try free, then pay per device when you need continuous Pro updates.',
   pricing_basic_blurb:
-    'Free trial access with Basic WeatherLink update rates. Perfect to evaluate the console.',
+    'Free trial access with Basic WeatherLink® update rates. Perfect to evaluate the console.',
   pricing_pro_blurb:
-    'Yearly per device for WeatherLink Pro stations. Faster updates and continuous access after the trial.',
+    'Yearly per device for WeatherLink® Pro stations. Faster updates and continuous access after the trial.',
   pricing_footnote:
-    'Paid plans require a WeatherLink Pro subscription from Davis. Contact support if you need help activating a device.',
+    'Paid plans may require a WeatherLink® Pro subscription from Davis Instruments. Contact support if you need help activating a device. We are not affiliated with Davis Instruments.',
   about_body:
-    'WWebConsole is a web console for Davis WeatherLink stations. Monitor your station from any browser, share a display link for TVs and lobbies, and keep your WeatherLink credentials private to your account.\n\nWe focus on a simple, reliable console — not on running software at your site.',
+    'Weatherlink Web Console is an independent web console for Davis WeatherLink® stations. Monitor your station from any browser, share a display link for TVs and lobbies, and keep your credentials private to your account.\n\nWe are not affiliated with, endorsed by, or connected to Davis Instruments Corp. or WeatherLink. WeatherLink® and Davis® are registered trademarks of Davis Instruments Corp.\n\nWe focus on a simple, reliable console — not on running software at your site.',
   contact_intro:
-    'Questions about billing, WeatherLink setup, or access? Email us and we will get back to you.',
+    'Questions about billing, setup, or access? Email us and we will get back to you.',
   privacy_body:
-    '## Overview\nWWebConsole (“we”, “us”) provides a web console for Davis WeatherLink stations. This policy explains what we collect and why.\n\n## Account data\nWe store the information needed to run your account, such as email, optional name, and account status. Verification codes may be stored briefly when email confirmation is required.\n\n## WeatherLink credentials\nCredentials you enter are used only to fetch weather data for your account. We do not sell your data.\n\n## Service data\nWe store station settings, display preferences, share links you create, and billing or trial information needed to provide the service.\n\n## Cookies\nWe use a sign-in cookie to keep you logged in. Theme preference may be stored in your browser.\n\n## Retention & deletion\nYou can request account deletion from Account settings. After a short grace period, account data is removed. Contact support if you need help sooner.\n\n## Contact\nEmail the address on the Contact page for privacy requests.',
+    '## Overview\nWeatherlink Web Console (“we”, “us”) provides an independent web console for Davis WeatherLink® stations. This policy explains what we collect and why. We are not affiliated with Davis Instruments.\n\n## Account data\nWe store the information needed to run your account, such as email, optional name, and account status. Verification codes may be stored briefly when email confirmation is required.\n\n## Station credentials\nCredentials you enter are used only to fetch weather data for your account. We do not sell your data.\n\n## Service data\nWe store station settings, display preferences, share links you create, and billing or trial information needed to provide the service.\n\n## Cookies\nWe use a sign-in cookie to keep you logged in. Theme preference may be stored in your browser.\n\n## Retention & deletion\nYou can request account deletion from Account settings. After a short grace period, account data is removed. Contact support if you need help sooner.\n\n## Contact\nEmail the address on the Contact page for privacy requests.',
   terms_body:
-    '## Agreement\nBy using WWebConsole you agree to these terms.\n\n## Service\nWe provide a best-effort web console for WeatherLink data. WeatherLink and Davis Instruments are separate products; their availability and plans are outside our control.\n\n## Accounts\nYou are responsible for your password and for activity under your account. Do not use credentials you are not authorized to use.\n\n## Billing\nFree trial length and yearly pricing are shown on the Pricing page and may change. Paid device access may require WeatherLink Pro. Refunds are handled case-by-case.\n\n## Acceptable use\nDo not abuse the service, attempt unauthorized access, or use share links for unlawful content.\n\n## Disclaimer\nThe service is provided “as is” without warranties. We are not liable for weather data accuracy, third-party outages, or consequential damages to the extent permitted by law.\n\n## Changes\nWe may update these terms; continued use after changes constitutes acceptance.\n\n## Contact\nUse the Contact page for legal or billing questions.',
+    '## Agreement\nBy using Weatherlink Web Console you agree to these terms.\n\n## Service\nWe provide a best-effort independent web console for WeatherLink® data. WeatherLink® and Davis Instruments are separate products; their availability and plans are outside our control. We are not affiliated with, endorsed by, or connected to Davis Instruments Corp.\n\n## Accounts\nYou are responsible for your password and for activity under your account. Do not use credentials you are not authorized to use.\n\n## Billing\nFree trial length and yearly pricing are shown on the Pricing page and may change. Paid device access may require WeatherLink® Pro. Refunds are handled case-by-case.\n\n## Acceptable use\nDo not abuse the service, attempt unauthorized access, or use share links for unlawful content.\n\n## Trademarks\nWeatherLink® and Davis® are registered trademarks of Davis Instruments Corp. Use of those names is for identification only.\n\n## Disclaimer\nThe service is provided “as is” without warranties. We are not liable for weather data accuracy, third-party outages, or consequential damages to the extent permitted by law.\n\n## Changes\nWe may update these terms; continued use after changes constitutes acceptance.\n\n## Contact\nUse the Contact page for legal or billing questions.',
   changelog_body:
-    '## Recent\n- Marketing site and product pages\n- Account email and password change\n- Account deletion with a short grace period\n- Light and dark appearance\n- WeatherLink credential setup improvements\n\n## Earlier\n- Web console for WeatherLink stations\n- Free trial and yearly per-device plans\n- TV share links\n- Account sign-in and verification',
+    '## [1.5.2]\n- Branding updated to Weatherlink Web Console\n- Clearer trademark disclaimer in the footer\n- Darker homepage hero for easier reading\n\n## [1.5.1]\n- Homepage showcases the live console with a full-screen product image\n- Clearer product story on Features\n\n## [1.5.0]\n- Prices show in your local currency based on where you visit from\n- Show or hide password on sign-in and account forms\n- Contact form on the website\n\n## [1.4.0]\n- Stronger account protection\n- Public website pages\n- Console at /app\n\n## [1.1.0]\n- Live station dashboard\n- TV share links\n- Account sign-in',
   seo_indexable: '1',
   yearly_price_usd: '49',
   free_trial_days: '30',
@@ -143,6 +147,7 @@ export const SITE_SETTING_GROUPS: { id: string; label: string; keys: string[] }[
       'site_support_email',
       'site_company_name',
       'site_footer_text',
+      'site_trademark_note',
       'seo_indexable',
       'robots_extra',
     ],
@@ -300,9 +305,20 @@ export type PublicSiteConfig = Record<string, string> & {
   freeTrialDays: number;
   indexable: boolean;
   features: { title: string; body: string }[];
+  pricing?: {
+    currency: string;
+    amount: number;
+    formatted: string;
+    periodLabel: string;
+    note: string;
+    country: string;
+  };
 };
 
-export async function getPublicSiteConfig(env: Env): Promise<PublicSiteConfig> {
+export async function getPublicSiteConfig(
+  env: Env,
+  country?: string | null
+): Promise<PublicSiteConfig> {
   const map = await getSettingsMap(env, [...PUBLIC_SITE_KEYS]);
   let features: { title: string; body: string }[] = [];
   try {
@@ -316,12 +332,23 @@ export async function getPublicSiteConfig(env: Env): Promise<PublicSiteConfig> {
     features = [];
   }
 
+  const yearlyPriceUsd = Number(map.yearly_price_usd) || 49;
+  const localized = localizeYearlyPrice(yearlyPriceUsd, country);
+
   return {
     ...map,
-    yearlyPriceUsd: Number(map.yearly_price_usd) || 49,
+    yearlyPriceUsd,
     freeTrialDays: Number(map.free_trial_days) || 30,
     indexable: map.seo_indexable === '1' || map.seo_indexable?.toLowerCase() === 'true',
     features,
+    pricing: {
+      currency: localized.currency,
+      amount: localized.amount,
+      formatted: localized.formatted,
+      periodLabel: localized.periodLabel,
+      note: localized.note,
+      country: localized.country,
+    },
   };
 }
 
