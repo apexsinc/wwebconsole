@@ -59,7 +59,10 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return diff === 0;
 }
 
-async function importAesKey(hexKey: string): Promise<CryptoKey> {
+async function importAesKey(hexKey: string | undefined): Promise<CryptoKey> {
+  if (!hexKey) {
+    throw new Error('CREDENTIALS_KEY is missing from environment variables');
+  }
   const clean = hexKey.replace(/[^0-9a-f]/gi, '');
   if (clean.length < 64) {
     throw new Error('CREDENTIALS_KEY must be a 32-byte hex string (64 chars)');
@@ -71,7 +74,7 @@ async function importAesKey(hexKey: string): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', bytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
-export async function encryptJson(keyHex: string, data: unknown): Promise<{ enc: string; iv: string }> {
+export async function encryptJson(keyHex: string | undefined, data: unknown): Promise<{ enc: string; iv: string }> {
   const key = await importAesKey(keyHex);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const plaintext = new TextEncoder().encode(JSON.stringify(data));
@@ -79,15 +82,20 @@ export async function encryptJson(keyHex: string, data: unknown): Promise<{ enc:
   return { enc: b64encode(ciphertext), iv: b64encode(iv) };
 }
 
-export async function decryptJson<T>(keyHex: string, enc: string, iv: string): Promise<T> {
-  if (!enc || !iv) return {} as T;
-  const key = await importAesKey(keyHex);
-  const plaintext = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: b64decode(iv) },
-    key,
-    b64decode(enc)
-  );
-  return JSON.parse(new TextDecoder().decode(plaintext)) as T;
+export async function decryptJson<T>(keyHex: string | undefined, enc: string, iv: string): Promise<T> {
+  if (!enc || !iv || !keyHex) return {} as T;
+  try {
+    const key = await importAesKey(keyHex);
+    const plaintext = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64decode(iv) },
+      key,
+      b64decode(enc)
+    );
+    return JSON.parse(new TextDecoder().decode(plaintext)) as T;
+  } catch (err) {
+    console.error('decryptJson failed:', err);
+    return {} as T;
+  }
 }
 
 export function newId(): string {
