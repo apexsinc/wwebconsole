@@ -156,7 +156,7 @@ export default function TvPage() {
                 <div className="relative z-20">
                   <Header />
                 </div>
-                <div className="absolute top-[55%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
+                <div className="relative md:absolute md:top-[55%] md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 pointer-events-none z-0 my-4 md:my-0 flex justify-center">
                   <div className="pointer-events-auto">
                     <CompassRose />
                   </div>
