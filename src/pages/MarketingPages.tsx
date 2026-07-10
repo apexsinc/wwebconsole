@@ -142,8 +142,8 @@ export function HomePage() {
 
   return (
     <div>
-      {/* Full-bleed product hero — one composition: brand, headline, line, CTAs, console image */}
-      <section className="relative min-h-[100svh] flex flex-col justify-end overflow-hidden bg-gradient-to-br from-[#073075] to-[#041a45]">
+      {/* Full-bleed product hero */}
+      <section className="relative min-h-[100svh] flex flex-col justify-end overflow-hidden bg-[#040a10]">
         <motion.div
           className="absolute inset-0"
           initial={reduceMotion ? false : { scale: 1.06 }}
@@ -153,37 +153,32 @@ export function HomePage() {
           <img
             src={HERO_IMG}
             alt="Weatherlink Web Console live weather dashboard"
-            className="h-full w-full object-cover object-[center_35%] opacity-40 mix-blend-overlay"
+            className="h-full w-full object-cover object-[center_35%]"
             width={1439}
             height={1079}
             fetchPriority="high"
             decoding="async"
           />
         </motion.div>
+        {/* Soft dark overlay for text readability without obscuring the image */}
+        <div className="absolute inset-0 bg-black/40" />
         <div
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgba(7,48,117,0.3) 0%, rgba(4,26,69,0.7) 50%, rgba(4,26,69,1) 100%)',
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse 90% 55% at 50% 100%, rgba(14,165,233,0.15), transparent 55%)',
+              'linear-gradient(180deg, transparent 0%, rgba(4,10,16,0.3) 60%, rgba(4,10,16,0.9) 100%)',
           }}
         />
 
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 pb-14 pt-28 sm:pb-20 sm:pt-32">
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 pb-14 pt-28 sm:pb-24 sm:pt-32">
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 p-8 sm:p-10 max-w-2xl shadow-[0_30px_80px_-15px_rgba(0,0,0,0.5)]"
+            className="max-w-3xl"
           >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center border border-white/20 p-1.5 shadow-lg">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 p-1.5 shadow-lg">
                 <img src="/apexs-logo.png" alt="APEXS Logo" className="w-full h-full object-contain" />
               </div>
               <p className="font-[family-name:var(--font-display)] text-xl sm:text-2xl font-bold tracking-widest uppercase text-white drop-shadow-md">
@@ -191,10 +186,10 @@ export function HomePage() {
               </p>
             </div>
             
-            <h1 className="mt-6 max-w-2xl font-[family-name:var(--font-display)] text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-sky-300/80 leading-[1.05] drop-shadow-lg pb-1">
+            <h1 className="max-w-3xl font-[family-name:var(--font-display)] text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-sky-200 leading-[1.05] drop-shadow-lg pb-2">
               {site?.home_hero_headline || 'Your station console, on the web'}
             </h1>
-            <p className="mt-5 max-w-lg text-lg sm:text-xl text-sky-100/90 leading-relaxed font-medium">
+            <p className="mt-6 max-w-xl text-lg sm:text-xl text-sky-50 leading-relaxed font-medium drop-shadow-md">
               {site?.home_hero_subhead ||
                 site?.site_tagline ||
                 'Live dashboard and TV share links — open from any browser.'}
@@ -202,7 +197,7 @@ export function HomePage() {
             <div className="mt-10 flex flex-wrap gap-4">
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-white text-[#073075] text-sm font-black hover:bg-sky-50 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:shadow-[0_10px_40px_rgba(255,255,255,0.4)] hover:scale-[1.02]"
+                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-[#073075] text-white text-sm font-black hover:bg-[#0a3f99] transition-all shadow-[0_10px_30px_rgba(7,48,117,0.4)] hover:shadow-[0_10px_40px_rgba(7,48,117,0.6)] hover:scale-[1.02]"
               >
                 {site?.home_hero_cta_primary || 'Start free'}
               </Link>
@@ -247,7 +242,7 @@ export function HomePage() {
             <div
               className="absolute -inset-6 -z-10 rounded-full opacity-60 blur-3xl"
               style={{
-                background: 'radial-gradient(circle at 50% 40%, rgba(2,132,199,0.22), transparent 65%)',
+                background: 'radial-gradient(circle at 50% 40%, rgba(7,48,117,0.35), transparent 65%)',
               }}
             />
             <img
