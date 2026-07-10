@@ -614,17 +614,18 @@ function AuthShell({
   const termsHref = admin ? 'https://wwebconsole.com/terms' : '/terms';
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-[#f4f7fb] dark:bg-[#05080f]">
-      {/* Left Branding Panel (Hidden on Mobile) */}
-      <div className="hidden md:flex flex-col justify-between p-12 relative overflow-hidden bg-gradient-to-br from-[#073075] to-[#041a45]">
-        {/* Background elements */}
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-sky-400/20 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-[#0a0d14]/50 via-transparent to-transparent pointer-events-none" />
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-gradient-to-br from-[#073075] to-[#041a45]">
+      {/* Background ambient glows covering the entire screen */}
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-sky-400/20 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-[#0a0d14]/60 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-full max-h-2xl bg-sky-900/20 blur-[150px] pointer-events-none rounded-full" />
 
-        <div className="relative z-10 animate-[fadeIn_0.8s_ease-out]">
-          <a href={brandHref} className="flex items-center gap-3 group inline-flex">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-xl group-hover:scale-105 group-hover:bg-white/20 transition-all duration-300">
-              <img src="/apexs-logo.png" alt="APEXS Logo" className="h-6 w-auto object-contain brightness-0 invert" />
+      {/* Left Branding Panel (Hidden on Mobile) */}
+      <div className="hidden md:flex flex-col justify-between p-12 relative overflow-hidden z-10">
+        <div className="relative animate-[fadeIn_0.8s_ease-out]">
+          <a href={brandHref} className="flex items-center gap-4 group inline-flex">
+            <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-xl group-hover:scale-105 group-hover:bg-white/20 transition-all duration-300 overflow-hidden p-2">
+              <img src="/apexs-logo.png" alt="APEXS Logo" className="w-full h-full object-contain drop-shadow-md" />
             </div>
             <div>
               <h1 className="text-white font-black tracking-wider text-base uppercase drop-shadow-md">
@@ -637,7 +638,7 @@ function AuthShell({
           </a>
         </div>
 
-        <div className="relative z-10 max-w-xl animate-[slideInUp_0.8s_ease-out]">
+        <div className="relative max-w-xl animate-[slideInUp_0.8s_ease-out]">
           <h2 className="text-5xl lg:text-6xl font-black mb-6 tracking-tighter leading-[1.05] drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-sky-300/80 pb-1">
             Your weather,<br/>beautifully visualized.
           </h2>
@@ -646,7 +647,7 @@ function AuthShell({
           </p>
         </div>
 
-        <div className="relative z-10 flex items-center gap-5 text-sm text-sky-200/60 font-medium">
+        <div className="relative flex items-center gap-5 text-sm text-sky-200/60 font-medium">
           <span>&copy; {new Date().getFullYear()} Apexs Inc.</span>
           <a href={privacyHref} className="hover:text-white transition-colors">Privacy</a>
           <a href={termsHref} className="hover:text-white transition-colors">Terms</a>
@@ -654,28 +655,28 @@ function AuthShell({
       </div>
 
       {/* Right Form Panel */}
-      <div className="flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+      <div className="flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden z-10">
         {/* Mobile Header (Hidden on Desktop) */}
-        <div className="md:hidden flex flex-col items-center mb-8 relative z-10 text-center animate-[fadeIn_0.5s_ease-out]">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#073075] to-[#041a45] flex items-center justify-center text-white shadow-xl mb-4 border border-white/10">
-            <img src="/apexs-logo.png" alt="APEXS Logo" className="h-7 w-auto object-contain brightness-0 invert" />
+        <div className="md:hidden flex flex-col items-center mb-10 relative text-center animate-[fadeIn_0.5s_ease-out]">
+          <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shadow-xl mb-5 border border-white/20 p-2.5">
+            <img src="/apexs-logo.png" alt="APEXS Logo" className="w-full h-full object-contain drop-shadow-md" />
           </div>
-          <h1 className="text-slate-900 dark:text-white font-black tracking-wider text-lg uppercase">
+          <h1 className="text-white font-black tracking-wider text-xl uppercase drop-shadow-md">
             Weatherlink Console{admin ? ' Admin' : ''}
           </h1>
         </div>
 
-        <div className="w-full max-w-[420px] relative z-10 animate-[scaleIn_0.6s_ease-out]">
-          <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-[2rem] p-8 sm:p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9)] relative overflow-visible">
+        <div className="w-full max-w-[440px] relative animate-[scaleIn_0.6s_ease-out]">
+          <div className="bg-white dark:bg-[#0a0d14]/90 backdrop-blur-2xl border border-slate-200/50 dark:border-white/10 rounded-[2rem] p-8 sm:p-10 shadow-[0_30px_80px_-15px_rgba(0,0,0,0.4)] relative overflow-visible">
             <h2 className="text-slate-900 dark:text-white font-black text-3xl mb-2 tracking-tight">{title}</h2>
             <p className="text-slate-500 dark:text-gray-400 text-sm mb-8 font-medium">{subtitle}</p>
             {children}
           </div>
 
-          <div className="md:hidden flex items-center justify-center gap-5 text-xs text-slate-500 mt-10 animate-[fadeIn_1s_ease-out] font-medium">
-            <a href={privacyHref} className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</a>
+          <div className="md:hidden flex items-center justify-center gap-5 text-xs text-sky-200/60 mt-10 animate-[fadeIn_1s_ease-out] font-medium">
+            <a href={privacyHref} className="hover:text-white transition-colors">Privacy Policy</a>
             <span>&middot;</span>
-            <a href={termsHref} className="hover:text-slate-900 dark:hover:text-white transition-colors">Terms of Service</a>
+            <a href={termsHref} className="hover:text-white transition-colors">Terms of Service</a>
           </div>
         </div>
       </div>
