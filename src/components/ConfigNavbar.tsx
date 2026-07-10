@@ -202,14 +202,14 @@ export default function ConfigNavbar() {
       </nav>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-[#0e111a]/40 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.7)] overflow-hidden">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-slate-800/50 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.7)] overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
               <div className="flex items-center gap-2">
                 <Network className="w-5 h-5 text-sky-400" />
                 <h2 className="text-white font-sans font-bold text-base tracking-tight">Console Settings</h2>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-gray-500 hover:text-white p-1 rounded-lg hover:bg-gray-900">
+              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60">
                 <X className="w-4.5 h-4.5" />
               </button>
             </div>
@@ -218,7 +218,7 @@ export default function ConfigNavbar() {
               <button
                 onClick={() => setTab('link')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${
-                  tab === 'link' ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'border-gray-800 text-gray-400'
+                  tab === 'link' ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'border-white/10 text-slate-300'
                 }`}
               >
                 WeatherLink
@@ -226,7 +226,7 @@ export default function ConfigNavbar() {
               <button
                 onClick={() => setTab('tv')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${
-                  tab === 'tv' ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'border-gray-800 text-gray-400'
+                  tab === 'tv' ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'border-white/10 text-slate-300'
                 }`}
               >
                 TV Broadcast URL
@@ -247,8 +247,8 @@ export default function ConfigNavbar() {
                     </div>
                   )}
 
-                  <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-4">
-                  <div className="flex bg-gray-950 border border-gray-800 rounded-lg p-1">
+                  <div className="bg-slate-900/30 border border-white/10 rounded-xl p-4 flex flex-col gap-4">
+                  <div className="flex bg-slate-900/50 border border-white/10 rounded-lg p-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -256,7 +256,7 @@ export default function ConfigNavbar() {
                         setApiSecret('');
                       }}
                       className={`flex-1 py-1.5 rounded-md text-[10px] font-bold ${
-                        apiVersion === 'v1' ? 'bg-gray-800 text-white' : 'text-gray-500'
+                        apiVersion === 'v1' ? 'bg-slate-700/70 text-white' : 'text-slate-400'
                       }`}
                     >
                       API V1 only
@@ -267,7 +267,7 @@ export default function ConfigNavbar() {
                         setApiVersion('v2');
                       }}
                       className={`flex-1 py-1.5 rounded-md text-[10px] font-bold ${
-                        apiVersion === 'v2' ? 'bg-gray-800 text-white' : 'text-gray-500'
+                        apiVersion === 'v2' ? 'bg-slate-700/70 text-white' : 'text-slate-400'
                       }`}
                     >
                       API V2 only
@@ -278,99 +278,99 @@ export default function ConfigNavbar() {
                   </p>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Device ID (DID)</label>
+                      <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">Device ID (DID)</label>
                       <input
                         type="text"
                         value={did}
                         onChange={(e) => setDid(e.target.value)}
                         placeholder="e.g. 001D0A00DE6A"
-                        className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
+                        className="bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
                       />
                     </div>
 
                     {apiVersion === 'v1' ? (
                       <>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
                             Account Password {config.hasPassword ? '(saved — leave blank to keep)' : ''}
                           </label>
                           <PasswordInput
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoComplete="off"
-                            className="w-full bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            className="w-full bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
                             API Token {config.hasApiToken ? '(saved — leave blank to keep)' : ''}
                           </label>
                           <input
                             type="text"
                             value={apiToken}
                             onChange={(e) => setApiToken(e.target.value)}
-                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
+                            className="bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
                           />
                         </div>
                       </>
                     ) : (
                       <>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
                             API Key {config.hasApiToken ? '(saved — leave blank to keep)' : ''}
                           </label>
                           <input
                             type="text"
                             value={apiToken}
                             onChange={(e) => setApiToken(e.target.value)}
-                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
+                            className="bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
                             API Secret {config.hasApiSecret ? '(saved — leave blank to keep)' : ''}
                           </label>
                           <PasswordInput
                             value={apiSecret}
                             onChange={(e) => setApiSecret(e.target.value)}
                             autoComplete="off"
-                            className="w-full bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            className="w-full bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
                             Station ID (optional — auto-detected)
                           </label>
                           <input
                             type="text"
                             value={stationId}
                             onChange={(e) => setStationId(e.target.value)}
-                            className="bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
+                            className="bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                          <label className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">
                             Password (optional for sunrise/sunset)
                           </label>
                           <PasswordInput
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoComplete="off"
-                            className="w-full bg-gray-950 border border-gray-800 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                            className="w-full bg-slate-900/50 border border-white/10 focus:border-sky-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
                           />
                         </div>
                       </>
                     )}
 
-                    <p className="text-gray-500 text-[10px] leading-relaxed flex items-start gap-1">
-                      <HelpCircle className="w-3.5 h-3.5 shrink-0 text-gray-600 mt-0.5" />
+                    <p className="text-slate-400 text-[10px] leading-relaxed flex items-start gap-1">
+                      <HelpCircle className="w-3.5 h-3.5 shrink-0 text-slate-400 mt-0.5" />
                       Credentials stay private to your account. Secrets are never shown again after you save.
                     </p>
                   </div>
 
-                  <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-3">
+                  <div className="bg-slate-900/30 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
                     <h3 className="text-sm font-bold text-white">WeatherLink plan & polling</h3>
-                    <p className="text-[10px] text-gray-500 leading-relaxed">
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
                       Plan and poll interval are set from your WeatherLink subscription and WWebConsole billing. Contact
                       support or an admin to change Pro access.
                     </p>
@@ -378,7 +378,7 @@ export default function ConfigNavbar() {
                       Plan: {config.wlPlan || 'unknown'}
                     </p>
                     {billing && (
-                      <p className="text-[10px] text-gray-400 font-mono">
+                      <p className="text-[10px] text-slate-300 font-mono">
                         Access: {billing.subscriptionStatus}
                         {billing.freeUntil ? ` · free until ${new Date(billing.freeUntil).toLocaleDateString()}` : ''}
                         {' · '}poll {billing.pollIntervalSec}s
@@ -386,26 +386,26 @@ export default function ConfigNavbar() {
                     )}
                   </div>
 
-                  <div className="bg-gray-950/40 border border-gray-900/60 rounded-xl p-4 flex flex-col gap-2">
+                  <div className="bg-slate-900/30 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
                     <h3 className="text-sm font-bold text-white">Station location (auto from WeatherLink)</h3>
-                    <p className="text-[10px] text-gray-500 leading-relaxed">
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
                       Latitude, longitude, and timezone are pulled from the WeatherLink Cloud station profile on each refresh — no manual entry needed for sunrise/sunset.
                     </p>
                     <div className="grid grid-cols-3 gap-2 mt-1">
-                      <div className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2">
-                        <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">Latitude</p>
+                      <div className="bg-slate-900/50 border border-white/10 rounded-lg px-2.5 py-2">
+                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Latitude</p>
                         <p className="text-xs text-white font-mono mt-0.5">
                           {config.latitude != null ? Number(config.latitude).toFixed(5) : '—'}
                         </p>
                       </div>
-                      <div className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2">
-                        <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">Longitude</p>
+                      <div className="bg-slate-900/50 border border-white/10 rounded-lg px-2.5 py-2">
+                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Longitude</p>
                         <p className="text-xs text-white font-mono mt-0.5">
                           {config.longitude != null ? Number(config.longitude).toFixed(5) : '—'}
                         </p>
                       </div>
-                      <div className="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2">
-                        <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">Timezone</p>
+                      <div className="bg-slate-900/50 border border-white/10 rounded-lg px-2.5 py-2">
+                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Timezone</p>
                         <p className="text-[10px] text-white font-mono mt-0.5 truncate" title={config.timezone || ''}>
                           {config.timezone || '—'}
                         </p>
@@ -414,8 +414,8 @@ export default function ConfigNavbar() {
                   </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-gray-900 bg-gray-950/40 flex items-center justify-end gap-2.5">
-                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-gray-400 hover:text-white rounded-lg">
+                <div className="px-6 py-4 border-t border-white/10 bg-slate-900/30 flex items-center justify-end gap-2.5">
+                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg">
                     Cancel
                   </button>
                   <button
@@ -430,7 +430,7 @@ export default function ConfigNavbar() {
               </>
             ) : (
               <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-300">
                   Create a public URL for big-screen TVs. Anyone with the link can view live weather — no login required.
                 </p>
                 
@@ -445,7 +445,7 @@ export default function ConfigNavbar() {
                     value={shareLabel}
                     onChange={(e) => setShareLabel(e.target.value)}
                     placeholder="Label"
-                    className="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white text-xs focus:border-sky-500 focus:outline-none"
+                    className="flex-1 bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:border-sky-500 focus:outline-none"
                   />
                   <button
                     onClick={handleCreateShare}
@@ -461,7 +461,7 @@ export default function ConfigNavbar() {
                   {(shareQuery.data?.links || []).map((link) => (
                     <div
                       key={link.id}
-                      className="bg-gray-950/60 border border-gray-800 rounded-xl px-3 py-2.5 flex items-center justify-between gap-2"
+                      className="bg-slate-900/40 border border-white/10 rounded-xl px-3 py-2.5 flex items-center justify-between gap-2"
                     >
                       <div className="min-w-0">
                         <p className="text-xs text-white font-semibold truncate">{link.label}</p>
@@ -470,14 +470,14 @@ export default function ConfigNavbar() {
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => handleCopy(link.url)}
-                          className="p-1.5 rounded-lg hover:bg-gray-900 text-gray-400 hover:text-white"
+                          className="p-1.5 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-white"
                           title="Copy"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteShare(link.id)}
-                          className="p-1.5 rounded-lg hover:bg-gray-900 text-gray-400 hover:text-rose-400"
+                          className="p-1.5 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-rose-400"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -486,13 +486,13 @@ export default function ConfigNavbar() {
                     </div>
                   ))}
                   {!shareQuery.data?.links?.length && (
-                    <p className="text-[11px] text-gray-500 text-center py-4">No TV links yet. Create one to broadcast.</p>
+                    <p className="text-[11px] text-slate-400 text-center py-4">No TV links yet. Create one to broadcast.</p>
                   )}
                   {copied && <p className="text-[10px] text-emerald-400 text-center">Copied to clipboard</p>}
                 </div>
 
                 <div className="px-0 pt-2 flex justify-end">
-                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-gray-400 hover:text-white rounded-lg">
+                  <button onClick={() => setIsOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg">
                     Close
                   </button>
                 </div>
