@@ -88,36 +88,27 @@ export function MarketingLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--wwc-page)] text-[var(--wwc-text)]">
-      <header
-        className={`sticky top-0 z-40 border-b transition-colors ${
-          isHome
-            ? 'border-white/10 bg-[#040a10]/80 text-white backdrop-blur-md'
-            : 'border-[var(--wwc-border)] bg-[var(--wwc-surface)]/90 backdrop-blur-md'
-        }`}
-      >
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-[#020b18]/80 text-white backdrop-blur-xl transition-colors">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <Link
             to="/"
-            className={`font-[family-name:var(--font-display)] text-base sm:text-lg font-bold tracking-tight ${
-              isHome ? 'text-white' : 'text-[var(--wwc-text)]'
-            }`}
+            className="flex items-center gap-3 font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-white group"
           >
+            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center p-1 border border-white/10 shadow-sm group-hover:bg-white/20 transition-colors">
+              <img src="/apexs-logo.png" alt="Logo" className="w-full h-full object-contain" />
+            </div>
             {name}
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-2">
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `px-3 py-1.5 text-sm rounded-md transition-colors ${
-                    isHome
-                      ? isActive
-                        ? 'text-sky-300 font-semibold'
-                        : 'text-white/70 hover:text-white'
-                      : isActive
-                        ? 'text-[var(--wwc-accent)] font-semibold'
-                        : 'text-[var(--wwc-muted)] hover:text-[var(--wwc-text)]'
+                  `px-3 py-1.5 text-sm rounded-md transition-all ${
+                    isActive
+                      ? 'text-sky-300 font-semibold bg-white/5'
+                      : 'text-white/70 hover:text-white hover:bg-white/5'
                   }`
                 }
               >
@@ -125,34 +116,30 @@ export function MarketingLayout() {
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={toggleTheme}
-              className={`p-2 rounded-md ${
-                isHome ? 'text-white/70 hover:bg-white/10' : 'text-[var(--wwc-muted)] hover:bg-[var(--wwc-surface-2)]'
-              }`}
+              className="p-2 rounded-md text-white/70 hover:bg-white/10 transition-colors hidden sm:block"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <Link
               to="/login"
-              className={`hidden sm:inline-flex text-sm px-2 ${
-                isHome ? 'text-white/70 hover:text-white' : 'text-[var(--wwc-muted)] hover:text-[var(--wwc-text)]'
-              }`}
+              className="hidden sm:inline-flex text-sm font-medium text-white/70 hover:text-white transition-colors px-2"
             >
               Sign in
             </Link>
             <Link
               to="/register"
-              className="hidden sm:inline-flex text-sm font-semibold bg-sky-500 text-white px-3 py-1.5 rounded-md hover:bg-sky-400"
+              className="hidden sm:inline-flex items-center justify-center text-sm font-bold bg-white text-[#073075] px-4 py-2 rounded-lg hover:bg-sky-50 transition-all shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] hover:-translate-y-0.5"
             >
               Start free
             </Link>
             <button
               type="button"
-              className={`md:hidden p-2 rounded-md ${isHome ? 'text-white/70' : 'text-[var(--wwc-muted)]'}`}
+              className="md:hidden p-2 rounded-md text-white/70 hover:bg-white/10 transition-colors"
               onClick={() => setOpen((v) => !v)}
               aria-label="Menu"
             >
@@ -161,24 +148,21 @@ export function MarketingLayout() {
           </div>
         </div>
         {open && (
-          <div
-            className={`md:hidden border-t px-4 py-3 flex flex-col gap-1 ${
-              isHome ? 'border-white/10 bg-[#040a10] text-white' : 'border-[var(--wwc-border)] bg-[var(--wwc-surface)]'
-            }`}
-          >
+          <div className="md:hidden border-t border-white/10 bg-[#020b18] text-white px-4 py-4 flex flex-col gap-2 shadow-xl">
             {NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
-                className={`py-2 text-sm ${isHome ? 'text-white/80' : 'text-[var(--wwc-muted)]'}`}
+                className="py-2.5 px-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/5 transition-colors"
               >
                 {item.label}
               </Link>
             ))}
-            <Link to="/login" className="py-2 text-sm">
+            <div className="h-px bg-white/10 my-2" />
+            <Link to="/login" className="py-2.5 px-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/5 transition-colors">
               Sign in
             </Link>
-            <Link to="/register" className="py-2 text-sm font-semibold text-sky-400">
+            <Link to="/register" className="mt-2 py-3 px-3 text-center rounded-lg text-sm font-bold bg-white text-[#073075] shadow-md hover:bg-sky-50 transition-colors">
               Start free
             </Link>
           </div>
