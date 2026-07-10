@@ -296,6 +296,7 @@ export default function ConfigNavbar() {
                         value={did}
                         onChange={(e) => setDid(e.target.value)}
                         placeholder="e.g. 001D0A00DE6A"
+                        autoComplete="off"
                         className={monoInputCls}
                       />
                     </div>
@@ -313,7 +314,7 @@ export default function ConfigNavbar() {
                           <PasswordInput
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            autoComplete="off"
+                            autoComplete="new-password"
                             placeholder={config.hasPassword ? 'Leave blank to keep current' : 'Enter WeatherLink password'}
                             className={inputCls}
                           />
@@ -332,6 +333,7 @@ export default function ConfigNavbar() {
                             value={apiToken}
                             onChange={(e) => setApiToken(e.target.value)}
                             placeholder={config.hasApiToken ? 'Leave blank to keep current' : 'Paste your API token here'}
+                            autoComplete="off"
                             className={monoInputCls}
                           />
                         </div>
@@ -351,6 +353,7 @@ export default function ConfigNavbar() {
                             value={apiToken}
                             onChange={(e) => setApiToken(e.target.value)}
                             placeholder={config.hasApiToken ? 'Leave blank to keep current' : 'Paste your V2 API key here'}
+                            autoComplete="off"
                             className={monoInputCls}
                           />
                         </div>
@@ -366,7 +369,7 @@ export default function ConfigNavbar() {
                           <PasswordInput
                             value={apiSecret}
                             onChange={(e) => setApiSecret(e.target.value)}
-                            autoComplete="off"
+                            autoComplete="new-password"
                             placeholder={config.hasApiSecret ? 'Leave blank to keep current' : 'Paste your V2 API secret here'}
                             className={inputCls}
                           />
@@ -383,6 +386,7 @@ export default function ConfigNavbar() {
                             value={stationId}
                             onChange={(e) => setStationId(e.target.value)}
                             placeholder="Auto-detected from your account"
+                            autoComplete="off"
                             className={monoInputCls}
                           />
                         </div>
@@ -399,7 +403,7 @@ export default function ConfigNavbar() {
                           <PasswordInput
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            autoComplete="off"
+                            autoComplete="new-password"
                             placeholder={config.hasPassword ? 'Leave blank to keep current' : 'WeatherLink account password'}
                             className={inputCls}
                           />
