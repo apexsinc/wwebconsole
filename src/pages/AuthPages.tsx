@@ -89,7 +89,7 @@ function useTurnstile(siteKey: string, enabled: boolean) {
       try {
         widgetId.current = window.turnstile.render(ref.current, {
           sitekey: siteKey,
-          theme: 'dark',
+          theme: 'light',
           callback: (t) => {
             if (!cancelled) {
               setToken(t);
@@ -185,10 +185,10 @@ function TurnstileField({
 }) {
   if (!enabled) return null;
   return (
-    <div className="mt-2 space-y-1">
+    <div className="mt-2 space-y-1 w-full flex flex-col items-center">
       <div ref={turnstile.ref} />
       {turnstile.scriptError && (
-        <p className="text-rose-400 text-xs">{turnstile.scriptError}</p>
+        <p className="text-rose-400 text-xs text-center">{turnstile.scriptError}</p>
       )}
     </div>
   );
