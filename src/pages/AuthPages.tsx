@@ -624,7 +624,7 @@ function AuthShell({
         <div className="relative z-10 animate-[fadeIn_0.8s_ease-out]">
           <a href={brandHref} className="flex items-center gap-3 group inline-flex">
             <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-xl group-hover:scale-105 group-hover:bg-white/20 transition-all duration-300">
-              <Activity className="w-6 h-6" />
+              <img src="/apexs-logo.png" alt="APEXS Logo" className="h-6 w-auto object-contain brightness-0 invert" />
             </div>
             <div>
               <h1 className="text-white font-black tracking-wider text-base uppercase drop-shadow-md">
@@ -638,7 +638,7 @@ function AuthShell({
         </div>
 
         <div className="relative z-10 max-w-xl animate-[slideInUp_0.8s_ease-out]">
-          <h2 className="text-5xl lg:text-6xl font-black text-white mb-6 tracking-tighter leading-[1.05] drop-shadow-lg">
+          <h2 className="text-5xl lg:text-6xl font-black mb-6 tracking-tighter leading-[1.05] drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-sky-300/80 pb-1">
             Your weather,<br/>beautifully visualized.
           </h2>
           <p className="text-sky-100 text-base lg:text-lg leading-relaxed max-w-md font-medium">
@@ -657,8 +657,8 @@ function AuthShell({
       <div className="flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden">
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="md:hidden flex flex-col items-center mb-8 relative z-10 text-center animate-[fadeIn_0.5s_ease-out]">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#073075] to-[#041a45] flex items-center justify-center text-white shadow-xl mb-4">
-            <Activity className="w-7 h-7" />
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#073075] to-[#041a45] flex items-center justify-center text-white shadow-xl mb-4 border border-white/10">
+            <img src="/apexs-logo.png" alt="APEXS Logo" className="h-7 w-auto object-contain brightness-0 invert" />
           </div>
           <h1 className="text-slate-900 dark:text-white font-black tracking-wider text-lg uppercase">
             Weatherlink Console{admin ? ' Admin' : ''}
