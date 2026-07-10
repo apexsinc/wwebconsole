@@ -378,21 +378,21 @@ export function FeaturesPage() {
   const features = site?.features?.length ? site.features : FEATURE_FALLBACKS;
 
   return (
-    <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="bg-gradient-to-b from-sky-50/80 to-white border-b border-sky-100/60 relative overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-200/20 blur-[100px] rounded-full pointer-events-none" />
+    <div className="bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-64px)] pb-24 transition-colors">
+      <div className="bg-gradient-to-b from-sky-50/80 to-white dark:from-[#020b18] dark:to-slate-950 border-b border-sky-100/60 dark:border-white/5 relative overflow-hidden transition-colors">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-200/20 dark:bg-sky-500/10 blur-[100px] rounded-full pointer-events-none" />
         <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 grid md:grid-cols-2 gap-12 items-center relative z-10">
           <div>
-            <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] tracking-tight">Features</h1>
-            <p className="text-[#073075]/80 mt-6 max-w-md text-lg leading-relaxed font-medium">
+            <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] dark:text-white tracking-tight transition-colors">Features</h1>
+            <p className="text-[#073075]/80 dark:text-sky-100/80 mt-6 max-w-md text-lg leading-relaxed font-medium transition-colors">
               {site?.seo_features_description || 'Everything you need to monitor and share your live weather data.'}
             </p>
           </div>
-          <div className="bg-white p-3 sm:p-4 rounded-3xl shadow-[0_20px_60px_rgba(7,48,117,0.08)] ring-1 ring-[#073075]/5">
+          <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-3xl shadow-[0_20px_60px_rgba(7,48,117,0.08)] dark:shadow-none ring-1 ring-[#073075]/5 dark:ring-white/10 transition-colors">
             <img
               src={HERO_IMG}
               alt="Live weather console dashboard"
-              className="w-full h-auto rounded-xl shadow-sm border border-[#073075]/10"
+              className="w-full h-auto rounded-xl shadow-sm border border-[#073075]/10 dark:border-white/10"
               width={1439}
               height={1079}
               loading="lazy"
@@ -404,30 +404,30 @@ export function FeaturesPage() {
       <div className="max-w-5xl mx-auto px-4 py-20">
         <div className="grid gap-8 sm:grid-cols-2">
           {features.map((f) => (
-            <div key={f.title} className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] ring-1 ring-[#073075]/5 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white border border-sky-100 flex items-center justify-center mb-6 shadow-sm">
-                <div className="w-3 h-3 rounded-full bg-[#073075] shadow-[0_0_10px_rgba(7,48,117,0.3)]" />
+            <div key={f.title} className="bg-white dark:bg-slate-900 p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] dark:shadow-none ring-1 ring-[#073075]/5 dark:ring-white/10 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] dark:hover:ring-white/20 hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white dark:from-slate-800 dark:to-slate-900 border border-sky-100 dark:border-white/10 flex items-center justify-center mb-6 shadow-sm transition-colors">
+                <div className="w-3 h-3 rounded-full bg-[#073075] dark:bg-sky-400 shadow-[0_0_10px_rgba(7,48,117,0.3)] dark:shadow-[0_0_10px_rgba(56,189,248,0.3)]" />
               </div>
-              <h2 className="font-bold text-2xl text-[#020b18] font-[family-name:var(--font-display)]">{f.title}</h2>
-              <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">{f.body}</p>
+              <h2 className="font-bold text-2xl text-[#020b18] dark:text-white font-[family-name:var(--font-display)] transition-colors">{f.title}</h2>
+              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-3 leading-relaxed font-medium transition-colors">{f.body}</p>
             </div>
           ))}
-          <div className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] ring-1 ring-[#073075]/5 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white border border-sky-100 flex items-center justify-center mb-6 shadow-sm">
-              <div className="w-3 h-3 rounded-full bg-[#073075] shadow-[0_0_10px_rgba(7,48,117,0.3)]" />
+          <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] dark:shadow-none ring-1 ring-[#073075]/5 dark:ring-white/10 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] dark:hover:ring-white/20 hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white dark:from-slate-800 dark:to-slate-900 border border-sky-100 dark:border-white/10 flex items-center justify-center mb-6 shadow-sm transition-colors">
+              <div className="w-3 h-3 rounded-full bg-[#073075] dark:bg-sky-400 shadow-[0_0_10px_rgba(7,48,117,0.3)] dark:shadow-[0_0_10px_rgba(56,189,248,0.3)]" />
             </div>
-            <h2 className="font-bold text-2xl text-[#020b18] font-[family-name:var(--font-display)]">Account security</h2>
-            <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">
+            <h2 className="font-bold text-2xl text-[#020b18] dark:text-white font-[family-name:var(--font-display)] transition-colors">Account security</h2>
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-3 leading-relaxed font-medium transition-colors">
               Sign-in protection, email verification when enabled, password and email change, and account deletion with
               a short grace period.
             </p>
           </div>
-          <div className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] ring-1 ring-[#073075]/5 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white border border-sky-100 flex items-center justify-center mb-6 shadow-sm">
-              <div className="w-3 h-3 rounded-full bg-[#073075] shadow-[0_0_10px_rgba(7,48,117,0.3)]" />
+          <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] dark:shadow-none ring-1 ring-[#073075]/5 dark:ring-white/10 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] dark:hover:ring-white/20 hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white dark:from-slate-800 dark:to-slate-900 border border-sky-100 dark:border-white/10 flex items-center justify-center mb-6 shadow-sm transition-colors">
+              <div className="w-3 h-3 rounded-full bg-[#073075] dark:bg-sky-400 shadow-[0_0_10px_rgba(7,48,117,0.3)] dark:shadow-[0_0_10px_rgba(56,189,248,0.3)]" />
             </div>
-            <h2 className="font-bold text-2xl text-[#020b18] font-[family-name:var(--font-display)]">Simple setup</h2>
-            <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">
+            <h2 className="font-bold text-2xl text-[#020b18] dark:text-white font-[family-name:var(--font-display)] transition-colors">Simple setup</h2>
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-3 leading-relaxed font-medium transition-colors">
               Connect your WeatherLink station, open the live console, and share a TV display link when you need it.
             </p>
           </div>
@@ -443,30 +443,30 @@ export function PricingPage() {
   const price = useLocalizedPrice(site);
 
   return (
-    <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="bg-gradient-to-b from-sky-50/80 to-white border-b border-sky-100/60 relative overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-200/20 blur-[100px] rounded-full pointer-events-none" />
+    <div className="bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-64px)] pb-24 transition-colors">
+      <div className="bg-gradient-to-b from-sky-50/80 to-white dark:from-[#020b18] dark:to-slate-950 border-b border-sky-100/60 dark:border-white/5 relative overflow-hidden transition-colors">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-200/20 dark:bg-sky-500/10 blur-[100px] rounded-full pointer-events-none" />
         <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 text-center relative z-10">
-          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] tracking-tight">
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] dark:text-white tracking-tight transition-colors">
             {site?.pricing_headline || 'Pricing'}
           </h1>
-          <p className="text-[#073075]/80 mt-6 max-w-2xl mx-auto text-lg font-medium">{site?.pricing_subhead || ''}</p>
+          <p className="text-[#073075]/80 dark:text-sky-100/80 mt-6 max-w-2xl mx-auto text-lg font-medium transition-colors">{site?.pricing_subhead || ''}</p>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-20 relative z-10">
         <div className="grid md:grid-cols-2 gap-10">
-          <div className="bg-white rounded-3xl p-10 sm:p-12 shadow-[0_4px_30px_rgba(7,48,117,0.06)] ring-1 ring-[#073075]/10">
-            <p className="text-xs uppercase tracking-widest font-black text-[#073075]/60">Trial</p>
-            <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-[#020b18] tracking-tight">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 sm:p-12 shadow-[0_4px_30px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 transition-colors">
+            <p className="text-xs uppercase tracking-widest font-black text-[#073075]/60 dark:text-sky-400/80">Trial</p>
+            <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-[#020b18] dark:text-white tracking-tight transition-colors">
               {site?.freeTrialDays ?? 30} days free
             </p>
-            <p className="text-base sm:text-lg text-slate-600 mt-6 leading-relaxed font-medium">{site?.pricing_basic_blurb || ''}</p>
-            <Link to="/register" className="inline-flex mt-8 text-base font-bold text-[#073075] hover:underline">
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-6 leading-relaxed font-medium transition-colors">{site?.pricing_basic_blurb || ''}</p>
+            <Link to="/register" className="inline-flex mt-8 text-base font-bold text-[#073075] dark:text-sky-400 hover:underline">
               Start free →
             </Link>
           </div>
-          <div className="bg-gradient-to-br from-[#073075] to-[#041a45] rounded-3xl p-10 sm:p-12 shadow-[0_20px_50px_rgba(7,48,117,0.2)] ring-1 ring-black/5 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-[#073075] to-[#041a45] rounded-3xl p-10 sm:p-12 shadow-[0_20px_50px_rgba(7,48,117,0.2)] dark:shadow-none ring-1 ring-black/5 dark:ring-white/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-48 h-48 bg-sky-400/20 blur-[60px] pointer-events-none rounded-full" />
             <p className="text-xs uppercase tracking-widest font-black text-sky-300 relative z-10">Pro device</p>
             <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-white tracking-tight relative z-10">
@@ -480,7 +480,7 @@ export function PricingPage() {
             </Link>
           </div>
         </div>
-        <p className="mt-12 text-sm text-slate-500 text-center mx-auto max-w-2xl leading-relaxed font-medium">{site?.pricing_footnote || ''}</p>
+        <p className="mt-12 text-sm text-slate-500 dark:text-slate-400 text-center mx-auto max-w-2xl leading-relaxed font-medium transition-colors">{site?.pricing_footnote || ''}</p>
       </div>
     </div>
   );
@@ -490,15 +490,15 @@ export function AboutPage() {
   const { site } = useOutletContext<Ctx>();
   usePageSeo(site, 'seo_about_title', 'seo_about_description', '/about', 'About', '');
   return (
-    <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="bg-gradient-to-b from-sky-50/80 to-white border-b border-sky-100/60 relative overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-200/20 blur-[100px] rounded-full pointer-events-none" />
+    <div className="bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-64px)] pb-24 transition-colors">
+      <div className="bg-gradient-to-b from-sky-50/80 to-white dark:from-[#020b18] dark:to-slate-950 border-b border-sky-100/60 dark:border-white/5 relative overflow-hidden transition-colors">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-200/20 dark:bg-sky-500/10 blur-[100px] rounded-full pointer-events-none" />
         <div className="max-w-4xl mx-auto px-4 py-16 sm:py-24 text-center relative z-10">
-          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] tracking-tight">About</h1>
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] dark:text-white tracking-tight transition-colors">About</h1>
         </div>
       </div>
       <div className="max-w-4xl mx-auto px-4 py-16 relative z-10">
-        <div className="bg-white p-10 sm:p-14 rounded-3xl shadow-[0_10px_40px_rgba(7,48,117,0.06)] ring-1 ring-[#073075]/10 text-lg sm:text-xl text-slate-700 leading-relaxed font-medium">
+        <div className="bg-white dark:bg-slate-900 p-10 sm:p-14 rounded-3xl shadow-[0_10px_40px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 text-lg sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium transition-colors">
           <MarkdownLite text={site?.about_body || ''} />
         </div>
       </div>
@@ -616,72 +616,72 @@ export function ContactPage() {
   };
 
   return (
-    <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="bg-gradient-to-b from-sky-50/80 to-white border-b border-sky-100/60 relative overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-200/20 blur-[100px] rounded-full pointer-events-none" />
+    <div className="bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-64px)] pb-24 transition-colors">
+      <div className="bg-gradient-to-b from-sky-50/80 to-white dark:from-[#020b18] dark:to-slate-950 border-b border-sky-100/60 dark:border-white/5 relative overflow-hidden transition-colors">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-200/20 dark:bg-sky-500/10 blur-[100px] rounded-full pointer-events-none" />
         <div className="max-w-3xl mx-auto px-4 py-16 sm:py-24 text-center relative z-10">
-          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] tracking-tight">Contact</h1>
-          <p className="text-[#073075]/80 mt-6 text-lg leading-relaxed font-medium">{site?.contact_intro || ''}</p>
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] dark:text-white tracking-tight transition-colors">Contact</h1>
+          <p className="text-[#073075]/80 dark:text-sky-100/80 mt-6 text-lg leading-relaxed font-medium transition-colors">{site?.contact_intro || ''}</p>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-16 relative z-10">
         {sent ? (
-          <div className="rounded-3xl bg-white shadow-[0_10px_40px_rgba(7,48,117,0.06)] ring-1 ring-[#073075]/10 p-10 sm:p-14 text-center">
-            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-green-100">
+          <div className="rounded-3xl bg-white dark:bg-slate-900 shadow-[0_10px_40px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 p-10 sm:p-14 text-center transition-colors">
+            <div className="w-16 h-16 bg-green-50 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-green-100 dark:ring-green-500/30">
               <div className="w-4 h-4 bg-green-500 rounded-full" />
             </div>
-            <p className="font-[family-name:var(--font-display)] font-black text-[#020b18] text-3xl">Message received</p>
-            <p className="text-lg text-slate-600 mt-4 font-medium leading-relaxed">
-              Thanks — we will get back to you at <span className="text-[#020b18] font-bold">{email}</span>. You can also reach us at{' '}
-              <a href={`mailto:${supportEmail}`} className="text-[#073075] hover:underline font-bold">
+            <p className="font-[family-name:var(--font-display)] font-black text-[#020b18] dark:text-white text-3xl transition-colors">Message received</p>
+            <p className="text-lg text-slate-600 dark:text-slate-400 mt-4 font-medium leading-relaxed transition-colors">
+              Thanks — we will get back to you at <span className="text-[#020b18] dark:text-white font-bold">{email}</span>. You can also reach us at{' '}
+              <a href={`mailto:${supportEmail}`} className="text-[#073075] dark:text-sky-400 hover:underline font-bold">
                 {supportEmail}
               </a>.
             </p>
           </div>
         ) : (
-          <form onSubmit={onSubmit} className="relative bg-white p-8 sm:p-12 rounded-3xl shadow-[0_10px_40px_rgba(7,48,117,0.06)] ring-1 ring-[#073075]/10 space-y-6">
+          <form onSubmit={onSubmit} className="relative bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-3xl shadow-[0_10px_40px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 space-y-6 transition-colors">
             {error && (
-              <div className="bg-rose-50 border border-rose-200 rounded-xl px-5 py-4">
-                <p className="text-rose-700 text-sm font-bold">{error}</p>
+              <div className="bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 rounded-xl px-5 py-4">
+                <p className="text-rose-700 dark:text-rose-300 text-sm font-bold">{error}</p>
               </div>
             )}
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500 font-black ml-1">Name</label>
+              <label className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Name</label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-2 w-full bg-slate-50/50 border border-[#073075]/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-[#020b18] font-medium"
+                className="mt-2 w-full bg-slate-50/50 dark:bg-slate-800 border border-[#073075]/10 dark:border-white/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] dark:focus:border-sky-500 focus:ring-2 focus:ring-[#073075]/20 dark:focus:ring-sky-500/20 transition-all text-[#020b18] dark:text-white font-medium"
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500 font-black ml-1">Email</label>
+              <label className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-2 w-full bg-slate-50/50 border border-[#073075]/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-[#020b18] font-medium"
+                className="mt-2 w-full bg-slate-50/50 dark:bg-slate-800 border border-[#073075]/10 dark:border-white/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] dark:focus:border-sky-500 focus:ring-2 focus:ring-[#073075]/20 dark:focus:ring-sky-500/20 transition-all text-[#020b18] dark:text-white font-medium"
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500 font-black ml-1">Subject</label>
+              <label className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Subject</label>
               <input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Billing, setup, partnership…"
-                className="mt-2 w-full bg-slate-50/50 border border-[#073075]/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-[#020b18] font-medium placeholder:text-slate-400"
+                className="mt-2 w-full bg-slate-50/50 dark:bg-slate-800 border border-[#073075]/10 dark:border-white/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] dark:focus:border-sky-500 focus:ring-2 focus:ring-[#073075]/20 dark:focus:ring-sky-500/20 transition-all text-[#020b18] dark:text-white font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500 font-black ml-1">Message</label>
+              <label className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Message</label>
               <textarea
                 required
                 minLength={10}
                 rows={5}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="mt-2 w-full bg-slate-50/50 border border-[#073075]/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-[#020b18] font-medium resize-y"
+                className="mt-2 w-full bg-slate-50/50 dark:bg-slate-800 border border-[#073075]/10 dark:border-white/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] dark:focus:border-sky-500 focus:ring-2 focus:ring-[#073075]/20 dark:focus:ring-sky-500/20 transition-all text-[#020b18] dark:text-white font-medium resize-y"
               />
             </div>
             <div className="absolute -left-[9999px] opacity-0 h-0 overflow-hidden" aria-hidden="true">
@@ -694,13 +694,13 @@ export function ContactPage() {
             <button
               type="submit"
               disabled={loading || (authCfg.turnstileEnabled && !turnstileToken)}
-              className="w-full inline-flex justify-center items-center px-8 py-4 rounded-xl bg-[#073075] text-white text-base font-black hover:bg-[#0a3f99] transition-all shadow-[0_10px_30px_rgba(7,48,117,0.3)] hover:shadow-[0_15px_40px_rgba(7,48,117,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 mt-4"
+              className="w-full inline-flex justify-center items-center px-8 py-4 rounded-xl bg-[#073075] dark:bg-sky-500 text-white text-base font-black hover:bg-[#0a3f99] dark:hover:bg-sky-400 transition-all shadow-[0_10px_30px_rgba(7,48,117,0.3)] dark:shadow-[0_10px_30px_rgba(56,189,248,0.2)] hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 mt-4"
             >
               {loading ? 'Sending…' : 'Send message'}
             </button>
-            <p className="text-sm text-slate-500 font-medium text-center mt-6">
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium text-center mt-6">
               Prefer email?{' '}
-              <a href={`mailto:${supportEmail}`} className="text-[#073075] font-bold hover:underline">
+              <a href={`mailto:${supportEmail}`} className="text-[#073075] dark:text-sky-400 font-bold hover:underline">
                 {supportEmail}
               </a>
             </p>
