@@ -379,19 +379,20 @@ export function FeaturesPage() {
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 grid md:grid-cols-2 gap-12 items-center">
+      <div className="bg-gradient-to-b from-sky-50/80 to-white border-b border-sky-100/60 relative overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-200/20 blur-[100px] rounded-full pointer-events-none" />
+        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 grid md:grid-cols-2 gap-12 items-center relative z-10">
           <div>
-            <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">Features</h1>
-            <p className="text-slate-600 mt-6 max-w-md text-lg leading-relaxed font-medium">
+            <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] tracking-tight">Features</h1>
+            <p className="text-[#073075]/80 mt-6 max-w-md text-lg leading-relaxed font-medium">
               {site?.seo_features_description || 'Everything you need to monitor and share your live weather data.'}
             </p>
           </div>
-          <div className="bg-slate-50 p-3 sm:p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.06)] ring-1 ring-gray-200">
+          <div className="bg-white p-3 sm:p-4 rounded-3xl shadow-[0_20px_60px_rgba(7,48,117,0.08)] ring-1 ring-[#073075]/5">
             <img
               src={HERO_IMG}
               alt="Live weather console dashboard"
-              className="w-full h-auto rounded-xl shadow-sm border border-gray-100/50"
+              className="w-full h-auto rounded-xl shadow-sm border border-[#073075]/10"
               width={1439}
               height={1079}
               loading="lazy"
@@ -403,20 +404,29 @@ export function FeaturesPage() {
       <div className="max-w-5xl mx-auto px-4 py-20">
         <div className="grid gap-8 sm:grid-cols-2">
           {features.map((f) => (
-            <div key={f.title} className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all">
-              <h2 className="font-bold text-2xl text-slate-900 font-[family-name:var(--font-display)]">{f.title}</h2>
+            <div key={f.title} className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] ring-1 ring-[#073075]/5 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white border border-sky-100 flex items-center justify-center mb-6 shadow-sm">
+                <div className="w-3 h-3 rounded-full bg-[#073075] shadow-[0_0_10px_rgba(7,48,117,0.3)]" />
+              </div>
+              <h2 className="font-bold text-2xl text-[#020b18] font-[family-name:var(--font-display)]">{f.title}</h2>
               <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">{f.body}</p>
             </div>
           ))}
-          <div className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all">
-            <h2 className="font-bold text-2xl text-slate-900 font-[family-name:var(--font-display)]">Account security</h2>
+          <div className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] ring-1 ring-[#073075]/5 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white border border-sky-100 flex items-center justify-center mb-6 shadow-sm">
+              <div className="w-3 h-3 rounded-full bg-[#073075] shadow-[0_0_10px_rgba(7,48,117,0.3)]" />
+            </div>
+            <h2 className="font-bold text-2xl text-[#020b18] font-[family-name:var(--font-display)]">Account security</h2>
             <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">
               Sign-in protection, email verification when enabled, password and email change, and account deletion with
               a short grace period.
             </p>
           </div>
-          <div className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all">
-            <h2 className="font-bold text-2xl text-slate-900 font-[family-name:var(--font-display)]">Simple setup</h2>
+          <div className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(7,48,117,0.04)] ring-1 ring-[#073075]/5 hover:shadow-[0_15px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-[#073075]/20 transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-white border border-sky-100 flex items-center justify-center mb-6 shadow-sm">
+              <div className="w-3 h-3 rounded-full bg-[#073075] shadow-[0_0_10px_rgba(7,48,117,0.3)]" />
+            </div>
+            <h2 className="font-bold text-2xl text-[#020b18] font-[family-name:var(--font-display)]">Simple setup</h2>
             <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">
               Connect your WeatherLink station, open the live console, and share a TV display link when you need it.
             </p>
@@ -434,20 +444,21 @@ export function PricingPage() {
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 text-center">
-          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">
+      <div className="bg-gradient-to-b from-sky-50/80 to-white border-b border-sky-100/60 relative overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-200/20 blur-[100px] rounded-full pointer-events-none" />
+        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 text-center relative z-10">
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] tracking-tight">
             {site?.pricing_headline || 'Pricing'}
           </h1>
-          <p className="text-slate-600 mt-6 max-w-2xl mx-auto text-lg font-medium">{site?.pricing_subhead || ''}</p>
+          <p className="text-[#073075]/80 mt-6 max-w-2xl mx-auto text-lg font-medium">{site?.pricing_subhead || ''}</p>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-20">
+      <div className="max-w-5xl mx-auto px-4 py-20 relative z-10">
         <div className="grid md:grid-cols-2 gap-10">
-          <div className="bg-white rounded-3xl p-10 sm:p-12 shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-200">
-            <p className="text-xs uppercase tracking-widest font-black text-slate-400">Trial</p>
-            <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+          <div className="bg-white rounded-3xl p-10 sm:p-12 shadow-[0_4px_30px_rgba(7,48,117,0.06)] ring-1 ring-[#073075]/10">
+            <p className="text-xs uppercase tracking-widest font-black text-[#073075]/60">Trial</p>
+            <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-[#020b18] tracking-tight">
               {site?.freeTrialDays ?? 30} days free
             </p>
             <p className="text-base sm:text-lg text-slate-600 mt-6 leading-relaxed font-medium">{site?.pricing_basic_blurb || ''}</p>
@@ -455,16 +466,16 @@ export function PricingPage() {
               Start free →
             </Link>
           </div>
-          <div className="bg-[#f0f4f8] rounded-3xl p-10 sm:p-12 shadow-[0_10px_30px_rgba(7,48,117,0.08)] ring-2 ring-[#073075] relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-sky-200/40 blur-[60px] pointer-events-none rounded-full" />
-            <p className="text-xs uppercase tracking-widest font-black text-[#073075] relative z-10">Pro device</p>
-            <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-slate-900 tracking-tight relative z-10">
+          <div className="bg-gradient-to-br from-[#073075] to-[#041a45] rounded-3xl p-10 sm:p-12 shadow-[0_20px_50px_rgba(7,48,117,0.2)] ring-1 ring-black/5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-sky-400/20 blur-[60px] pointer-events-none rounded-full" />
+            <p className="text-xs uppercase tracking-widest font-black text-sky-300 relative z-10">Pro device</p>
+            <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-white tracking-tight relative z-10">
               {price.formatted}
-              <span className="text-lg sm:text-xl font-medium text-slate-500"> {price.periodLabel}</span>
+              <span className="text-lg sm:text-xl font-medium text-sky-200/80"> {price.periodLabel}</span>
             </p>
-            {price.note ? <p className="text-xs text-slate-500 mt-3 font-semibold uppercase tracking-wider relative z-10">{price.note}</p> : null}
-            <p className="text-base sm:text-lg text-slate-700 mt-6 leading-relaxed font-medium relative z-10">{site?.pricing_pro_blurb || ''}</p>
-            <Link to="/contact" className="inline-flex mt-8 text-base font-bold text-[#073075] hover:underline relative z-10">
+            {price.note ? <p className="text-xs text-sky-200/60 mt-3 font-semibold uppercase tracking-wider relative z-10">{price.note}</p> : null}
+            <p className="text-base sm:text-lg text-sky-100/90 mt-6 leading-relaxed font-medium relative z-10">{site?.pricing_pro_blurb || ''}</p>
+            <Link to="/contact" className="inline-flex mt-8 text-base font-bold text-white hover:text-sky-200 transition-colors relative z-10">
               Ask about activation →
             </Link>
           </div>
@@ -480,13 +491,14 @@ export function AboutPage() {
   usePageSeo(site, 'seo_about_title', 'seo_about_description', '/about', 'About', '');
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-16 sm:py-24 text-center">
-          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">About</h1>
+      <div className="bg-gradient-to-b from-sky-50/80 to-white border-b border-sky-100/60 relative overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-200/20 blur-[100px] rounded-full pointer-events-none" />
+        <div className="max-w-4xl mx-auto px-4 py-16 sm:py-24 text-center relative z-10">
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] tracking-tight">About</h1>
         </div>
       </div>
-      <div className="max-w-4xl mx-auto px-4 py-16">
-        <div className="bg-white p-10 sm:p-14 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.04)] ring-1 ring-gray-200 text-lg sm:text-xl text-slate-700 leading-relaxed font-medium">
+      <div className="max-w-4xl mx-auto px-4 py-16 relative z-10">
+        <div className="bg-white p-10 sm:p-14 rounded-3xl shadow-[0_10px_40px_rgba(7,48,117,0.06)] ring-1 ring-[#073075]/10 text-lg sm:text-xl text-slate-700 leading-relaxed font-medium">
           <MarkdownLite text={site?.about_body || ''} />
         </div>
       </div>
@@ -605,29 +617,30 @@ export function ContactPage() {
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 py-16 sm:py-24 text-center">
-          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">Contact</h1>
-          <p className="text-slate-600 mt-6 text-lg leading-relaxed font-medium">{site?.contact_intro || ''}</p>
+      <div className="bg-gradient-to-b from-sky-50/80 to-white border-b border-sky-100/60 relative overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-200/20 blur-[100px] rounded-full pointer-events-none" />
+        <div className="max-w-3xl mx-auto px-4 py-16 sm:py-24 text-center relative z-10">
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-[#020b18] tracking-tight">Contact</h1>
+          <p className="text-[#073075]/80 mt-6 text-lg leading-relaxed font-medium">{site?.contact_intro || ''}</p>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-16">
+      <div className="max-w-2xl mx-auto px-4 py-16 relative z-10">
         {sent ? (
-          <div className="rounded-3xl bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] ring-1 ring-gray-200 p-10 sm:p-14 text-center">
+          <div className="rounded-3xl bg-white shadow-[0_10px_40px_rgba(7,48,117,0.06)] ring-1 ring-[#073075]/10 p-10 sm:p-14 text-center">
             <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-green-100">
               <div className="w-4 h-4 bg-green-500 rounded-full" />
             </div>
-            <p className="font-[family-name:var(--font-display)] font-black text-slate-900 text-3xl">Message received</p>
+            <p className="font-[family-name:var(--font-display)] font-black text-[#020b18] text-3xl">Message received</p>
             <p className="text-lg text-slate-600 mt-4 font-medium leading-relaxed">
-              Thanks — we will get back to you at <span className="text-slate-900 font-bold">{email}</span>. You can also reach us at{' '}
+              Thanks — we will get back to you at <span className="text-[#020b18] font-bold">{email}</span>. You can also reach us at{' '}
               <a href={`mailto:${supportEmail}`} className="text-[#073075] hover:underline font-bold">
                 {supportEmail}
               </a>.
             </p>
           </div>
         ) : (
-          <form onSubmit={onSubmit} className="relative bg-white p-8 sm:p-12 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.04)] ring-1 ring-gray-200 space-y-6">
+          <form onSubmit={onSubmit} className="relative bg-white p-8 sm:p-12 rounded-3xl shadow-[0_10px_40px_rgba(7,48,117,0.06)] ring-1 ring-[#073075]/10 space-y-6">
             {error && (
               <div className="bg-rose-50 border border-rose-200 rounded-xl px-5 py-4">
                 <p className="text-rose-700 text-sm font-bold">{error}</p>
@@ -638,7 +651,7 @@ export function ContactPage() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-2 w-full bg-slate-50/50 border border-gray-200 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-slate-900 font-medium"
+                className="mt-2 w-full bg-slate-50/50 border border-[#073075]/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-[#020b18] font-medium"
               />
             </div>
             <div>
@@ -648,7 +661,7 @@ export function ContactPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-2 w-full bg-slate-50/50 border border-gray-200 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-slate-900 font-medium"
+                className="mt-2 w-full bg-slate-50/50 border border-[#073075]/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-[#020b18] font-medium"
               />
             </div>
             <div>
@@ -657,7 +670,7 @@ export function ContactPage() {
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Billing, setup, partnership…"
-                className="mt-2 w-full bg-slate-50/50 border border-gray-200 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-slate-900 font-medium placeholder:text-slate-400"
+                className="mt-2 w-full bg-slate-50/50 border border-[#073075]/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-[#020b18] font-medium placeholder:text-slate-400"
               />
             </div>
             <div>
@@ -668,7 +681,7 @@ export function ContactPage() {
                 rows={5}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="mt-2 w-full bg-slate-50/50 border border-gray-200 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-slate-900 font-medium resize-y"
+                className="mt-2 w-full bg-slate-50/50 border border-[#073075]/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] focus:ring-2 focus:ring-[#073075]/20 transition-all text-[#020b18] font-medium resize-y"
               />
             </div>
             <div className="absolute -left-[9999px] opacity-0 h-0 overflow-hidden" aria-hidden="true">
