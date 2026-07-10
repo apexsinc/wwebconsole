@@ -214,23 +214,26 @@ export function HomePage() {
       </section>
 
       {/* Product in context — device shot */}
-      <section className="bg-slate-50 border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 grid md:grid-cols-2 gap-10 md:gap-14 items-center">
+      <section className="bg-slate-50 border-b border-gray-200 relative overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-sky-100/40 blur-[100px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3" />
+        
+        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 grid md:grid-cols-2 gap-10 md:gap-14 items-center relative z-10">
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-black tracking-tight text-slate-900 leading-tight">
+            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-700 leading-tight pb-1">
               The console you know — in the browser
             </h2>
             <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md font-medium">
               Temperature, wind, rain, pressure, and sun times in one clear view. Share a fullscreen link for TVs,
               lobbies, and wall displays.
             </p>
-            <Link to="/features" className="inline-flex mt-8 text-sm font-bold text-[#073075] hover:underline">
-              Explore features →
+            <Link to="/features" className="inline-flex mt-8 text-sm font-bold text-[#073075] hover:text-[#0a3f99] group transition-colors">
+              Explore features <span className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
             </Link>
           </motion.div>
           <motion.div
@@ -240,65 +243,93 @@ export function HomePage() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="bg-white p-2.5 sm:p-4 rounded-3xl shadow-[0_20px_50px_rgba(7,48,117,0.08)] ring-1 ring-gray-200 border border-white/50">
+            {/* Ambient glow behind the device card */}
+            <div className="absolute -inset-4 bg-[#073075]/5 rounded-[3rem] blur-2xl pointer-events-none" />
+            <motion.div 
+              whileHover={{ y: -8, scale: 1.01 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="bg-white/80 backdrop-blur-xl p-3 sm:p-4 rounded-3xl shadow-[0_20px_60px_rgba(7,48,117,0.08)] ring-1 ring-gray-200/50 border border-white relative z-10"
+            >
               <img
                 src={DEVICE_IMG}
                 alt="Weather console display showing live station data"
-                className="w-full h-auto drop-shadow-sm rounded-2xl"
+                className="w-full h-auto drop-shadow-sm rounded-2xl border border-gray-100/50"
                 width={882}
                 height={634}
                 loading="lazy"
                 decoding="async"
               />
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
 
-      <section className="bg-slate-50 max-w-5xl mx-auto px-4 py-16 sm:py-24">
-        <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-black text-slate-900">Built for WeatherLink</h2>
-        <p className="text-slate-600 text-lg mt-4 max-w-xl leading-relaxed font-medium">
-          Everything you need to run a station console online — nothing to install on site.
-        </p>
-        <div className="mt-14 grid sm:grid-cols-2 gap-6">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.45, delay: reduceMotion ? 0 : i * 0.06 }}
-              className="bg-white p-8 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] ring-1 ring-gray-100 hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all"
-            >
-              <h3 className="font-bold text-slate-900 text-lg font-[family-name:var(--font-display)]">{f.title}</h3>
-              <p className="text-sm sm:text-base text-slate-600 mt-3 leading-relaxed font-medium">{f.body}</p>
-            </motion.div>
-          ))}
+      <section className="bg-slate-50 relative overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 relative z-10">
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-700 pb-1">Built for WeatherLink</h2>
+            <p className="text-slate-600 text-lg mt-4 max-w-xl leading-relaxed font-medium">
+              Everything you need to run a station console online — nothing to install on site.
+            </p>
+          </motion.div>
+          <div className="mt-14 grid sm:grid-cols-2 gap-6 relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#073075]/[0.02] blur-[80px] pointer-events-none" />
+            {features.map((f, i) => (
+              <motion.div
+                key={f.title}
+                initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                whileHover={{ y: -4, scale: 1.01 }}
+                transition={{ duration: 0.4, delay: reduceMotion ? 0 : i * 0.06 }}
+                className="bg-white/80 backdrop-blur-lg p-8 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_20px_40px_rgba(7,48,117,0.06)] hover:ring-sky-100 transition-all cursor-default"
+              >
+                <div className="w-10 h-10 rounded-lg bg-sky-50 flex items-center justify-center mb-5 ring-1 ring-sky-100">
+                  {/* Decorative dot */}
+                  <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-[#073075] to-sky-400" />
+                </div>
+                <h3 className="font-bold text-slate-900 text-lg font-[family-name:var(--font-display)]">{f.title}</h3>
+                <p className="text-sm sm:text-base text-slate-600 mt-2 leading-relaxed font-medium">{f.body}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className="px-4 py-16 sm:py-24 bg-slate-50">
-        <div className="max-w-5xl mx-auto bg-[#073075] rounded-[2rem] p-10 sm:p-14 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 shadow-2xl relative overflow-hidden">
-          {/* Subtle glow in CTA */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-sky-400/10 blur-[100px] pointer-events-none rounded-full" />
+      <section className="px-4 py-16 sm:py-24 bg-slate-50 relative overflow-hidden">
+        <motion.div 
+          initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-5xl mx-auto bg-gradient-to-br from-[#073075] to-[#041a45] rounded-[2.5rem] p-10 sm:p-14 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 shadow-[0_20px_60px_rgba(7,48,117,0.2)] relative overflow-hidden ring-1 ring-black/5"
+        >
+          {/* Stunning glowing orbs inside the CTA card */}
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-sky-400/20 blur-[100px] pointer-events-none rounded-full translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-white/5 blur-[80px] pointer-events-none rounded-full -translate-x-1/2 translate-y-1/2" />
           
           <div className="relative z-10">
-            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl font-black text-white">
+            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-sky-100 pb-1">
               Free for {site?.freeTrialDays ?? 30} days
             </h2>
-            <p className="text-base text-sky-100 mt-3 font-medium">
+            <p className="text-lg text-sky-100/90 mt-3 font-medium max-w-md">
               Then {price.formatted}
-              {price.periodLabel} for WeatherLink Pro.
+              {price.periodLabel} for WeatherLink Pro. No hardware required.
             </p>
-            {price.note ? <p className="text-xs text-sky-200/60 mt-2 font-medium">{price.note}</p> : null}
+            {price.note ? <p className="text-xs text-sky-200/50 mt-3 font-medium uppercase tracking-wider">{price.note}</p> : null}
           </div>
           <Link
             to="/register"
-            className="relative z-10 inline-flex shrink-0 self-start sm:self-auto px-8 py-4 rounded-xl bg-white text-[#073075] text-sm font-black hover:bg-sky-50 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+            className="relative z-10 inline-flex shrink-0 self-start sm:self-auto px-10 py-4 rounded-2xl bg-white text-[#073075] text-base font-black hover:bg-sky-50 shadow-[0_10px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300"
           >
             Create account
           </Link>
-        </div>
+        </motion.div>
       </section>
       
       {/* Small subtle extension so the page seamlessly meets the footer if there's no dark mode jump */}
