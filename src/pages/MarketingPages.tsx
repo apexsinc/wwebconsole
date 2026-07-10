@@ -144,8 +144,14 @@ export function HomePage() {
     <div>
       {/* Professional SaaS Hero */}
       <section className="relative pt-24 sm:pt-32 pb-20 overflow-hidden bg-gradient-to-br from-[#073075] to-[#041a45]">
-        {/* Subtle ambient light behind text */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-sky-400/10 blur-[120px] rounded-full pointer-events-none" />
+        {/* Animated ambient light behind text */}
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-sky-400/20 blur-[120px] rounded-full pointer-events-none" 
+        />
+        {/* Subtle animated stars/particles effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent opacity-50" />
 
         <div className="relative z-10 w-full max-w-5xl mx-auto px-4 text-center flex flex-col items-center">
           <motion.div
@@ -163,14 +169,22 @@ export function HomePage() {
               </p>
             </div>
             
-            <h1 className="max-w-4xl font-[family-name:var(--font-display)] text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter text-white leading-[1.05] drop-shadow-lg pb-2">
+            <motion.h1 
+              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="max-w-4xl font-[family-name:var(--font-display)] text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-sky-100 leading-[1.05] drop-shadow-lg pb-2"
+            >
               {site?.home_hero_headline || 'Your station console, on the web'}
-            </h1>
-            <p className="mt-8 max-w-2xl text-lg sm:text-xl text-sky-100/90 leading-relaxed font-medium drop-shadow-md">
-              {site?.home_hero_subhead ||
-                site?.site_tagline ||
-                'Live dashboard and TV share links — open from any browser.'}
-            </p>
+            </motion.h1>
+            <motion.p 
+              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-8 max-w-2xl text-lg sm:text-xl text-sky-100/90 leading-relaxed font-medium drop-shadow-md"
+            >
+              Live dashboard and TV share links for your WeatherLink® station — start free.
+            </motion.p>
             <div className="mt-10 mb-16 flex flex-wrap justify-center gap-4">
               <Link
                 to="/register"
@@ -188,23 +202,28 @@ export function HomePage() {
             
             {/* The Floating Dashboard Image */}
             <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 40 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 60 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 1.2, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="w-full relative mt-4 sm:mt-10"
             >
-              <div className="absolute -inset-4 bg-white/5 rounded-[2rem] blur-xl pointer-events-none" />
-              <div className="relative rounded-2xl sm:rounded-3xl border border-white/20 bg-[#040a10]/80 p-2 sm:p-3 shadow-[0_20px_80px_rgba(0,0,0,0.6)] backdrop-blur-sm ring-1 ring-white/10">
-                <img
-                  src={HERO_IMG}
-                  alt="Weatherlink Web Console dashboard"
-                  className="w-full h-auto rounded-xl sm:rounded-2xl shadow-inner border border-white/10"
-                  width={1439}
-                  height={1079}
-                  fetchPriority="high"
-                  decoding="async"
-                />
-              </div>
+              <motion.div
+                animate={reduceMotion ? false : { y: [0, -12, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <div className="absolute -inset-4 bg-white/5 rounded-[2rem] blur-xl pointer-events-none" />
+                <div className="relative rounded-2xl sm:rounded-3xl border border-white/20 bg-[#040a10]/80 p-2 sm:p-3 shadow-[0_20px_80px_rgba(0,0,0,0.6)] backdrop-blur-sm ring-1 ring-white/10">
+                  <img
+                    src={HERO_IMG}
+                    alt="Weatherlink Web Console dashboard"
+                    className="w-full h-auto rounded-xl sm:rounded-2xl shadow-inner border border-white/10"
+                    width={1439}
+                    height={1079}
+                    fetchPriority="high"
+                    decoding="async"
+                  />
+                </div>
+              </motion.div>
             </motion.div>
           </motion.div>
         </div>
