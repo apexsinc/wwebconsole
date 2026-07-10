@@ -15,6 +15,7 @@ import {
   UserRound,
   Moon,
   Sun,
+  ExternalLink,
 } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
 import {
@@ -526,6 +527,13 @@ export default function ConfigNavbar() {
                         <p className="text-xs text-sky-400 font-mono truncate">{link.url}</p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => window.open(link.url, '_blank')}
+                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-sky-400 transition-colors"
+                          title="Preview"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleCopy(link.url)}
                           className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-white transition-colors"
