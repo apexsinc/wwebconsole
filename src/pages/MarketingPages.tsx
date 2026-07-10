@@ -143,15 +143,30 @@ export function HomePage() {
   return (
     <div>
       {/* Professional SaaS Hero */}
-      <section className="relative pt-24 sm:pt-32 pb-20 overflow-hidden bg-gradient-to-br from-[#073075] to-[#041a45]">
-        {/* Animated ambient light behind text */}
+      <section className="relative pt-24 sm:pt-32 pb-20 overflow-hidden bg-[#020b18]">
+        {/* Deep, complex gradient base */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#073075]/60 via-[#041a45] to-[#020b18]" />
+        
+        {/* Animated ambient mesh orbs */}
         <motion.div 
-          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-sky-400/20 blur-[120px] rounded-full pointer-events-none" 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -top-40 -left-40 w-[800px] h-[800px] bg-sky-500/20 blur-[120px] rounded-full pointer-events-none" 
         />
-        {/* Subtle animated stars/particles effect */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent opacity-50" />
+        <motion.div 
+          animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.3, 0.1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute top-20 -right-20 w-[600px] h-[600px] bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none" 
+        />
+
+        {/* Professional developer grid pattern overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{ backgroundImage: 'radial-gradient(circle at center, white 1px, transparent 1px)', backgroundSize: '32px 32px' }}
+        />
+        
+        {/* Subtle radial fade for text legibility */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.03] via-transparent to-transparent opacity-60 pointer-events-none" />
 
         <div className="relative z-10 w-full max-w-5xl mx-auto px-4 text-center flex flex-col items-center">
           <motion.div
@@ -188,13 +203,13 @@ export function HomePage() {
             <div className="mt-10 mb-16 flex flex-wrap justify-center gap-4">
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-white text-[#073075] text-sm font-black hover:bg-sky-50 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:shadow-[0_10px_40px_rgba(255,255,255,0.4)] hover:scale-[1.02]"
+                className="inline-flex items-center justify-center px-10 py-4 rounded-xl bg-white text-[#073075] text-sm font-black hover:bg-sky-50 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] hover:-translate-y-1 hover:scale-[1.02] ring-1 ring-white/50"
               >
                 {site?.home_hero_cta_primary || 'Start free'}
               </Link>
               <Link
                 to="/pricing"
-                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl border border-white/30 bg-white/10 text-white text-sm font-bold backdrop-blur-md hover:bg-white/20 transition-all shadow-lg hover:scale-[1.02]"
+                className="inline-flex items-center justify-center px-10 py-4 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-bold backdrop-blur-xl hover:bg-white/10 transition-all duration-300 shadow-[0_0_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 hover:scale-[1.02]"
               >
                 {site?.home_hero_cta_secondary || 'See pricing'}
               </Link>
