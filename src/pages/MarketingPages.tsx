@@ -379,61 +379,48 @@ export function FeaturesPage() {
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      {/* Premium Dark Header */}
-      <div className="relative overflow-hidden bg-[#020b18] pt-16 pb-32">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#073075]/40 via-[#041a45] to-[#020b18]" />
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-400/10 blur-[100px] rounded-full pointer-events-none" />
-        <div className="relative max-w-5xl mx-auto px-4 text-center">
-          <motion.h1 initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-sky-100 pb-2">
-            Features
-          </motion.h1>
-          <motion.p initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} transition={{delay:0.1}} className="text-lg sm:text-xl text-sky-100/80 mt-6 max-w-2xl mx-auto font-medium leading-relaxed">
-            {site?.seo_features_description || 'Everything you need to monitor and share your live weather data.'}
-          </motion.p>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 grid md:grid-cols-2 gap-12 items-center">
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">Features</h1>
+            <p className="text-slate-600 mt-6 max-w-md text-lg leading-relaxed font-medium">
+              {site?.seo_features_description || 'Everything you need to monitor and share your live weather data.'}
+            </p>
+          </div>
+          <div className="bg-slate-50 p-3 sm:p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.06)] ring-1 ring-gray-200">
+            <img
+              src={HERO_IMG}
+              alt="Live weather console dashboard"
+              className="w-full h-auto rounded-xl shadow-sm border border-gray-100/50"
+              width={1439}
+              height={1079}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
         </div>
       </div>
-      
-      <div className="max-w-5xl mx-auto px-4 -mt-20 relative z-10">
-        <motion.div initial={{opacity:0, y:40}} animate={{opacity:1, y:0}} transition={{delay:0.2, duration:0.7}} className="bg-white/80 backdrop-blur-xl p-3 sm:p-5 rounded-[2rem] shadow-[0_20px_60px_rgba(7,48,117,0.1)] ring-1 ring-gray-200 mb-20 border border-white">
-          <img
-            src={HERO_IMG}
-            alt="Live weather console dashboard"
-            className="w-full h-auto rounded-xl shadow-sm border border-gray-100/50"
-            width={1439}
-            height={1079}
-            loading="lazy"
-            decoding="async"
-          />
-        </motion.div>
-        
+      <div className="max-w-5xl mx-auto px-4 py-20">
         <div className="grid gap-8 sm:grid-cols-2">
-          {features.map((f, i) => (
-            <motion.div key={f.title} initial={{opacity:0, y:20}} whileInView={{opacity:1, y:0}} viewport={{once:true}} transition={{delay: i * 0.1}} className="bg-white p-8 sm:p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_20px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-sky-100 transition-all cursor-default">
-              <div className="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center mb-6 ring-1 ring-sky-100 shadow-sm">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-br from-[#073075] to-sky-400 shadow-sm" />
-              </div>
-              <h2 className="font-bold text-xl sm:text-2xl text-slate-900 font-[family-name:var(--font-display)] tracking-tight">{f.title}</h2>
-              <p className="text-base sm:text-lg text-slate-600 mt-4 leading-relaxed font-medium">{f.body}</p>
-            </motion.div>
+          {features.map((f) => (
+            <div key={f.title} className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all">
+              <h2 className="font-bold text-2xl text-slate-900 font-[family-name:var(--font-display)]">{f.title}</h2>
+              <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">{f.body}</p>
+            </div>
           ))}
-          <motion.div initial={{opacity:0, y:20}} whileInView={{opacity:1, y:0}} viewport={{once:true}} className="bg-white p-8 sm:p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_20px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-sky-100 transition-all cursor-default">
-            <div className="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center mb-6 ring-1 ring-sky-100 shadow-sm">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-[#073075] to-sky-400 shadow-sm" />
-            </div>
-            <h2 className="font-bold text-xl sm:text-2xl text-slate-900 font-[family-name:var(--font-display)] tracking-tight">Account security</h2>
-            <p className="text-base sm:text-lg text-slate-600 mt-4 leading-relaxed font-medium">
-              Sign-in protection, email verification when enabled, password and email change, and account deletion with a short grace period.
+          <div className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all">
+            <h2 className="font-bold text-2xl text-slate-900 font-[family-name:var(--font-display)]">Account security</h2>
+            <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">
+              Sign-in protection, email verification when enabled, password and email change, and account deletion with
+              a short grace period.
             </p>
-          </motion.div>
-          <motion.div initial={{opacity:0, y:20}} whileInView={{opacity:1, y:0}} viewport={{once:true}} className="bg-white p-8 sm:p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_20px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 hover:ring-sky-100 transition-all cursor-default">
-            <div className="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center mb-6 ring-1 ring-sky-100 shadow-sm">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-[#073075] to-sky-400 shadow-sm" />
-            </div>
-            <h2 className="font-bold text-xl sm:text-2xl text-slate-900 font-[family-name:var(--font-display)] tracking-tight">Simple setup</h2>
-            <p className="text-base sm:text-lg text-slate-600 mt-4 leading-relaxed font-medium">
+          </div>
+          <div className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all">
+            <h2 className="font-bold text-2xl text-slate-900 font-[family-name:var(--font-display)]">Simple setup</h2>
+            <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed font-medium">
               Connect your WeatherLink station, open the live console, and share a TV display link when you need it.
             </p>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>
@@ -447,45 +434,42 @@ export function PricingPage() {
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="relative overflow-hidden bg-[#020b18] pt-16 pb-32">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#073075]/40 via-[#041a45] to-[#020b18]" />
-        <div className="relative max-w-5xl mx-auto px-4 text-center">
-          <motion.h1 initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-sky-100 pb-2">
-            {site?.pricing_headline || 'Simple, transparent pricing'}
-          </motion.h1>
-          <motion.p initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} transition={{delay:0.1}} className="text-lg sm:text-xl text-sky-100/80 mt-6 max-w-2xl mx-auto font-medium leading-relaxed">
-            {site?.pricing_subhead || 'Try free, then pay per device when you need continuous Pro updates.'}
-          </motion.p>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 text-center">
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">
+            {site?.pricing_headline || 'Pricing'}
+          </h1>
+          <p className="text-slate-600 mt-6 max-w-2xl mx-auto text-lg font-medium">{site?.pricing_subhead || ''}</p>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 -mt-20 relative z-10">
-        <div className="grid md:grid-cols-2 gap-8">
-          <motion.div initial={{opacity:0, y:40}} animate={{opacity:1, y:0}} transition={{delay:0.2}} className="bg-white rounded-[2rem] p-10 shadow-[0_10px_40px_rgba(0,0,0,0.05)] ring-1 ring-gray-200">
+      <div className="max-w-5xl mx-auto px-4 py-20">
+        <div className="grid md:grid-cols-2 gap-10">
+          <div className="bg-white rounded-3xl p-10 sm:p-12 shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-200">
             <p className="text-xs uppercase tracking-widest font-black text-slate-400">Trial</p>
             <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
               {site?.freeTrialDays ?? 30} days free
             </p>
-            <p className="text-base sm:text-lg text-slate-600 mt-6 leading-relaxed font-medium">{site?.pricing_basic_blurb || 'Free trial access with Basic WeatherLink update rates. Perfect to evaluate the console.'}</p>
-            <Link to="/register" className="inline-flex items-center justify-center mt-10 px-8 py-3.5 rounded-xl bg-slate-900 text-white text-base font-bold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
-              Start free
+            <p className="text-base sm:text-lg text-slate-600 mt-6 leading-relaxed font-medium">{site?.pricing_basic_blurb || ''}</p>
+            <Link to="/register" className="inline-flex mt-8 text-base font-bold text-[#073075] hover:underline">
+              Start free →
             </Link>
-          </motion.div>
-          <motion.div initial={{opacity:0, y:40}} animate={{opacity:1, y:0}} transition={{delay:0.3}} className="bg-gradient-to-br from-[#073075] to-[#041a45] rounded-[2rem] p-10 shadow-[0_20px_60px_rgba(7,48,117,0.2)] ring-1 ring-black/5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-sky-400/20 blur-[80px] pointer-events-none rounded-full" />
-            <p className="text-xs uppercase tracking-widest font-black text-sky-300 relative z-10">Pro device</p>
-            <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-white tracking-tight relative z-10">
+          </div>
+          <div className="bg-[#f0f4f8] rounded-3xl p-10 sm:p-12 shadow-[0_10px_30px_rgba(7,48,117,0.08)] ring-2 ring-[#073075] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-sky-200/40 blur-[60px] pointer-events-none rounded-full" />
+            <p className="text-xs uppercase tracking-widest font-black text-[#073075] relative z-10">Pro device</p>
+            <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-slate-900 tracking-tight relative z-10">
               {price.formatted}
-              <span className="text-lg sm:text-xl font-medium text-sky-200/80"> {price.periodLabel}</span>
+              <span className="text-lg sm:text-xl font-medium text-slate-500"> {price.periodLabel}</span>
             </p>
-            {price.note ? <p className="text-xs text-sky-200/60 mt-3 font-semibold uppercase tracking-wider relative z-10">{price.note}</p> : null}
-            <p className="text-base sm:text-lg text-sky-100/90 mt-6 leading-relaxed font-medium relative z-10">{site?.pricing_pro_blurb || 'Yearly per device for WeatherLink Pro stations. Faster updates and continuous access.'}</p>
-            <Link to="/contact" className="inline-flex items-center justify-center mt-10 px-8 py-3.5 rounded-xl bg-white text-[#073075] text-base font-bold hover:bg-sky-50 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 relative z-10">
-              Ask about activation
+            {price.note ? <p className="text-xs text-slate-500 mt-3 font-semibold uppercase tracking-wider relative z-10">{price.note}</p> : null}
+            <p className="text-base sm:text-lg text-slate-700 mt-6 leading-relaxed font-medium relative z-10">{site?.pricing_pro_blurb || ''}</p>
+            <Link to="/contact" className="inline-flex mt-8 text-base font-bold text-[#073075] hover:underline relative z-10">
+              Ask about activation →
             </Link>
-          </motion.div>
+          </div>
         </div>
-        <p className="mt-12 text-sm text-slate-500 max-w-2xl text-center mx-auto leading-relaxed font-medium">{site?.pricing_footnote || 'Paid plans may require a WeatherLink® Pro subscription from Davis Instruments. Contact support if you need help activating a device. We are not affiliated with Davis Instruments.'}</p>
+        <p className="mt-12 text-sm text-slate-500 text-center mx-auto max-w-2xl leading-relaxed font-medium">{site?.pricing_footnote || ''}</p>
       </div>
     </div>
   );
@@ -496,16 +480,15 @@ export function AboutPage() {
   usePageSeo(site, 'seo_about_title', 'seo_about_description', '/about', 'About', '');
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="relative overflow-hidden bg-[#020b18] pt-16 pb-32">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#073075]/40 via-[#041a45] to-[#020b18]" />
-        <div className="relative max-w-5xl mx-auto px-4 text-center">
-          <motion.h1 initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-white pb-2">About</motion.h1>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 py-16 sm:py-24 text-center">
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">About</h1>
         </div>
       </div>
-      <div className="max-w-4xl mx-auto px-4 -mt-20 relative z-10">
-        <motion.div initial={{opacity:0, y:30}} animate={{opacity:1, y:0}} transition={{delay:0.1}} className="bg-white p-10 sm:p-14 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.05)] ring-1 ring-gray-200 text-lg sm:text-xl text-slate-700 leading-relaxed font-medium space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="bg-white p-10 sm:p-14 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.04)] ring-1 ring-gray-200 text-lg sm:text-xl text-slate-700 leading-relaxed font-medium">
           <MarkdownLite text={site?.about_body || ''} />
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -622,19 +605,16 @@ export function ContactPage() {
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="relative overflow-hidden bg-[#020b18] pt-16 pb-32">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#073075]/40 via-[#041a45] to-[#020b18]" />
-        <div className="relative max-w-5xl mx-auto px-4 text-center">
-          <motion.h1 initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-white pb-2">Contact</motion.h1>
-          <motion.p initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} transition={{delay:0.1}} className="text-lg sm:text-xl text-sky-100/80 mt-6 max-w-2xl mx-auto font-medium leading-relaxed">
-            {site?.contact_intro || 'Questions about billing, WeatherLink setup, or access? Send us a message.'}
-          </motion.p>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-3xl mx-auto px-4 py-16 sm:py-24 text-center">
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">Contact</h1>
+          <p className="text-slate-600 mt-6 text-lg leading-relaxed font-medium">{site?.contact_intro || ''}</p>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-20 relative z-10">
+      <div className="max-w-2xl mx-auto px-4 py-16">
         {sent ? (
-          <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.05)] ring-1 ring-gray-200 p-10 sm:p-14 text-center">
+          <div className="rounded-3xl bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] ring-1 ring-gray-200 p-10 sm:p-14 text-center">
             <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-green-100">
               <div className="w-4 h-4 bg-green-500 rounded-full" />
             </div>
@@ -645,9 +625,9 @@ export function ContactPage() {
                 {supportEmail}
               </a>.
             </p>
-          </motion.div>
+          </div>
         ) : (
-          <motion.form initial={{opacity:0, y:30}} animate={{opacity:1, y:0}} onSubmit={onSubmit} className="bg-white p-8 sm:p-12 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.05)] ring-1 ring-gray-200 space-y-6">
+          <form onSubmit={onSubmit} className="relative bg-white p-8 sm:p-12 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.04)] ring-1 ring-gray-200 space-y-6">
             {error && (
               <div className="bg-rose-50 border border-rose-200 rounded-xl px-5 py-4">
                 <p className="text-rose-700 text-sm font-bold">{error}</p>
@@ -711,7 +691,7 @@ export function ContactPage() {
                 {supportEmail}
               </a>
             </p>
-          </motion.form>
+          </form>
         )}
       </div>
     </div>
@@ -722,17 +702,12 @@ export function PrivacyPage() {
   const { site } = useOutletContext<Ctx>();
   usePageSeo(site, 'seo_privacy_title', 'seo_privacy_description', '/privacy', 'Privacy', '');
   return (
-    <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="relative overflow-hidden bg-[#020b18] pt-16 pb-32">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#073075]/40 via-[#041a45] to-[#020b18]" />
-        <div className="relative max-w-5xl mx-auto px-4 text-center">
-          <motion.h1 initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-white pb-2">Privacy Policy</motion.h1>
-        </div>
-      </div>
-      <div className="max-w-4xl mx-auto px-4 -mt-20 relative z-10">
-        <motion.div initial={{opacity:0, y:30}} animate={{opacity:1, y:0}} className="bg-white p-10 sm:p-14 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.05)] ring-1 ring-gray-200 text-lg sm:text-xl text-slate-700 leading-relaxed font-medium">
+    <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-14">
+      <div className="max-w-3xl mx-auto px-4 py-14">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-slate-900">Privacy Policy</h1>
+        <div className="mt-8 bg-white p-8 sm:p-10 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100">
           <MarkdownLite text={site?.privacy_body || ''} />
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -742,17 +717,12 @@ export function TermsPage() {
   const { site } = useOutletContext<Ctx>();
   usePageSeo(site, 'seo_terms_title', 'seo_terms_description', '/terms', 'Terms', '');
   return (
-    <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-24">
-      <div className="relative overflow-hidden bg-[#020b18] pt-16 pb-32">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#073075]/40 via-[#041a45] to-[#020b18]" />
-        <div className="relative max-w-5xl mx-auto px-4 text-center">
-          <motion.h1 initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl font-black text-white pb-2">Terms of Service</motion.h1>
-        </div>
-      </div>
-      <div className="max-w-4xl mx-auto px-4 -mt-20 relative z-10">
-        <motion.div initial={{opacity:0, y:30}} animate={{opacity:1, y:0}} className="bg-white p-10 sm:p-14 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.05)] ring-1 ring-gray-200 text-lg sm:text-xl text-slate-700 leading-relaxed font-medium">
+    <div className="bg-slate-50 min-h-[calc(100vh-64px)] pb-14">
+      <div className="max-w-3xl mx-auto px-4 py-14">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-slate-900">Terms of Service</h1>
+        <div className="mt-8 bg-white p-8 sm:p-10 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100">
           <MarkdownLite text={site?.terms_body || ''} />
-        </motion.div>
+        </div>
       </div>
     </div>
   );
