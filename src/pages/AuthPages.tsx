@@ -242,7 +242,7 @@ export function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500"
+          className="bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
         <PasswordInput
@@ -251,7 +251,7 @@ export function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500"
+          className="w-full bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
         <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
@@ -339,7 +339,7 @@ export function RegisterPage() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500"
+          className="bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Email</label>
         <input
@@ -347,7 +347,7 @@ export function RegisterPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500"
+          className="bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
         <PasswordInput
@@ -356,7 +356,7 @@ export function RegisterPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500"
+          className="w-full bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
         <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
@@ -441,7 +441,7 @@ export function VerifyEmailPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500"
+          className="bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
         <input
@@ -516,7 +516,7 @@ export function ForgotPasswordPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500"
+            className="bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
           <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
           <button
@@ -574,9 +574,9 @@ export function ResetPasswordPage() {
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
-        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500" />
+        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500" />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
-        <input type="text" required value={code} onChange={(e) => setCode(e.target.value)} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500" />
+        <input type="text" required value={code} onChange={(e) => setCode(e.target.value)} className="bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white font-mono outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500" />
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">New password</label>
         <PasswordInput
           required
@@ -584,7 +584,7 @@ export function ResetPasswordPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-sky-500/50 focus:bg-white/10 transition-colors placeholder:text-gray-500"
+          className="w-full bg-slate-50/50 dark:bg-[#0a0d14]/50 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500/50 focus:bg-white/50 dark:focus:bg-white/10 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
         <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
@@ -614,31 +614,31 @@ function AuthShell({
   const termsHref = admin ? 'https://wwebconsole.com/terms' : '/terms';
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-[#0a0d14]">
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-[#e8edf3] dark:bg-[#0a0d14]">
       {/* Left Branding Panel (Hidden on Mobile) */}
-      <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-[#0e1930] to-[#0a0d14] border-r border-[#01497c]/30 relative overflow-hidden">
+      <div className="hidden md:flex flex-col justify-between p-12 relative overflow-hidden">
         {/* Background elements */}
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/10 via-transparent to-transparent pointer-events-none" />
 
-        <div className="relative z-10">
+        <div className="relative z-10 animate-[fadeIn_0.8s_ease-out]">
           <a href={brandHref} className="flex items-center gap-3 group inline-flex">
-            <div className="w-12 h-12 rounded-xl bg-sky-950/40 border border-sky-500/25 flex items-center justify-center text-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.15)]">
+            <div className="w-12 h-12 rounded-xl bg-sky-950/40 border border-sky-500/25 flex items-center justify-center text-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.15)] group-hover:scale-105 transition-transform duration-300">
               <Activity className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-white font-black tracking-wider text-base uppercase group-hover:text-sky-400 transition-colors">
+              <h1 className="text-slate-900 dark:text-white font-black tracking-wider text-base uppercase group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                 Weatherlink Web Console{admin ? ' Admin' : ''}
               </h1>
-              <p className="text-xs text-sky-500/80 uppercase tracking-widest font-semibold mt-0.5">
+              <p className="text-xs text-sky-600 dark:text-sky-500/80 uppercase tracking-widest font-semibold mt-0.5">
                 {admin ? 'admin.wwebconsole.com' : 'wwebconsole.com'}
               </p>
             </div>
           </a>
         </div>
 
-        <div className="relative z-10 max-w-md">
-          <h2 className="text-3xl font-bold text-white mb-4 tracking-tight">Your weather, beautifully visualized.</h2>
-          <p className="text-slate-400 text-sm leading-relaxed">
+        <div className="relative z-10 max-w-md animate-[slideInUp_0.8s_ease-out]">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">Your weather, beautifully visualized.</h2>
+          <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
             Connect your Davis Instruments Vantage Pro2 or Vantage Vue and bring your local climate data to life on any screen, anywhere in the world.
           </p>
         </div>
@@ -651,31 +651,31 @@ function AuthShell({
       </div>
 
       {/* Right Form Panel */}
-      <div className="flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden bg-[#05080f]">
+      <div className="flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden bg-transparent">
         {/* Subtle ambient light on the form side */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-lg max-h-lg bg-sky-900/10 blur-[120px] pointer-events-none rounded-full" />
         
         {/* Mobile Header (Hidden on Desktop) */}
-        <div className="md:hidden flex flex-col items-center mb-8 relative z-10 text-center">
-          <div className="w-12 h-12 rounded-xl bg-sky-950/40 border border-sky-500/25 flex items-center justify-center text-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.15)] mb-4">
+        <div className="md:hidden flex flex-col items-center mb-8 relative z-10 text-center animate-[fadeIn_0.5s_ease-out]">
+          <div className="w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.15)] mb-4">
             <Activity className="w-6 h-6" />
           </div>
-          <h1 className="text-white font-black tracking-wider text-base uppercase">
+          <h1 className="text-slate-900 dark:text-white font-black tracking-wider text-base uppercase">
             Weatherlink Web Console{admin ? ' Admin' : ''}
           </h1>
         </div>
 
-        <div className="w-full max-w-sm relative z-10">
-          <div className="bg-[#0e111a]/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
-            <h2 className="text-white font-bold text-xl mb-1">{title}</h2>
-            <p className="text-gray-400 text-xs mb-6">{subtitle}</p>
+        <div className="w-full max-w-sm relative z-10 animate-[scaleIn_0.6s_ease-out]">
+          <div className="bg-white/80 dark:bg-[#0e1930]/75 backdrop-blur-md border border-slate-200/50 dark:border-[#01497c]/30 rounded-2xl p-6 sm:p-8 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible">
+            <h2 className="text-slate-900 dark:text-white font-bold text-xl mb-1">{title}</h2>
+            <p className="text-slate-500 dark:text-gray-400 text-xs mb-6">{subtitle}</p>
             {children}
           </div>
 
-          <div className="md:hidden flex items-center justify-center gap-4 text-[11px] text-slate-500 mt-8">
-            <a href={privacyHref} className="hover:text-slate-300 transition-colors">Privacy</a>
+          <div className="md:hidden flex items-center justify-center gap-4 text-[11px] text-slate-500 mt-8 animate-[fadeIn_1s_ease-out]">
+            <a href={privacyHref} className="hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Privacy</a>
             <span>&middot;</span>
-            <a href={termsHref} className="hover:text-slate-300 transition-colors">Terms</a>
+            <a href={termsHref} className="hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Terms</a>
           </div>
         </div>
       </div>
