@@ -202,9 +202,9 @@ export default function ConfigNavbar() {
       </nav>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-[#0e111a] border border-gray-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-900 bg-gray-950/40">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-[#0e111a]/40 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.7)] overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
               <div className="flex items-center gap-2">
                 <Network className="w-5 h-5 text-sky-400" />
                 <h2 className="text-white font-sans font-bold text-base tracking-tight">Console Settings</h2>
