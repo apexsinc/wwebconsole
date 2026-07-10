@@ -142,42 +142,19 @@ export function HomePage() {
 
   return (
     <div>
-      {/* Full-bleed product hero */}
-      <section className="relative min-h-[100svh] flex flex-col justify-end overflow-hidden bg-[#040a10]">
-        <motion.div
-          className="absolute inset-0"
-          initial={reduceMotion ? false : { scale: 1.06 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <img
-            src={HERO_IMG}
-            alt="Weatherlink Web Console live weather dashboard"
-            className="h-full w-full object-cover object-[center_35%]"
-            width={1439}
-            height={1079}
-            fetchPriority="high"
-            decoding="async"
-          />
-        </motion.div>
-        {/* Soft dark overlay for text readability without obscuring the image */}
-        <div className="absolute inset-0 bg-black/40" />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(180deg, transparent 0%, rgba(4,10,16,0.3) 60%, rgba(4,10,16,0.9) 100%)',
-          }}
-        />
+      {/* Professional SaaS Hero */}
+      <section className="relative pt-24 sm:pt-32 pb-20 overflow-hidden bg-gradient-to-br from-[#073075] to-[#041a45]">
+        {/* Subtle ambient light behind text */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-sky-400/10 blur-[120px] rounded-full pointer-events-none" />
 
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 pb-14 pt-28 sm:pb-24 sm:pt-32">
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 text-center flex flex-col items-center">
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-4xl mx-auto flex flex-col items-center text-center"
+            className="flex flex-col items-center w-full max-w-4xl"
           >
-            <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="flex items-center justify-center gap-4 mb-8">
               <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 p-1.5 shadow-lg">
                 <img src="/apexs-logo.png" alt="APEXS Logo" className="w-full h-full object-contain" />
               </div>
@@ -189,15 +166,15 @@ export function HomePage() {
             <h1 className="max-w-4xl font-[family-name:var(--font-display)] text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter text-white leading-[1.05] drop-shadow-lg pb-2">
               {site?.home_hero_headline || 'Your station console, on the web'}
             </h1>
-            <p className="mt-6 max-w-2xl text-lg sm:text-xl text-sky-50 leading-relaxed font-medium drop-shadow-md">
+            <p className="mt-8 max-w-2xl text-lg sm:text-xl text-sky-100/90 leading-relaxed font-medium drop-shadow-md">
               {site?.home_hero_subhead ||
                 site?.site_tagline ||
                 'Live dashboard and TV share links — open from any browser.'}
             </p>
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <div className="mt-10 mb-16 flex flex-wrap justify-center gap-4">
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-[#073075] text-white text-sm font-black hover:bg-[#0a3f99] transition-all shadow-[0_10px_30px_rgba(7,48,117,0.4)] hover:shadow-[0_10px_40px_rgba(7,48,117,0.6)] hover:scale-[1.02]"
+                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-white text-[#073075] text-sm font-black hover:bg-sky-50 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:shadow-[0_10px_40px_rgba(255,255,255,0.4)] hover:scale-[1.02]"
               >
                 {site?.home_hero_cta_primary || 'Start free'}
               </Link>
@@ -208,8 +185,32 @@ export function HomePage() {
                 {site?.home_hero_cta_secondary || 'See pricing'}
               </Link>
             </div>
+            
+            {/* The Floating Dashboard Image */}
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full relative mt-4 sm:mt-10"
+            >
+              <div className="absolute -inset-4 bg-white/5 rounded-[2rem] blur-xl pointer-events-none" />
+              <div className="relative rounded-2xl sm:rounded-3xl border border-white/20 bg-[#040a10]/80 p-2 sm:p-3 shadow-[0_20px_80px_rgba(0,0,0,0.6)] backdrop-blur-sm ring-1 ring-white/10">
+                <img
+                  src={HERO_IMG}
+                  alt="Weatherlink Web Console dashboard"
+                  className="w-full h-auto rounded-xl sm:rounded-2xl shadow-inner border border-white/10"
+                  width={1439}
+                  height={1079}
+                  fetchPriority="high"
+                  decoding="async"
+                />
+              </div>
+            </motion.div>
           </motion.div>
         </div>
+        
+        {/* Soft fade transition to the next section */}
+        <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-slate-50 to-transparent pointer-events-none" />
       </section>
 
       {/* Product in context — device shot */}
