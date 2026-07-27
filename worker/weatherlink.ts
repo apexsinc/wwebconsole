@@ -233,14 +233,21 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
     .map((s) => s.trim().replace(/:/g, '').toUpperCase())
     .filter(Boolean);
 
-  let targetStations: any[] = [];
+  // Always poll ALL stations on the API key so every device appears in weatherList.
+  // If cloud_did is set, put matching stations first (they become the primary/default view),
+  // but append the remaining stations so users can navigate to them via the < > arrows.
+  let targetStations: any[];
   if (dids.length > 0) {
-    targetStations = stationsList.filter((s) => {
+    const matching = stationsList.filter((s) => {
       const sDid = String(s.did || s.did_gateway || s.device_id || s.gateway_id_hex || s.station_id || '').replace(/:/g, '').toUpperCase();
       return dids.some((d) => sDid.includes(d) || d.includes(sDid));
     });
-  }
-  if (!targetStations.length) {
+    const rest = stationsList.filter((s) => {
+      const sDid = String(s.did || s.did_gateway || s.device_id || s.gateway_id_hex || s.station_id || '').replace(/:/g, '').toUpperCase();
+      return !dids.some((d) => sDid.includes(d) || d.includes(sDid));
+    });
+    targetStations = [...matching, ...rest];
+  } else {
     targetStations = stationsList;
   }
 
