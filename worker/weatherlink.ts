@@ -157,8 +157,8 @@ function applyStationMeta(row: StationRow, station: any) {
 }
 
 /** Always refresh lat/lon/timezone from WeatherLink /stations (source of truth). */
-async function syncV2StationMeta(row: StationRow, creds: StationCredentials) {
-  if (!creds.apiToken || !creds.apiSecret) return;
+async function syncV2StationMeta(row: StationRow, creds: StationCredentials): Promise<any[]> {
+  if (!creds.apiToken || !creds.apiSecret) return [];
   const ts = Math.floor(Date.now() / 1000);
   const sigStr = `api-key${creds.apiToken}t${ts}`;
   const sig = await hmacSha256Hex(creds.apiSecret, sigStr);
@@ -176,6 +176,7 @@ async function syncV2StationMeta(row: StationRow, creds: StationCredentials) {
   }
   if (!target) target = pickStationFromList(stData.stations, row.cloud_did);
   applyStationMeta(row, target);
+  return stData.stations;
 }
 
 async function getCredentials(env: Env, row: StationRow): Promise<StationCredentials> {
@@ -220,151 +221,168 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
   }
 
   // Always sync lat/lon/time_zone from /stations so sunrise/sunset stay accurate
-  await syncV2StationMeta(row, creds);
+  const stationsList = await syncV2StationMeta(row, creds);
 
-  if (!row.cloud_station_id) throw new Error('Missing Station ID and auto-lookup failed');
-
-  const timestamp = Math.floor(Date.now() / 1000);
-  const stringToHash = `api-key${creds.apiToken}station-id${row.cloud_station_id}t${timestamp}`;
-  const signature = await hmacSha256Hex(creds.apiSecret, stringToHash);
-  const response = await fetch(
-    `https://api.weatherlink.com/v2/current/${row.cloud_station_id}?api-key=${encodeURIComponent(creds.apiToken)}&t=${timestamp}&api-signature=${signature}`,
-    { signal: AbortSignal.timeout(8000) }
-  );
-  if (!response.ok) throw new Error(`WeatherLink v2 current failed (${response.status})`);
-  const data = (await response.json()) as { sensors?: any[]; generated_at?: number };
-  if (!data.sensors) throw new Error('WeatherLink Cloud API v2 returned empty response');
-
-  let tzOffsetSeconds: number | null = null;
-
-  for (const sensor of data.sensors) {
-    if (!sensor.data?.length) continue;
-    const cond = sensor.data[0];
-    const dst = sensor.data_structure_type;
-
-    if (cond.tz_offset !== undefined && cond.tz_offset !== null) {
-      tzOffsetSeconds = Number(cond.tz_offset);
-    }
-
-    if (dst === 21 || dst === 22) {
-      if (cond.temp_in !== undefined) weather.temp_in = Number(cond.temp_in);
-      if (cond.hum_in !== undefined) weather.hum_in = Number(cond.hum_in);
-    }
-    if (dst === 19 || dst === 20) {
-      if (cond.bar_sea_level !== undefined) weather.bar_sea_level = Number(cond.bar_sea_level);
-      if (cond.bar_trend !== undefined) weather.bar_trend = Number(cond.bar_trend);
-    }
-    if (dst !== 21 && dst !== 22 && dst !== 19 && dst !== 20 && dst !== 27) {
-      if (cond.temp !== undefined) weather.temp = Number(cond.temp);
-      if (cond.hum !== undefined) weather.hum = Number(cond.hum);
-      if (cond.dew_point !== undefined) weather.dew_point = Number(cond.dew_point);
-      if (cond.thw_index !== undefined) weather.feels_like = Number(cond.thw_index);
-      else if (cond.wind_chill !== undefined && cond.temp !== undefined && Number(cond.wind_chill) < Number(cond.temp)) {
-        weather.feels_like = Number(cond.wind_chill);
-      } else if (cond.heat_index !== undefined && cond.temp !== undefined && Number(cond.heat_index) > Number(cond.temp)) {
-        weather.feels_like = Number(cond.heat_index);
-      } else if (cond.temp !== undefined) {
-        weather.feels_like = Number(cond.temp);
-      }
-      if (cond.wind_speed_last !== undefined) weather.wind_speed_last = Number(cond.wind_speed_last);
-      if (cond.wind_dir_last !== undefined) weather.wind_dir_last = Number(cond.wind_dir_last);
-      if (cond.wind_speed_avg_last_2_min !== undefined) weather.wind_speed_avg_2_min = Number(cond.wind_speed_avg_last_2_min);
-      if (cond.wind_speed_avg_last_10_min !== undefined) weather.wind_speed_avg_10_min = Number(cond.wind_speed_avg_last_10_min);
-      if (cond.wind_dir_scalar_avg_last_10_min !== undefined) weather.wind_dir_10_min = Number(cond.wind_dir_scalar_avg_last_10_min);
-      if (cond.rain_rate_last_in !== undefined) weather.rain_rate_last = Number(cond.rain_rate_last_in);
-      else if (cond.rain_rate_last !== undefined) weather.rain_rate_last = Number(cond.rain_rate_last);
-      if (cond.rainfall_day_in !== undefined) weather.rainfall_daily = Number(cond.rainfall_day_in);
-      else if (cond.rainfall_daily_in !== undefined) weather.rainfall_daily = Number(cond.rainfall_daily_in);
-      else if (cond.rainfall_daily !== undefined) weather.rainfall_daily = Number(cond.rainfall_daily);
-      if (cond.rain_rate_hi_in !== undefined) weather.high_rain_rate_today = Number(cond.rain_rate_hi_in);
-    }
+  if (!stationsList || !stationsList.length) {
+    throw new Error('Missing Station ID and auto-lookup failed');
   }
 
-  weather.ts = data.generated_at || Math.floor(Date.now() / 1000);
-  weather.stationName = row.cloud_station_name || row.name || 'WeatherLink Cloud (V2)';
-  weather.stationDid = row.cloud_station_id;
+  // Parse multi-DID if user provided comma-separated DIDs
+  const dids = (row.cloud_did || '')
+    .split(',')
+    .map((s) => s.trim().replace(/:/g, '').toUpperCase())
+    .filter(Boolean);
 
-  return tzOffsetSeconds;
+  let targetStations: any[] = [];
+  if (dids.length > 0) {
+    targetStations = stationsList.filter((s) => {
+      const sDid = String(s.did || s.did_gateway || s.device_id || s.gateway_id_hex || s.station_id || '').replace(/:/g, '').toUpperCase();
+      return dids.some((d) => sDid.includes(d) || d.includes(sDid));
+    });
+  }
+  if (!targetStations.length) {
+    targetStations = stationsList;
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const weatherList: WeatherData[] = [];
+  let primaryTzOffset: number | null = null;
+
+  for (const stMeta of targetStations) {
+    const stId = String(stMeta.station_id);
+    const stringToHash = `api-key${creds.apiToken}station-id${stId}t${timestamp}`;
+    const signature = await hmacSha256Hex(creds.apiSecret, stringToHash);
+    const response = await fetch(
+      `https://api.weatherlink.com/v2/current/${stId}?api-key=${encodeURIComponent(creds.apiToken)}&t=${timestamp}&api-signature=${signature}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!response.ok) continue;
+    const data = (await response.json()) as { sensors?: any[]; generated_at?: number };
+    if (!data.sensors) continue;
+
+    const itemWeather: WeatherData = emptyWeather();
+    let tzOffsetSeconds: number | null = null;
+
+    for (const sensor of data.sensors) {
+      if (!sensor.data?.length) continue;
+      const cond = sensor.data[0];
+      const dst = sensor.data_structure_type;
+
+      if (cond.tz_offset !== undefined && cond.tz_offset !== null) {
+        tzOffsetSeconds = Number(cond.tz_offset);
+      }
+
+      if (dst === 21 || dst === 22) {
+        if (cond.temp_in !== undefined) itemWeather.temp_in = Number(cond.temp_in);
+        if (cond.hum_in !== undefined) itemWeather.hum_in = Number(cond.hum_in);
+      }
+      if (dst === 19 || dst === 20) {
+        if (cond.bar_sea_level !== undefined) itemWeather.bar_sea_level = Number(cond.bar_sea_level);
+        if (cond.bar_trend !== undefined) itemWeather.bar_trend = Number(cond.bar_trend);
+      }
+      if (dst !== 21 && dst !== 22 && dst !== 19 && dst !== 20 && dst !== 27) {
+        if (cond.temp !== undefined) itemWeather.temp = Number(cond.temp);
+        if (cond.hum !== undefined) itemWeather.hum = Number(cond.hum);
+        if (cond.dew_point !== undefined) itemWeather.dew_point = Number(cond.dew_point);
+        if (cond.thw_index !== undefined) itemWeather.feels_like = Number(cond.thw_index);
+        else if (cond.wind_chill !== undefined && cond.temp !== undefined && Number(cond.wind_chill) < Number(cond.temp)) {
+          itemWeather.feels_like = Number(cond.wind_chill);
+        } else if (cond.heat_index !== undefined && cond.temp !== undefined && Number(cond.heat_index) > Number(cond.temp)) {
+          itemWeather.feels_like = Number(cond.heat_index);
+        } else if (cond.temp !== undefined) {
+          itemWeather.feels_like = Number(cond.temp);
+        }
+        if (cond.wind_speed_last !== undefined) itemWeather.wind_speed_last = Number(cond.wind_speed_last);
+        if (cond.wind_dir_last !== undefined) itemWeather.wind_dir_last = Number(cond.wind_dir_last);
+        if (cond.wind_speed_avg_last_2_min !== undefined) itemWeather.wind_speed_avg_2_min = Number(cond.wind_speed_avg_last_2_min);
+        if (cond.wind_speed_avg_last_10_min !== undefined) itemWeather.wind_speed_avg_10_min = Number(cond.wind_speed_avg_last_10_min);
+        if (cond.wind_dir_scalar_avg_last_10_min !== undefined) itemWeather.wind_dir_10_min = Number(cond.wind_dir_scalar_avg_last_10_min);
+        if (cond.rain_rate_last_in !== undefined) itemWeather.rain_rate_last = Number(cond.rain_rate_last_in);
+        else if (cond.rain_rate_last !== undefined) itemWeather.rain_rate_last = Number(cond.rain_rate_last);
+        if (cond.rainfall_day_in !== undefined) itemWeather.rainfall_daily = Number(cond.rainfall_day_in);
+        else if (cond.rainfall_daily_in !== undefined) itemWeather.rainfall_daily = Number(cond.rainfall_daily_in);
+        else if (cond.rainfall_daily !== undefined) itemWeather.rainfall_daily = Number(cond.rainfall_daily);
+        if (cond.rain_rate_hi_in !== undefined) itemWeather.high_rain_rate_today = Number(cond.rain_rate_hi_in);
+      }
+    }
+
+    itemWeather.ts = data.generated_at || Math.floor(Date.now() / 1000);
+    itemWeather.stationName = stMeta.station_name || stMeta.name || row.cloud_station_name || row.name || 'WeatherLink Cloud (V2)';
+    itemWeather.stationDid = String(stMeta.did || stMeta.station_id || stId);
+    applySunMoon(itemWeather, stMeta.latitude ?? row.latitude, stMeta.longitude ?? row.longitude, stMeta.time_zone ?? row.timezone, tzOffsetSeconds);
+
+    weatherList.push(itemWeather);
+    if (primaryTzOffset === null) primaryTzOffset = tzOffsetSeconds;
+  }
+
+  if (weatherList.length > 0) {
+    Object.assign(weather, weatherList[0]);
+    weather.weatherList = weatherList;
+  } else {
+    weather.ts = timestamp;
+    weather.stationName = row.cloud_station_name || row.name || 'WeatherLink Cloud (V2)';
+    weather.stationDid = row.cloud_station_id;
+  }
+
+  return primaryTzOffset;
 }
 
 async function fetchV1(row: StationRow, creds: StationCredentials, weather: WeatherData) {
   if (!row.cloud_did || !creds.password || !creds.apiToken) {
     throw new Error('Cloud API V1 requires DID, Password, and API Token');
   }
-  const url = new URL('https://api.weatherlink.com/v1/NoaaExt.json');
-  url.searchParams.set('user', row.cloud_did);
-  url.searchParams.set('pass', creds.password);
-  url.searchParams.set('apiToken', creds.apiToken);
-  const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
-  if (!response.ok) throw new Error(`WeatherLink v1 failed (${response.status})`);
-  const data = (await response.json()) as any;
-  if (!data) throw new Error('WeatherLink Cloud API returned empty response');
-  if (data.error) throw new Error(`WeatherLink Cloud API error: ${data.error}`);
+  const dids = row.cloud_did.split(',').map((s) => s.trim()).filter(Boolean);
+  const weatherList: WeatherData[] = [];
 
-  if (data.latitude !== undefined) row.latitude = Number(data.latitude);
-  if (data.longitude !== undefined) row.longitude = Number(data.longitude);
+  for (const did of dids) {
+    const url = new URL('https://api.weatherlink.com/v1/NoaaExt.json');
+    url.searchParams.set('user', did);
+    url.searchParams.set('pass', creds.password);
+    url.searchParams.set('apiToken', creds.apiToken);
+    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) continue;
+    const data = (await response.json()) as any;
+    if (!data || data.error) continue;
 
-  const davis = data.davis_current_observation || {};
-  weather.temp = data.temp_f !== undefined ? Number(data.temp_f) : weather.temp;
-  weather.hum = data.relative_humidity !== undefined ? Number(data.relative_humidity) : weather.hum;
-  weather.dew_point = data.dewpoint_f !== undefined ? Number(data.dewpoint_f) : weather.dew_point;
+    const itemWeather: WeatherData = emptyWeather();
+    const davis = data.davis_current_observation || {};
+    itemWeather.temp = data.temp_f !== undefined ? Number(data.temp_f) : itemWeather.temp;
+    itemWeather.hum = data.relative_humidity !== undefined ? Number(data.relative_humidity) : itemWeather.hum;
+    itemWeather.dew_point = data.dewpoint_f !== undefined ? Number(data.dewpoint_f) : itemWeather.dew_point;
+    if (data.windchill_f !== undefined && Number(data.windchill_f) < itemWeather.temp) {
+      itemWeather.feels_like = Number(data.windchill_f);
+    } else if (data.heat_index_f !== undefined && Number(data.heat_index_f) > itemWeather.temp) {
+      itemWeather.feels_like = Number(data.heat_index_f);
+    } else {
+      itemWeather.feels_like = itemWeather.temp;
+    }
+    itemWeather.temp_in = davis.temp_in_f !== undefined ? Number(davis.temp_in_f) : itemWeather.temp_in;
+    itemWeather.hum_in = davis.relative_humidity_in !== undefined ? Number(davis.relative_humidity_in) : itemWeather.hum_in;
+    itemWeather.bar_sea_level = data.pressure_in !== undefined ? Number(data.pressure_in) : itemWeather.bar_sea_level;
+    if (data.pressure_trend !== undefined) {
+      const trend = String(data.pressure_trend).toLowerCase();
+      if (trend.includes('fall') || trend.includes('down') || trend.includes('-')) itemWeather.bar_trend = -0.02;
+      else if (trend.includes('rise') || trend.includes('up') || trend.includes('+')) itemWeather.bar_trend = 0.02;
+      else itemWeather.bar_trend = 0;
+    }
+    itemWeather.wind_speed_last = data.wind_mph !== undefined ? Number(data.wind_mph) : itemWeather.wind_speed_last;
+    itemWeather.wind_dir_last = data.wind_degrees !== undefined ? Number(data.wind_degrees) : itemWeather.wind_dir_last;
+    itemWeather.wind_speed_avg_10_min = davis.wind_ten_min_ave_mph !== undefined ? Number(davis.wind_ten_min_ave_mph) : itemWeather.wind_speed_avg_10_min;
+    itemWeather.wind_speed_avg_2_min = itemWeather.wind_speed_last;
+    itemWeather.rain_rate_last = davis.rain_rate_in_per_hr !== undefined ? Number(davis.rain_rate_in_per_hr) : itemWeather.rain_rate_last;
+    itemWeather.rainfall_daily = davis.rain_day_in !== undefined ? Number(davis.rain_day_in) : itemWeather.rainfall_daily;
+    itemWeather.high_rain_rate_today = davis.rain_rate_day_high_in_per_hr !== undefined ? Number(davis.rain_rate_day_high_in_per_hr) : itemWeather.high_rain_rate_today;
+    itemWeather.ts = data.observation_time_rfc822 ? Math.floor(new Date(data.observation_time_rfc822).getTime() / 1000) : Math.floor(Date.now() / 1000);
+    itemWeather.stationName = davis.station_name || data.station_name || row.name || 'WeatherLink Cloud';
+    itemWeather.stationDid = data.DID || davis.DID || did;
+    applySunMoon(itemWeather, data.latitude ?? row.latitude, data.longitude ?? row.longitude, row.timezone, null);
 
-  if (data.windchill_f !== undefined && Number(data.windchill_f) < weather.temp) {
-    weather.feels_like = Number(data.windchill_f);
-  } else if (data.heat_index_f !== undefined && Number(data.heat_index_f) > weather.temp) {
-    weather.feels_like = Number(data.heat_index_f);
-  } else {
-    weather.feels_like = weather.temp;
+    weatherList.push(itemWeather);
   }
 
-  weather.temp_in = davis.temp_in_f !== undefined ? Number(davis.temp_in_f) : weather.temp_in;
-  weather.hum_in = davis.relative_humidity_in !== undefined ? Number(davis.relative_humidity_in) : weather.hum_in;
-  weather.bar_sea_level = data.pressure_in !== undefined ? Number(data.pressure_in) : weather.bar_sea_level;
-
-  if (data.pressure_trend !== undefined) {
-    const trend = String(data.pressure_trend).toLowerCase();
-    if (trend.includes('fall') || trend.includes('down') || trend.includes('-')) weather.bar_trend = -0.02;
-    else if (trend.includes('rise') || trend.includes('up') || trend.includes('+')) weather.bar_trend = 0.02;
-    else weather.bar_trend = 0;
-  }
-
-  weather.wind_speed_last = data.wind_mph !== undefined ? Number(data.wind_mph) : weather.wind_speed_last;
-  weather.wind_dir_last = data.wind_degrees !== undefined ? Number(data.wind_degrees) : weather.wind_dir_last;
-  weather.wind_speed_avg_10_min =
-    davis.wind_ten_min_ave_mph !== undefined
-      ? Number(davis.wind_ten_min_ave_mph)
-      : davis.wind_ten_min_avg_mph !== undefined
-        ? Number(davis.wind_ten_min_avg_mph)
-        : weather.wind_speed_avg_10_min;
-  weather.wind_speed_avg_2_min = weather.wind_speed_last;
-  weather.rain_rate_last =
-    davis.rain_rate_in_per_hr !== undefined
-      ? Number(davis.rain_rate_in_per_hr)
-      : davis.rain_rate_in !== undefined
-        ? Number(davis.rain_rate_in)
-        : weather.rain_rate_last;
-  weather.rainfall_daily =
-    davis.rain_day_in !== undefined
-      ? Number(davis.rain_day_in)
-      : data.rain_day_in !== undefined
-        ? Number(data.rain_day_in)
-        : weather.rainfall_daily;
-  weather.high_rain_rate_today =
-    davis.rain_rate_day_high_in_per_hr !== undefined
-      ? Number(davis.rain_rate_day_high_in_per_hr)
-      : davis.rain_rate_max_in_per_hr !== undefined
-        ? Number(davis.rain_rate_max_in_per_hr)
-        : weather.high_rain_rate_today;
-  // Prefer SunCalc with API lat/lon; keep Davis strings only as temporary until applySunMoon runs
-  if (davis.sunrise) weather.sunrise = davis.sunrise;
-  if (davis.sunset) weather.sunset = davis.sunset;
-  weather.ts = data.observation_time_rfc822
-    ? Math.floor(new Date(data.observation_time_rfc822).getTime() / 1000)
-    : Math.floor(Date.now() / 1000);
-  weather.stationName = davis.station_name || data.station_name || row.name || 'WeatherLink Cloud';
-  weather.stationDid = data.DID || davis.DID || row.cloud_did || 'Davis Station';
-  if (davis.station_name || data.station_name) {
-    row.cloud_station_name = davis.station_name || data.station_name;
+  if (weatherList.length > 0) {
+    Object.assign(weather, weatherList[0]);
+    weather.weatherList = weatherList;
   }
 }
 

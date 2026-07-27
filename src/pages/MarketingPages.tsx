@@ -349,7 +349,7 @@ export function HomePage() {
           
           <div className="relative z-10">
             <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-sky-100 pb-1">
-              Free for {site?.freeTrialDays ?? 30} days
+              Free for {site?.freeTrialDays ?? 60} days (2 months)
             </h2>
             <p className="text-lg text-sky-100/90 mt-3 font-medium max-w-md">
               Then {price.formatted}

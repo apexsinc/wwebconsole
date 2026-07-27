@@ -8,6 +8,9 @@ import { WeatherData, WLLConfig, ConnectionState, AuthUser, BillingInfo } from '
 
 interface WeatherStore {
   weather: WeatherData;
+  weatherList: WeatherData[];
+  currentStationIndex: number;
+  autoSlideEnabled: boolean;
   connection: ConnectionState;
   config: WLLConfig;
   user: AuthUser | null;
@@ -21,6 +24,10 @@ interface WeatherStore {
   setUser: (user: AuthUser | null) => void;
   setBilling: (billing: BillingInfo | null) => void;
   setAuthChecked: (v: boolean) => void;
+  setStationIndex: (index: number) => void;
+  nextStation: () => void;
+  prevStation: () => void;
+  toggleAutoSlide: () => void;
   setAll: (payload: {
     weather: WeatherData;
     connection: ConnectionState;
@@ -55,6 +62,9 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
     stationName: 'Offline Console',
     stationDid: 'Unconfigured',
   },
+  weatherList: [],
+  currentStationIndex: 0,
+  autoSlideEnabled: true,
   connection: {
     status: 'connecting',
     lastUdpReceived: null,
@@ -82,11 +92,48 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   setUser: (user) => set({ user }),
   setBilling: (billing) => set({ billing }),
   setAuthChecked: (authChecked) => set({ authChecked }),
+  setStationIndex: (index) =>
+    set((state) => {
+      const maxIndex = state.weatherList.length > 0 ? state.weatherList.length - 1 : 0;
+      const validIndex = Math.max(0, Math.min(index, maxIndex));
+      return {
+        currentStationIndex: validIndex,
+        weather: state.weatherList[validIndex] || state.weather,
+      };
+    }),
+  nextStation: () =>
+    set((state) => {
+      if (state.weatherList.length <= 1) return state;
+      const nextIdx = (state.currentStationIndex + 1) % state.weatherList.length;
+      return {
+        currentStationIndex: nextIdx,
+        weather: state.weatherList[nextIdx] || state.weather,
+      };
+    }),
+  prevStation: () =>
+    set((state) => {
+      if (state.weatherList.length <= 1) return state;
+      const prevIdx = (state.currentStationIndex - 1 + state.weatherList.length) % state.weatherList.length;
+      return {
+        currentStationIndex: prevIdx,
+        weather: state.weatherList[prevIdx] || state.weather,
+      };
+    }),
+  toggleAutoSlide: () => set((state) => ({ autoSlideEnabled: !state.autoSlideEnabled })),
   setAll: (payload) =>
-    set(() => ({
-      weather: payload.weather,
-      connection: payload.connection,
-      config: payload.config,
-      stationId: payload.stationId ?? null,
-    })),
+    set((state) => {
+      const list = payload.weather?.weatherList && payload.weather.weatherList.length > 0
+        ? payload.weather.weatherList
+        : [payload.weather];
+      const validIdx = state.currentStationIndex < list.length ? state.currentStationIndex : 0;
+      const activeWeather = list[validIdx] || payload.weather;
+      return {
+        weather: activeWeather,
+        weatherList: list,
+        currentStationIndex: validIdx,
+        connection: payload.connection,
+        config: payload.config,
+        stationId: payload.stationId ?? null,
+      };
+    }),
 }));

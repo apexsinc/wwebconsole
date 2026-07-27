@@ -80,19 +80,19 @@ export default function TabletFrame({ children }: TabletFrameProps) {
             </span>
           </div>
 
-          {/* DAVIS Brand Logo */}
+          {/* APEXS Brand Logo */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
-            <span className="text-black font-sans font-black tracking-[0.25em] text-sm md:text-lg select-none">
-              DAVIS
+            <span className="text-black font-sans font-black tracking-[0.25em] text-sm md:text-base select-none">
+              APEXS
             </span>
-            <span className="text-[8px] text-black font-sans tracking-widest font-bold uppercase -mt-0.5 select-none">
-              WEATHERLINK
+            <span className="text-[8px] text-black font-sans tracking-[0.2em] font-bold uppercase -mt-0.5 select-none">
+              INCORPORATED
             </span>
           </div>
 
-          {/* Sensor Info */}
+          {/* Model Info */}
           <div className="text-[9px] text-black font-mono font-bold text-right hidden md:block">
-            VANTAGE PRO2 &middot; 868 MHZ
+            WEATHERLINK WEB CONSOLE
           </div>
           </div>
         )}

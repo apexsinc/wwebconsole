@@ -27,6 +27,7 @@ export interface WeatherData {
   ts: number;
   stationName?: string;
   stationDid?: string;
+  weatherList?: WeatherData[];
 }
 
 /** Public station config returned by API (secrets never included) */

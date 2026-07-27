@@ -16,6 +16,7 @@ import {
   Moon,
   Sun,
   ExternalLink,
+  Clock,
 } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
 import {
@@ -28,6 +29,44 @@ import {
 } from '../services/api.js';
 import { useTheme } from '../hooks/useTheme.js';
 import { PasswordInput } from './PasswordInput.js';
+
+function useCountdown(targetTimestamp: number | null | undefined) {
+  const [timeLeft, setTimeLeft] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    expired: boolean;
+    formatted: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!targetTimestamp || !Number.isFinite(targetTimestamp)) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const calc = () => {
+      const diff = targetTimestamp - Date.now();
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true, formatted: '00d 00h 00m 00s' });
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      const formatted = `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+      setTimeLeft({ days, hours, minutes, seconds, expired: false, formatted });
+    };
+
+    calc();
+    const interval = setInterval(calc, 1000);
+    return () => clearInterval(interval);
+  }, [targetTimestamp]);
+
+  return timeLeft;
+}
 
 export default function ConfigNavbar() {
   const navigate = useNavigate();
@@ -54,6 +93,17 @@ export default function ConfigNavbar() {
   const [configError, setConfigError] = useState('');
   const [shareError, setShareError] = useState('');
   const billing = useWeatherStore((s) => s.billing);
+
+  const isPaidPlan = billing?.subscriptionStatus === 'active' || billing?.subscriptionStatus === 'paid';
+  const expiresAt = isPaidPlan
+    ? (billing?.subscriptionExpiresAt ? Number(billing.subscriptionExpiresAt) : null)
+    : (
+        billing?.freeUntil ? Number(billing.freeUntil) :
+        user?.freeUntil ? Number(user.freeUntil) :
+        billing?.subscriptionExpiresAt ? Number(billing.subscriptionExpiresAt) :
+        null
+      );
+  const countdown = useCountdown(expiresAt);
 
   useEffect(() => {
     setApiVersion(config.cloudApiVersion ?? 'v2');
@@ -152,11 +202,29 @@ export default function ConfigNavbar() {
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center absolute left-1/2 -translate-x-1/2 pointer-events-none">
+        <div className="hidden sm:flex items-center gap-2.5 absolute left-1/2 -translate-x-1/2 pointer-events-none">
           <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-mono border px-3 py-1 rounded-full font-bold uppercase tracking-wider text-sky-400 bg-sky-950/40 border-sky-500/25">
             <Network className="w-3.5 h-3.5" />
             WeatherLink Cloud · {config.cloudApiVersion?.toUpperCase() || 'V2'}
           </div>
+
+          {countdown && (
+            <div
+              className={`pointer-events-auto flex items-center gap-1.5 text-[10px] md:text-xs font-mono border px-3 py-1 rounded-full font-bold uppercase tracking-wider transition-all ${
+                countdown.expired
+                  ? 'bg-rose-950/50 border-rose-500/40 text-rose-400'
+                  : countdown.days < 3
+                  ? 'bg-amber-950/50 border-amber-500/40 text-amber-300'
+                  : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+              }`}
+              title={countdown.expired ? 'Plan/Trial has expired' : `Time remaining until ${isPaidPlan ? 'plan' : 'free trial'} ends`}
+            >
+              <Clock className="w-3.5 h-3.5 shrink-0 text-amber-400 animate-pulse" />
+              <span>
+                {isPaidPlan ? 'Plan' : 'Trial'}: {countdown.expired ? 'EXPIRED' : countdown.formatted}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -292,21 +360,21 @@ export default function ConfigNavbar() {
                       V1: DID + password + API token.&nbsp;&nbsp;V2: API key + secret (password optional).
                     </p>
 
-                    {/* Device ID — always shown */}
-                    <div className="flex flex-col gap-1.5">
-                      <label className={labelCls}>Device ID (DID)</label>
-                      <input
-                        type="text"
-                        value={did}
-                        onChange={(e) => setDid(e.target.value)}
-                        placeholder="e.g. 001D0A00DE6A"
-                        autoComplete="off"
-                        className={monoInputCls}
-                      />
-                    </div>
-
                     {apiVersion === 'v1' ? (
                       <>
+                        {/* V1: Device ID (DID) */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>Device ID (DID)</label>
+                          <input
+                            type="text"
+                            value={did}
+                            onChange={(e) => setDid(e.target.value)}
+                            placeholder="e.g. 001D0A00DE6A"
+                            autoComplete="off"
+                            className={monoInputCls}
+                          />
+                        </div>
+
                         {/* V1: Password */}
                         <div className="flex flex-col gap-1.5">
                           <label className={labelCls}>
@@ -379,22 +447,6 @@ export default function ConfigNavbar() {
                           />
                         </div>
 
-                        {/* V2: Station ID */}
-                        <div className="flex flex-col gap-1.5">
-                          <label className={labelCls}>
-                            Station ID
-                            <span className="ml-2 text-slate-400 normal-case font-normal text-[10px]">optional — auto-detected</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={stationId}
-                            onChange={(e) => setStationId(e.target.value)}
-                            placeholder="Auto-detected from your account"
-                            autoComplete="off"
-                            className={monoInputCls}
-                          />
-                        </div>
-
                         {/* V2: Password (optional) */}
                         <div className="flex flex-col gap-1.5">
                           <label className={labelCls}>
@@ -439,36 +491,6 @@ export default function ConfigNavbar() {
                         {' · '}poll <span className="text-sky-300">{billing.pollIntervalSec}s</span>
                       </p>
                     )}
-                  </div>
-
-                  {/* Location card */}
-                  <div className="bg-slate-900/60 border border-white/15 rounded-xl p-5 flex flex-col gap-3">
-                    <h3 className="text-base font-bold text-white">
-                      Station location <span className="text-slate-400 font-normal text-sm">(auto from WeatherLink)</span>
-                    </h3>
-                    <p className="text-sm text-slate-300 leading-relaxed">
-                      Latitude, longitude, and timezone are pulled from the WeatherLink Cloud station profile on each refresh — no manual entry needed for sunrise/sunset.
-                    </p>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2.5">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Latitude</p>
-                        <p className="text-sm text-white font-mono mt-1">
-                          {config.latitude != null ? Number(config.latitude).toFixed(5) : <span className="text-slate-500">—</span>}
-                        </p>
-                      </div>
-                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2.5">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Longitude</p>
-                        <p className="text-sm text-white font-mono mt-1">
-                          {config.longitude != null ? Number(config.longitude).toFixed(5) : <span className="text-slate-500">—</span>}
-                        </p>
-                      </div>
-                      <div className="bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2.5">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Timezone</p>
-                        <p className="text-xs text-white font-mono mt-1 truncate" title={config.timezone || ''}>
-                          {config.timezone || <span className="text-slate-500">—</span>}
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 </div>
 

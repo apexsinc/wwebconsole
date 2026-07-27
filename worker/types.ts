@@ -22,6 +22,7 @@ export interface WeatherData {
   ts: number;
   stationName?: string;
   stationDid?: string;
+  weatherList?: WeatherData[];
 }
 
 export interface PublicConfig {

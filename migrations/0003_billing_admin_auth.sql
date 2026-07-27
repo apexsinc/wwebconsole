@@ -58,16 +58,16 @@ INSERT OR IGNORE INTO app_settings (key, value, updated_at) VALUES
   ('resend_from_email', 'WWebConsole <noreply@wwebconsole.com>', strftime('%s','now') * 1000),
   ('resend_enabled', '0', strftime('%s','now') * 1000),
   ('yearly_price_usd', '49', strftime('%s','now') * 1000),
-  ('free_trial_days', '30', strftime('%s','now') * 1000),
+  ('free_trial_days', '60', strftime('%s','now') * 1000),
   ('poll_basic_sec', '900', strftime('%s','now') * 1000),
   ('poll_pro_sec', '120', strftime('%s','now') * 1000);
 
--- Backfill free trial for existing accounts (30 days from now)
-UPDATE users SET free_until = (strftime('%s','now') * 1000) + (30 * 24 * 60 * 60 * 1000)
+-- Backfill free trial for existing accounts (60 days from now)
+UPDATE users SET free_until = (strftime('%s','now') * 1000) + (60 * 24 * 60 * 60 * 1000)
 WHERE free_until IS NULL;
 
 UPDATE stations SET
   subscription_status = COALESCE(NULLIF(subscription_status, ''), 'trial'),
-  subscription_expires_at = COALESCE(subscription_expires_at, (strftime('%s','now') * 1000) + (30 * 24 * 60 * 60 * 1000)),
+  subscription_expires_at = COALESCE(subscription_expires_at, (strftime('%s','now') * 1000) + (60 * 24 * 60 * 60 * 1000)),
   poll_interval_sec = COALESCE(NULLIF(poll_interval_sec, 0), 900),
   wl_plan = COALESCE(NULLIF(wl_plan, ''), 'unknown');
