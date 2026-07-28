@@ -848,6 +848,7 @@ app.get('/api/admin/users', requireAdmin, async (c) => {
   const out = [];
   for (const u of rows) {
     const station = await getStationForUser(c.env, u.id);
+    const parsedWeather = station ? parseStoredWeather(station) : null;
     out.push({
       ...publicUser(u),
       notes: u.notes || '',
@@ -857,7 +858,14 @@ app.get('/api/admin/users', requireAdmin, async (c) => {
       stationName: station?.name || station?.cloud_station_name || null,
       cloudApiVersion: station?.cloud_api_version || null,
       cloudDid: station?.cloud_did || null,
+      cloudStationId: station?.cloud_station_id || null,
+      latitude: station?.latitude ?? null,
+      longitude: station?.longitude ?? null,
+      timezone: station?.timezone || null,
+      pollIntervalSec: station?.poll_interval_sec || null,
       lastHttpAt: station?.last_http_at || null,
+      lastError: station?.last_error || null,
+      weather: parsedWeather,
     });
   }
   return c.json({ users: out });
