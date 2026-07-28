@@ -171,6 +171,10 @@ export async function adminActivateDevice(userId: string, body: { years?: number
   });
 }
 
+export async function adminDeleteUser(userId: string) {
+  return api<{ ok: boolean; message?: string }>(`/api/admin/users/${userId}`, { method: 'DELETE' });
+}
+
 export async function adminGetSettings() {
   return api<{ settings: any[]; groups?: { id: string; label: string; keys: string[] }[] }>('/api/admin/settings');
 }

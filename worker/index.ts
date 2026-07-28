@@ -931,6 +931,24 @@ app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
   return c.json({ user: publicUser(updatedUser!), billing: publicBilling(updatedUser!, station) });
 });
 
+app.delete('/api/admin/users/:id', requireAdmin, async (c) => {
+  const adminUser = c.get('user');
+  const targetId = c.req.param('id') || '';
+
+  if (adminUser?.id === targetId) {
+    return c.json({ error: 'You cannot delete your own admin account.' }, 400);
+  }
+
+  const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(targetId).first<UserRow>();
+  if (!user) return c.json({ error: 'User not found' }, 404);
+
+  await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId).run();
+  await c.env.DB.prepare('DELETE FROM stations WHERE user_id = ?').bind(targetId).run();
+  await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetId).run();
+
+  return c.json({ ok: true, message: 'Customer account and associated station data deleted successfully.' });
+});
+
 app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
   const body = z
     .object({
