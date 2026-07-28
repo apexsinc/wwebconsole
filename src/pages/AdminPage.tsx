@@ -752,6 +752,39 @@ export default function AdminPage() {
   );
 }
 
+function convertTemp(tempF: number, unit?: 'F' | 'C') {
+  if (unit === 'C') return ((tempF - 32) * 5) / 9;
+  return tempF;
+}
+function getTempUnit(unit?: 'F' | 'C') {
+  return unit === 'C' ? '°C' : '°F';
+}
+
+function convertWind(speedMph: number, unit?: 'mph' | 'kmh' | 'kts' | 'ms') {
+  if (unit === 'kmh') return speedMph * 1.60934;
+  if (unit === 'kts') return speedMph * 0.868976;
+  if (unit === 'ms') return speedMph * 0.44704;
+  return speedMph;
+}
+function getWindUnit(unit?: 'mph' | 'kmh' | 'kts' | 'ms') {
+  if (unit === 'kmh') return 'km/h';
+  if (unit === 'kts') return 'kts';
+  if (unit === 'ms') return 'm/s';
+  return 'mph';
+}
+
+function convertBaro(baroInHg: number, unit?: 'inHg' | 'hPa' | 'mmHg' | 'mb') {
+  if (unit === 'hPa' || unit === 'mb') return baroInHg * 33.8639;
+  if (unit === 'mmHg') return baroInHg * 25.4;
+  return baroInHg;
+}
+function getBaroUnit(unit?: 'inHg' | 'hPa' | 'mmHg' | 'mb') {
+  if (unit === 'hPa') return 'hPa';
+  if (unit === 'mb') return 'mb';
+  if (unit === 'mmHg') return 'mm Hg';
+  return 'inHg';
+}
+
 {/* Modal to view all configured stations and live weather telemetry for a user */}
 function UserStationsModal({
   customer,
@@ -770,6 +803,11 @@ function UserStationsModal({
   const apiVersion = (customer.cloudApiVersion || 'v2').toUpperCase();
   const dids = customer.cloudDid || 'auto-discovered';
 
+  const unitTemp: 'F' | 'C' = customer.unitTemp || 'C';
+  const unitWind: 'mph' | 'kmh' | 'kts' | 'ms' = customer.unitWind || 'kmh';
+  const unitBaro: 'inHg' | 'hPa' | 'mmHg' | 'mb' = customer.unitBaro || 'hPa';
+  const unitRain: 'in' | 'mm' = customer.unitRain || 'mm';
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/10 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -785,6 +823,9 @@ function UserStationsModal({
                 <h3 className="font-extrabold text-base text-slate-900 dark:text-white">{customer.email}</h3>
                 <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-sky-500/15 text-sky-600 dark:text-sky-400 rounded-full">
                   API {apiVersion}
+                </span>
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full">
+                  Units: {getTempUnit(unitTemp)} · {getWindUnit(unitWind)} · {getBaroUnit(unitBaro)}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -884,61 +925,73 @@ function UserStationsModal({
               <h4 className="text-xs uppercase font-mono font-bold tracking-wider text-slate-500 dark:text-slate-400">
                 Configured Weather Devices ({weatherList.length})
               </h4>
-              <span className="text-[10px] text-slate-400 font-mono">Live telemetry preview</span>
+              <span className="text-[10px] text-slate-400 font-mono">Live telemetry in customer units ({getTempUnit(unitTemp)}, {getWindUnit(unitWind)}, {getBaroUnit(unitBaro)})</span>
             </div>
 
             {weatherList.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {weatherList.map((w: any, idx: number) => (
-                  <div key={idx} className="bg-slate-50 dark:bg-[#070a11] border border-slate-200 dark:border-white/10 rounded-2xl p-4 space-y-3 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
-                      <div className="flex items-center gap-2">
-                        <Radio className="w-4 h-4 text-sky-500 animate-pulse" />
-                        <span className="font-bold text-sm text-slate-900 dark:text-white">{w.stationName || `Device ${idx + 1}`}</span>
+                {weatherList.map((w: any, idx: number) => {
+                  const tVal = w.temp != null ? convertTemp(w.temp, unitTemp) : null;
+                  const fVal = w.feels_like != null ? convertTemp(w.feels_like, unitTemp) : null;
+                  const dVal = w.dew_point != null ? convertTemp(w.dew_point, unitTemp) : null;
+                  const pVal = w.bar_sea_level != null ? convertBaro(w.bar_sea_level, unitBaro) : null;
+                  const wVal = w.wind_speed_last != null ? convertWind(w.wind_speed_last, unitWind) : null;
+
+                  return (
+                    <div key={idx} className="bg-slate-50 dark:bg-[#070a11] border border-slate-200 dark:border-white/10 rounded-2xl p-4 space-y-3 shadow-sm">
+                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Radio className="w-4 h-4 text-sky-500 animate-pulse" />
+                          <span className="font-bold text-sm text-slate-900 dark:text-white">{w.stationName || `Device ${idx + 1}`}</span>
+                        </div>
+                        <span className="font-mono text-[10px] px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-700 dark:text-slate-300">
+                          DID: {w.stationDid || 'N/A'}
+                        </span>
                       </div>
-                      <span className="font-mono text-[10px] px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-700 dark:text-slate-300">
-                        DID: {w.stationDid || 'N/A'}
-                      </span>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/5 rounded-xl p-2.5">
+                          <span className="text-[10px] text-slate-400 flex items-center gap-1"><Thermometer className="w-3 h-3 text-amber-500" /> Temperature</span>
+                          <span className="font-black text-base text-slate-900 dark:text-white mt-0.5 block">
+                            {tVal != null ? `${tVal.toFixed(1)}${getTempUnit(unitTemp)}` : '—'}
+                            {fVal != null && (
+                              <span className="text-xs text-slate-400 font-normal ml-1">feels {fVal.toFixed(1)}°</span>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/5 rounded-xl p-2.5">
+                          <span className="text-[10px] text-slate-400 flex items-center gap-1"><Droplets className="w-3 h-3 text-sky-500" /> Humidity / Dew</span>
+                          <span className="font-black text-base text-slate-900 dark:text-white mt-0.5 block">
+                            {w.hum != null ? `${w.hum}%` : '—'}
+                            {dVal != null && (
+                              <span className="text-xs text-slate-400 font-normal ml-1">dew {dVal.toFixed(1)}°</span>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/5 rounded-xl p-2.5">
+                          <span className="text-[10px] text-slate-400 flex items-center gap-1"><Gauge className="w-3 h-3 text-purple-500" /> Barometer</span>
+                          <span className="font-black text-base text-slate-900 dark:text-white mt-0.5 block">
+                            {pVal != null ? `${pVal.toFixed(unitBaro === 'inHg' ? 2 : 1)} ${getBaroUnit(unitBaro)}` : '—'}
+                          </span>
+                        </div>
+
+                        <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/5 rounded-xl p-2.5">
+                          <span className="text-[10px] text-slate-400 flex items-center gap-1"><Wind className="w-3 h-3 text-teal-500" /> Wind Speed</span>
+                          <span className="font-black text-base text-slate-900 dark:text-white mt-0.5 block">
+                            {wVal != null ? `${wVal.toFixed(1)} ${getWindUnit(unitWind)}` : '—'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-[10px] font-mono text-slate-400 flex justify-between items-center pt-1 border-t border-slate-200 dark:border-white/5">
+                        <span>Sunrise: {w.sunrise || '--'} · Sunset: {w.sunset || '--'}</span>
+                        <span>{w.ts ? new Date(w.ts * 1000).toLocaleTimeString() : ''}</span>
+                      </div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/5 rounded-xl p-2.5">
-                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><Thermometer className="w-3 h-3 text-amber-500" /> Temperature</span>
-                        <span className="font-black text-base text-slate-900 dark:text-white mt-0.5 block">
-                          {w.temp ? `${w.temp.toFixed(1)}°F` : '—'}
-                          <span className="text-xs text-slate-400 font-normal ml-1">feels {w.feels_like ? `${w.feels_like.toFixed(1)}°F` : '—'}</span>
-                        </span>
-                      </div>
-
-                      <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/5 rounded-xl p-2.5">
-                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><Droplets className="w-3 h-3 text-sky-500" /> Humidity / Dew</span>
-                        <span className="font-black text-base text-slate-900 dark:text-white mt-0.5 block">
-                          {w.hum ? `${w.hum}%` : '—'}
-                          <span className="text-xs text-slate-400 font-normal ml-1">dew {w.dew_point ? `${w.dew_point.toFixed(1)}°` : '—'}</span>
-                        </span>
-                      </div>
-
-                      <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/5 rounded-xl p-2.5">
-                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><Gauge className="w-3 h-3 text-purple-500" /> Barometer</span>
-                        <span className="font-black text-base text-slate-900 dark:text-white mt-0.5 block">
-                          {w.bar_sea_level ? `${w.bar_sea_level.toFixed(2)} inHg` : '—'}
-                        </span>
-                      </div>
-
-                      <div className="bg-white dark:bg-[#0e1320] border border-slate-200 dark:border-white/5 rounded-xl p-2.5">
-                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><Wind className="w-3 h-3 text-teal-500" /> Wind Speed</span>
-                        <span className="font-black text-base text-slate-900 dark:text-white mt-0.5 block">
-                          {w.wind_speed_last != null ? `${w.wind_speed_last.toFixed(1)} mph` : '—'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-[10px] font-mono text-slate-400 flex justify-between items-center pt-1 border-t border-slate-200 dark:border-white/5">
-                      <span>Sunrise: {w.sunrise || '--'} · Sunset: {w.sunset || '--'}</span>
-                      <span>{w.ts ? new Date(w.ts * 1000).toLocaleTimeString() : ''}</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="bg-slate-50 dark:bg-[#070a11] border border-slate-200 dark:border-white/10 rounded-2xl p-8 text-center text-slate-400 text-xs italic">
