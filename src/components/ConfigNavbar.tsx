@@ -113,13 +113,37 @@ export default function ConfigNavbar() {
 
   const handleSave = () => {
     setConfigError('');
+    if (!did.trim()) {
+      setConfigError('Device ID (DID) is required.');
+      return;
+    }
+    if (apiVersion === 'v1') {
+      if (!config.hasPassword && !password.trim()) {
+        setConfigError('Account Password is required for API V1.');
+        return;
+      }
+      if (!config.hasApiToken && !apiToken.trim()) {
+        setConfigError('API Token is required for API V1.');
+        return;
+      }
+    } else {
+      if (!config.hasApiToken && !apiToken.trim()) {
+        setConfigError('API Key is required for API V2.');
+        return;
+      }
+      if (!config.hasApiSecret && !apiSecret.trim()) {
+        setConfigError('API Secret is required for API V2.');
+        return;
+      }
+    }
+
     const patch = buildStationPatch({
       apiVersion,
       did,
-      password: apiVersion === 'v1' ? password : password,
-      apiToken,
-      apiSecret: apiVersion === 'v2' ? apiSecret : '',
-      stationId: apiVersion === 'v2' ? stationId : '',
+      password: password.trim(),
+      apiToken: apiToken.trim(),
+      apiSecret: apiVersion === 'v2' ? apiSecret.trim() : '',
+      stationId: apiVersion === 'v2' ? stationId.trim() : '',
       latitude: '',
       longitude: '',
     });
@@ -364,12 +388,17 @@ export default function ConfigNavbar() {
                       <>
                         {/* V1: Device ID (DID) */}
                         <div className="flex flex-col gap-1.5">
-                          <label className={labelCls}>Device ID (DID)</label>
+                          <label className={labelCls}>
+                            Device ID (DID)
+                            <span className="ml-2 text-slate-400 normal-case font-normal text-[10px]">
+                              for multiple devices, separate DIDs with commas
+                            </span>
+                          </label>
                           <input
                             type="text"
                             value={did}
                             onChange={(e) => setDid(e.target.value)}
-                            placeholder="e.g. 001D0A00DE6A"
+                            placeholder="e.g. 001D0A00DE6A or 001D0A00DE6A, 001D0A00DE6B"
                             autoComplete="off"
                             className={monoInputCls}
                           />
