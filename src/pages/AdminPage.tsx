@@ -15,6 +15,14 @@ import {
   FileText,
   UserCheck,
   Zap,
+  Search,
+  ExternalLink,
+  LogOut,
+  ChevronRight,
+  TrendingUp,
+  Activity,
+  Edit3,
+  X,
 } from 'lucide-react';
 import {
   adminActivateDevice,
@@ -73,7 +81,7 @@ function formatDaysRemaining(targetTs: number | null | undefined): { text: strin
   const diff = targetTs - Date.now();
   if (diff <= 0) return { text: 'Expired', status: 'expired' };
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  return { text: `${days}d left`, status: 'active' };
+  return { text: `${days}d remaining`, status: 'active' };
 }
 
 export default function AdminPage() {
@@ -98,6 +106,7 @@ export default function AdminPage() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [notesDraft, setNotesDraft] = useState('');
 
@@ -122,6 +131,7 @@ export default function AdminPage() {
   }, [setUser, setAuthChecked]);
 
   const load = async () => {
+    setRefreshing(true);
     setErr('');
     try {
       const [o, u, s] = await Promise.all([adminGetOverview(), adminListUsers(q), adminGetSettings()]);
@@ -145,6 +155,8 @@ export default function AdminPage() {
       }
     } catch (e: any) {
       setErr(e.message || 'Failed to load admin data');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -165,21 +177,29 @@ export default function AdminPage() {
 
   if (loading || !authChecked) {
     return (
-      <div className="min-h-screen bg-[#e8edf3] dark:bg-[#0a0d14] text-slate-500 dark:text-gray-400 flex items-center justify-center">
-        Loading admin…
+      <div className="min-h-screen bg-[#070a11] text-slate-400 flex flex-col items-center justify-center gap-3 font-sans">
+        <div className="w-8 h-8 rounded-full border-2 border-sky-500/30 border-t-sky-400 animate-spin" />
+        <span className="text-xs font-mono tracking-wider uppercase">Loading Admin Dashboard…</span>
       </div>
     );
   }
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-[#e8edf3] dark:bg-[#0a0d14] text-slate-900 dark:text-white flex items-center justify-center p-6 text-center">
-        <div>
-          <Shield className="w-8 h-8 text-rose-400 mx-auto mb-3" />
-          <h1 className="font-bold text-lg">Admin only</h1>
-          <p className="text-slate-500 dark:text-gray-400 text-sm mt-2">Your account is not an admin.</p>
-          <Link to="/app" className="text-sky-600 dark:text-sky-400 text-sm mt-4 inline-block">
-            Back to console
+      <div className="min-h-screen bg-[#070a11] text-white flex items-center justify-center p-6 text-center select-none">
+        <div className="max-w-md w-full bg-[#0d121f] border border-rose-500/20 rounded-2xl p-8 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto mb-4">
+            <Shield className="w-7 h-7" />
+          </div>
+          <h1 className="font-bold text-xl text-white">Admin Access Restricted</h1>
+          <p className="text-slate-400 text-xs mt-2 leading-relaxed">
+            Your account (<span className="text-slate-200 font-mono">{user.email}</span>) does not have administrator privileges.
+          </p>
+          <Link
+            to="/app"
+            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold rounded-xl transition-all shadow-lg"
+          >
+            Return to Live Console
           </Link>
         </div>
       </div>
@@ -196,7 +216,7 @@ export default function AdminPage() {
       const res = await adminUpdateSettings(payload);
       setSettings(res.settings || []);
       if (res.groups) setGroups(res.groups);
-      setMsg('Settings saved — marketing pages and SEO update immediately');
+      setMsg('Settings saved — site copy & SEO updated immediately');
     } catch (e: any) {
       setErr(e.message || 'Save failed');
     }
@@ -206,7 +226,7 @@ export default function AdminPage() {
     try {
       await adminUpdateUser(userId, { notes: notesDraft });
       setEditingNotesId(null);
-      setMsg('Customer notes updated');
+      setMsg('Customer CRM notes updated');
       await load();
     } catch (e: any) {
       setErr(e.message || 'Failed to update notes');
@@ -229,22 +249,22 @@ export default function AdminPage() {
     const isTextarea = TEXTAREA_KEYS.has(key);
     return (
       <div key={key} className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-gray-500 font-bold block">
+        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">
           {key}
         </label>
         {isTextarea ? (
           <textarea
             value={draft[key] ?? ''}
             onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-            rows={key.endsWith('_body') || key === 'home_features_json' ? 10 : 3}
-            className="w-full bg-white dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-sky-500/40 text-slate-900 dark:text-white"
+            rows={key.endsWith('_body') || key === 'home_features_json' ? 8 : 3}
+            className="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm font-mono outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20 text-white placeholder:text-slate-600 transition-all"
             placeholder={isSecret ? 'secret value' : ''}
           />
         ) : (
           <input
             value={draft[key] ?? ''}
             onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-            className="w-full bg-white dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-sky-500/40 text-slate-900 dark:text-white"
+            className="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm font-mono outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20 text-white placeholder:text-slate-600 transition-all"
             placeholder={isSecret ? 'secret value' : ''}
           />
         )}
@@ -255,104 +275,171 @@ export default function AdminPage() {
   const activeGroup = groups.find((g) => g.id === siteSection) || groups[0];
 
   return (
-    <div className="min-h-screen bg-[#e8edf3] dark:bg-[#0a0d14] text-slate-900 dark:text-white">
-      <header className="border-b border-slate-200 dark:border-gray-900 px-6 py-4 flex items-center justify-between bg-white/80 dark:bg-transparent backdrop-blur">
+    <div className="min-h-screen bg-[#070a11] text-slate-100 font-sans selection:bg-sky-500 selection:text-white">
+      {/* Top Navbar Header */}
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#070a11]/80 backdrop-blur-xl px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-sky-100 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
-            <Shield className="w-4 h-4" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500/20 to-indigo-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.15)]">
+            <Shield className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-black text-sm tracking-wider uppercase">Customer & Upgrades Manager</h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">admin.wwebconsole.com</p>
+            <div className="flex items-center gap-2">
+              <h1 className="font-extrabold text-sm tracking-wide text-white uppercase">WWebConsole Executive Admin</h1>
+              <span className="flex items-center gap-1 text-[10px] font-mono font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
+              </span>
+            </div>
+            <p className="text-[10px] font-mono text-slate-500 mt-0.5">admin.wwebconsole.com · {user.email}</p>
           </div>
         </div>
+
         <div className="flex items-center gap-2">
           <a
             href="https://wwebconsole.com"
             target="_blank"
             rel="noreferrer"
-            className="px-3 py-1.5 text-xs border border-slate-200 dark:border-gray-800 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-900"
+            className="px-3.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all flex items-center gap-1.5"
           >
-            View site
+            <Globe className="w-3.5 h-3.5 text-sky-400" />
+            <span>Public Site</span>
+            <ExternalLink className="w-3 h-3 opacity-60" />
           </a>
+
           <button
             onClick={load}
-            className="px-3 py-1.5 text-xs border border-slate-200 dark:border-gray-800 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-900 flex items-center gap-1.5"
+            disabled={refreshing}
+            className="px-3.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-sky-400' : ''}`} />
+            <span>Refresh</span>
           </button>
+
           <button
             onClick={async () => {
               await logout();
               setUser(null);
             }}
-            className="px-3 py-1.5 text-xs border border-slate-200 dark:border-gray-800 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-900"
+            className="px-3.5 py-1.5 text-xs font-semibold text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            Sign out
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
           </button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Customer KPI Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <Stat label="Total Customers" value={overview.users} color="text-slate-900 dark:text-white" />
-          <Stat label="Active Pro Devices" value={overview.activePaidDevices} color="text-emerald-500" />
-          <Stat label="Active Free Trials" value={overview.activeTrials} color="text-sky-400" />
-          <Stat label="Expired / Locked" value={overview.expiredTrials} color="text-amber-400" />
-          <Stat label="Suspended Accounts" value={overview.suspended} color="text-rose-400" />
+      {/* Main Dashboard Canvas */}
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        
+        {/* KPI Executive Summary Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <KpiCard
+            title="Total Customers"
+            value={overview.users}
+            sub="Registered Accounts"
+            icon={Users}
+            accentColor="from-sky-500/20 to-blue-600/10 border-sky-500/30 text-sky-400"
+          />
+          <KpiCard
+            title="Active Pro Devices"
+            value={overview.activePaidDevices}
+            sub="Paid Subscriptions"
+            icon={Zap}
+            accentColor="from-emerald-500/20 to-teal-600/10 border-emerald-500/30 text-emerald-400"
+          />
+          <KpiCard
+            title="Active Free Trials"
+            value={overview.activeTrials}
+            sub="60-Day Trial Active"
+            icon={Clock}
+            accentColor="from-indigo-500/20 to-purple-600/10 border-indigo-500/30 text-indigo-400"
+          />
+          <KpiCard
+            title="Expired / Locked"
+            value={overview.expiredTrials}
+            sub="Trial Ended"
+            icon={Ban}
+            accentColor="from-amber-500/20 to-orange-600/10 border-amber-500/30 text-amber-400"
+          />
+          <KpiCard
+            title="Suspended Accounts"
+            value={overview.suspended}
+            sub="Blocked Access"
+            icon={Shield}
+            accentColor="from-rose-500/20 to-red-600/10 border-rose-500/30 text-rose-400"
+          />
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          <TabBtn active={tab === 'users'} onClick={() => setTab('users')} icon={Users} label="Customers & Upgrades" />
-          <TabBtn active={tab === 'site'} onClick={() => setTab('site')} icon={Globe} label="Site & SEO" />
-          <TabBtn active={tab === 'settings'} onClick={() => setTab('settings')} icon={Settings} label="Integrations" />
+        {/* Navigation Tabs */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2">
+            <NavTab active={tab === 'users'} onClick={() => setTab('users')} icon={Users} label="Customer Directory & Upgrades" />
+            <NavTab active={tab === 'site'} onClick={() => setTab('site')} icon={Globe} label="Site Copy & SEO" />
+            <NavTab active={tab === 'settings'} onClick={() => setTab('settings')} icon={Settings} label="API & Integrations" />
+          </div>
         </div>
 
+        {/* Feedback Notifications */}
         {err && (
-          <p className="mb-3 text-rose-600 dark:text-rose-400 text-xs bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/20 rounded-lg px-3 py-2">
-            {err}
-          </p>
+          <div className="bg-rose-500/15 border border-rose-500/30 rounded-xl px-4 py-3 text-rose-300 text-xs font-semibold flex items-center justify-between">
+            <span>{err}</span>
+            <button onClick={() => setErr('')} className="p-1 hover:text-white"><X className="w-4 h-4" /></button>
+          </div>
         )}
         {msg && (
-          <p className="mb-3 text-emerald-700 dark:text-emerald-400 text-xs bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/20 rounded-lg px-3 py-2">
-            {msg}
-          </p>
+          <div className="bg-emerald-500/15 border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-300 text-xs font-semibold flex items-center justify-between">
+            <span>{msg}</span>
+            <button onClick={() => setMsg('')} className="p-1 hover:text-white"><X className="w-4 h-4" /></button>
+          </div>
         )}
 
+        {/* ── Customers & Upgrades Tab ── */}
         {tab === 'users' && (
           <div className="space-y-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                load();
-              }}
-              className="flex gap-2"
-            >
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search email, customer name, station name, or DID..."
-                className="flex-1 bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-sky-500/40 text-slate-900 dark:text-white"
-              />
-              <button className="px-5 py-2.5 text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white rounded-lg transition-colors">
-                Search Customers
-              </button>
-            </form>
+            {/* Search & Filter Bar */}
+            <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  load();
+                }}
+                className="flex-1 flex items-center gap-3 bg-[#070a11] border border-white/10 focus-within:border-sky-400 rounded-xl px-4 py-2 transition-all"
+              >
+                <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search customer email, name, station name, or device DID..."
+                  className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 outline-none font-sans"
+                />
+                {q && (
+                  <button type="button" onClick={() => setQ('')} className="text-slate-500 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                <button type="submit" className="px-3.5 py-1 text-xs font-bold bg-sky-500 hover:bg-sky-400 text-white rounded-lg transition-colors">
+                  Search
+                </button>
+              </form>
 
-            <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="text-xs text-slate-400 font-mono px-2">
+                Showing <span className="text-white font-bold">{users.length}</span> customer records
+              </div>
+            </div>
+
+            {/* Customers Table */}
+            <div className="bg-[#0e1320] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 dark:bg-gray-950 text-slate-600 dark:text-gray-400 uppercase tracking-wider border-b border-slate-200 dark:border-gray-800">
+                  <thead className="bg-[#090d16] text-slate-400 uppercase tracking-wider text-[10px] font-bold border-b border-white/10">
                     <tr>
-                      <th className="px-4 py-3 font-bold">Customer Account</th>
-                      <th className="px-4 py-3 font-bold">Plan & Access Status</th>
-                      <th className="px-4 py-3 font-bold">Connected Station & DID</th>
-                      <th className="px-4 py-3 font-bold">Notes</th>
-                      <th className="px-4 py-3 font-bold text-right">Upgrade & Manage</th>
+                      <th className="px-5 py-3.5">Customer Account</th>
+                      <th className="px-5 py-3.5">Subscription & Access</th>
+                      <th className="px-5 py-3.5">Station & Hardware DID</th>
+                      <th className="px-5 py-3.5">CRM Notes</th>
+                      <th className="px-5 py-3.5 text-right">Upgrade & Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-gray-900">
+                  <tbody className="divide-y divide-white/5">
                     {users.map((u) => {
                       const isPro = u.billing?.subscriptionStatus === 'active' || u.billing?.subscriptionStatus === 'paid';
                       const expInfo = formatDaysRemaining(
@@ -360,104 +447,114 @@ export default function AdminPage() {
                       );
 
                       return (
-                        <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-gray-900/30 transition-colors">
+                        <tr key={u.id} className="hover:bg-white/[0.02] transition-colors group">
                           {/* Customer info */}
-                          <td className="px-4 py-3 align-top">
-                            <div className="font-bold text-sm text-slate-900 dark:text-white">{u.email}</div>
-                            <div className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 flex items-center gap-1.5">
+                          <td className="px-5 py-4 align-top">
+                            <div className="font-bold text-sm text-white group-hover:text-sky-300 transition-colors">
+                              {u.email}
+                            </div>
+                            <div className="text-slate-400 text-xs mt-1 flex items-center gap-1.5 flex-wrap">
                               <span>{u.name || '—'}</span>
                               {u.role === 'admin' && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-500 rounded uppercase">
+                                <span className="px-2 py-0.5 text-[9px] font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded-full uppercase">
                                   Admin
                                 </span>
                               )}
                               {u.suspended ? (
-                                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-rose-500/20 text-rose-400 rounded uppercase">
+                                <span className="px-2 py-0.5 text-[9px] font-mono font-bold bg-rose-500/15 border border-rose-500/30 text-rose-400 rounded-full uppercase">
                                   Suspended
                                 </span>
                               ) : null}
                             </div>
-                            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-1">
-                              Joined {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
+                            <div className="text-[10px] text-slate-500 font-mono mt-1.5">
+                              Registered: {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
                             </div>
                           </td>
 
                           {/* Access / Subscription Status */}
-                          <td className="px-4 py-3 align-top">
-                            <div className="flex items-center gap-1.5">
+                          <td className="px-5 py-4 align-top">
+                            <div className="flex items-center gap-2">
                               {isPro ? (
-                                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                                  <Sparkles className="w-3 h-3" /> Pro Active
+                                <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Pro Active
                                 </span>
                               ) : u.billing?.accessOk ? (
-                                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" /> Trial Active
+                                <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" /> Trial Active
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center gap-1">
-                                  <Ban className="w-3 h-3" /> Access Locked
+                                <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> Access Locked
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mt-1.5">
+
+                            <div className="text-xs font-mono font-semibold text-slate-300 mt-2 flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                               {expInfo.text !== '—' && (
                                 <span>
-                                  {expInfo.status === 'expired' ? 'Expired' : `${expInfo.text}`} (
-                                  {new Date(
-                                    isPro ? u.billing?.subscriptionExpiresAt : u.billing?.freeUntil
-                                  ).toLocaleDateString()}
-                                  )
+                                  {expInfo.status === 'expired' ? (
+                                    <span className="text-amber-400 font-bold">Expired</span>
+                                  ) : (
+                                    <span className="text-sky-300">{expInfo.text}</span>
+                                  )}
+                                  <span className="text-slate-500 font-normal ml-1">
+                                    ({new Date(isPro ? u.billing?.subscriptionExpiresAt : u.billing?.freeUntil).toLocaleDateString()})
+                                  </span>
                                 </span>
                               )}
                             </div>
                             {u.billing?.accessReason && (
-                              <div className="text-[11px] text-amber-500 mt-0.5">{u.billing.accessReason}</div>
+                              <div className="text-[11px] text-amber-400/90 font-mono mt-1">{u.billing.accessReason}</div>
                             )}
                           </td>
 
                           {/* Hardware / Station Info */}
-                          <td className="px-4 py-3 align-top font-mono">
+                          <td className="px-5 py-4 align-top font-mono">
                             {u.stationName ? (
-                              <div>
-                                <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 text-xs">
-                                  <Radio className="w-3 h-3 text-sky-400 shrink-0" />
+                              <div className="space-y-1">
+                                <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                                  <Radio className="w-3.5 h-3.5 text-sky-400 shrink-0 animate-pulse-soft" />
                                   <span>{u.stationName}</span>
                                 </div>
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                  {u.cloudApiVersion?.toUpperCase() || 'V2'} · DID: {u.cloudDid || 'auto-discovered'}
+                                <div className="text-[11px] text-slate-400">
+                                  <span className="px-1.5 py-0.5 bg-slate-800 border border-white/10 rounded text-[10px] text-sky-300 font-bold mr-1">
+                                    {u.cloudApiVersion?.toUpperCase() || 'V2'}
+                                  </span>
+                                  <span>DID: {u.cloudDid || 'auto-discovered'}</span>
                                 </div>
                                 {u.lastHttpAt && (
-                                  <div className="text-[10px] text-emerald-500 mt-0.5">
+                                  <div className="text-[10px] text-emerald-400 font-sans mt-0.5">
                                     Last poll: {new Date(u.lastHttpAt).toLocaleTimeString()}
                                   </div>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-slate-400 text-xs italic">Unconfigured</span>
+                              <span className="text-slate-600 text-xs italic">Unconfigured</span>
                             )}
                           </td>
 
                           {/* Admin Notes */}
-                          <td className="px-4 py-3 align-top max-w-[200px]">
+                          <td className="px-5 py-4 align-top max-w-[220px]">
                             {editingNotesId === u.id ? (
-                              <div className="flex flex-col gap-1.5">
+                              <div className="flex flex-col gap-2">
                                 <textarea
                                   value={notesDraft}
                                   onChange={(e) => setNotesDraft(e.target.value)}
                                   rows={2}
-                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-sky-500/40 rounded p-1.5 text-xs outline-none text-slate-900 dark:text-white"
-                                  placeholder="Internal CRM notes..."
+                                  className="w-full bg-[#070a11] border border-sky-400/50 rounded-xl p-2 text-xs outline-none text-white font-sans"
+                                  placeholder="Enter internal CRM notes..."
                                 />
-                                <div className="flex gap-1">
+                                <div className="flex items-center gap-1.5">
                                   <button
                                     onClick={() => handleSaveNotes(u.id)}
-                                    className="px-2 py-0.5 text-[10px] font-bold bg-sky-600 text-white rounded"
+                                    className="px-2.5 py-1 text-[10px] font-bold bg-sky-500 hover:bg-sky-400 text-white rounded-lg"
                                   >
-                                    Save
+                                    Save Note
                                   </button>
                                   <button
                                     onClick={() => setEditingNotesId(null)}
-                                    className="px-2 py-0.5 text-[10px] text-slate-400 hover:text-white"
+                                    className="px-2 py-1 text-[10px] text-slate-400 hover:text-white"
                                   >
                                     Cancel
                                   </button>
@@ -469,28 +566,29 @@ export default function AdminPage() {
                                   setEditingNotesId(u.id);
                                   setNotesDraft(u.notes || '');
                                 }}
-                                className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 p-1 rounded min-h-[32px] text-[11px] text-slate-600 dark:text-slate-400 italic"
+                                className="group/note cursor-pointer hover:bg-white/5 border border-transparent hover:border-white/10 p-2 rounded-xl text-[11px] text-slate-400 hover:text-slate-200 transition-all min-h-[36px] flex items-start justify-between gap-1"
                                 title="Click to edit notes"
                               >
-                                {u.notes ? u.notes : '+ Add note...'}
+                                <span className="italic">{u.notes ? u.notes : '+ Add note...'}</span>
+                                <Edit3 className="w-3 h-3 opacity-0 group-hover/note:opacity-100 text-sky-400 shrink-0 mt-0.5" />
                               </div>
                             )}
                           </td>
 
-                          {/* Upgrade & Actions */}
-                          <td className="px-4 py-3 align-top text-right">
-                            <div className="flex flex-col items-end gap-1.5">
-                              <div className="flex items-center gap-1">
+                          {/* Upgrade Actions */}
+                          <td className="px-5 py-4 align-top text-right">
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="flex items-center gap-1.5">
                                 <button
                                   onClick={async () => {
                                     await adminActivateDevice(u.id, { years: 1, wlPlan: 'pro' });
                                     await load();
                                     setMsg(`Upgraded ${u.email} to Pro (+1 Year)`);
                                   }}
-                                  className="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-md flex items-center gap-1 transition-colors shadow-sm"
+                                  className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] active:scale-95 cursor-pointer"
                                   title="Activate +1 Year Pro Plan"
                                 >
-                                  <Zap className="w-3 h-3" /> +1yr Pro
+                                  <Zap className="w-3.5 h-3.5 fill-current" /> +1yr Pro
                                 </button>
                                 <button
                                   onClick={async () => {
@@ -498,17 +596,17 @@ export default function AdminPage() {
                                     await load();
                                     setMsg(`Upgraded ${u.email} to Pro (+2 Years)`);
                                   }}
-                                  className="px-2 py-1 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white rounded-md transition-colors"
+                                  className="px-2.5 py-1.5 text-xs font-bold bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 rounded-xl transition-all cursor-pointer"
                                   title="Activate +2 Years Pro Plan"
                                 >
                                   +2yr
                                 </button>
                               </div>
 
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1.5">
                                 <button
                                   onClick={() => handleExtendTrial(u.id, 30)}
-                                  className="px-2 py-1 text-[11px] font-semibold border border-sky-500/30 text-sky-400 hover:bg-sky-500/10 rounded transition-colors"
+                                  className="px-2.5 py-1 text-[11px] font-semibold bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 rounded-lg transition-all cursor-pointer"
                                   title="Add +30 Days Free Trial"
                                 >
                                   +30d Trial
@@ -519,7 +617,7 @@ export default function AdminPage() {
                                     await adminUpdateUser(u.id, { suspended: !u.suspended });
                                     await load();
                                   }}
-                                  className="px-2 py-1 text-[11px] font-semibold border border-slate-300 dark:border-gray-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-800 rounded transition-colors"
+                                  className="px-2.5 py-1 text-[11px] font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white rounded-lg transition-all cursor-pointer"
                                 >
                                   {u.suspended ? 'Unsuspend' : 'Suspend'}
                                 </button>
@@ -536,11 +634,11 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── Site & SEO Tab ── */}
         {tab === 'site' && (
           <form onSubmit={onSaveSettings} className="space-y-4">
-            <p className="text-xs text-slate-500 dark:text-gray-400">
-              Edit marketing copy, SEO titles/descriptions, pricing blurbs, and legal pages. Changes apply to
-              wwebconsole.com, sitemap.xml, and robots.txt.
+            <p className="text-xs text-slate-400">
+              Manage marketing page text, SEO title/descriptions, pricing blurbs, and legal agreements. Changes update wwebconsole.com, sitemap.xml, and robots.txt in real-time.
             </p>
             <div className="flex flex-wrap gap-2">
               {groups.map((g) => (
@@ -548,38 +646,40 @@ export default function AdminPage() {
                   key={g.id}
                   type="button"
                   onClick={() => setSiteSection(g.id)}
-                  className={`px-3 py-1.5 text-xs rounded-lg border ${
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                     activeGroup?.id === g.id
-                      ? 'bg-sky-600 text-white border-sky-600'
-                      : 'border-slate-200 dark:border-gray-800 hover:bg-white dark:hover:bg-gray-900'
+                      ? 'bg-sky-500 text-white border-sky-400 shadow-lg'
+                      : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'
                   }`}
                 >
                   {g.label}
                 </button>
               ))}
             </div>
-            <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
-              <h2 className="text-sm font-bold">{activeGroup?.label || 'Site'}</h2>
+            <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-6 space-y-5 shadow-2xl">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Globe className="w-4 h-4 text-sky-400" />
+                {activeGroup?.label || 'Site Section'}
+              </h2>
               {(activeGroup?.keys || []).map((key) => renderField(key))}
               <button
                 type="submit"
-                className="px-4 py-2 text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white rounded-lg flex items-center gap-1.5"
+                className="px-5 py-2.5 text-xs font-bold bg-sky-500 hover:bg-sky-400 text-white rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-lg"
               >
-                <Save className="w-3.5 h-3.5" /> Save site & SEO
+                <Save className="w-4 h-4" /> Save Site Copy & SEO
               </button>
             </div>
           </form>
         )}
 
+        {/* ── Integrations Tab ── */}
         {tab === 'settings' && (
           <form
             onSubmit={onSaveSettings}
-            className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl p-5 space-y-4"
+            className="bg-[#0e1320] border border-white/10 rounded-2xl p-6 space-y-5 shadow-2xl"
           >
-            <p className="text-xs text-slate-500 dark:text-gray-400">
-              Prefer Worker secrets for Turnstile/Resend (`wrangler secret put TURNSTILE_SECRET_KEY` /
-              `RESEND_API_KEY`). D1 values are a fallback. Leave secret fields as •••••••• to keep the current value.
-              Enable Turnstile in production (`turnstile_enabled=1`).
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Configure Turnstile bot protection, Resend API key, and polling intervals. For maximum security, use Worker secrets (`wrangler secret put TURNSTILE_SECRET_KEY`).
             </p>
             {integrationRows.map((s) => renderField(s.key))}
             {integrationRows.length === 0 &&
@@ -588,9 +688,9 @@ export default function AdminPage() {
               )}
             <button
               type="submit"
-              className="px-4 py-2 text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white rounded-lg flex items-center gap-1.5"
+              className="px-5 py-2.5 text-xs font-bold bg-sky-500 hover:bg-sky-400 text-white rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-lg"
             >
-              <Save className="w-3.5 h-3.5" /> Save integrations
+              <Save className="w-4 h-4" /> Save Integrations
             </button>
           </form>
         )}
@@ -599,16 +699,36 @@ export default function AdminPage() {
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
+function KpiCard({
+  title,
+  value,
+  sub,
+  icon: Icon,
+  accentColor,
+}: {
+  title: string;
+  value: number;
+  sub: string;
+  icon: typeof Users;
+  accentColor: string;
+}) {
   return (
-    <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 shadow-sm">
-      <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">{label}</p>
-      <p className={`text-2xl font-black mt-1 ${color || 'text-slate-900 dark:text-white'}`}>{value}</p>
+    <div className={`bg-[#0e1320] border rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden shadow-xl bg-gradient-to-b ${accentColor.split(' ')[0]} ${accentColor.split(' ')[1]}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold">{title}</span>
+        <div className={`w-8 h-8 rounded-xl border flex items-center justify-center ${accentColor.split(' ').slice(2).join(' ')}`}>
+          <Icon className="w-4 h-4" />
+        </div>
+      </div>
+      <div className="mt-3">
+        <span className="text-3xl font-black text-white tracking-tight">{value}</span>
+        <p className="text-[10px] text-slate-400 font-sans mt-0.5">{sub}</p>
+      </div>
     </div>
   );
 }
 
-function TabBtn({
+function NavTab({
   active,
   onClick,
   icon: Icon,
@@ -623,10 +743,10 @@ function TabBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-2 text-xs font-semibold rounded-lg border flex items-center gap-1.5 transition-colors ${
+      className={`px-4 py-2 text-xs font-bold rounded-xl border flex items-center gap-2 transition-all cursor-pointer ${
         active
-          ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
-          : 'border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-900'
+          ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-[0_0_15px_rgba(56,189,248,0.15)]'
+          : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
       }`}
     >
       <Icon className="w-3.5 h-3.5" />
