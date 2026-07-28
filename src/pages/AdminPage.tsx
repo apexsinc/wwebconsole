@@ -9,6 +9,12 @@ import {
   RefreshCw,
   Save,
   Globe,
+  Sparkles,
+  Clock,
+  Radio,
+  FileText,
+  UserCheck,
+  Zap,
 } from 'lucide-react';
 import {
   adminActivateDevice,
@@ -23,7 +29,6 @@ import {
 import { useWeatherStore } from '../store.js';
 
 type Tab = 'users' | 'site' | 'settings';
-
 type SettingGroup = { id: string; label: string; keys: string[] };
 
 const TEXTAREA_KEYS = new Set([
@@ -63,13 +68,27 @@ const INTEGRATION_KEYS = new Set([
   'poll_pro_sec',
 ]);
 
+function formatDaysRemaining(targetTs: number | null | undefined): { text: string; status: 'active' | 'expired' | 'none' } {
+  if (!targetTs || !Number.isFinite(targetTs)) return { text: '—', status: 'none' };
+  const diff = targetTs - Date.now();
+  if (diff <= 0) return { text: 'Expired', status: 'expired' };
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return { text: `${days}d left`, status: 'active' };
+}
+
 export default function AdminPage() {
   const user = useWeatherStore((s) => s.user);
   const setUser = useWeatherStore((s) => s.setUser);
   const authChecked = useWeatherStore((s) => s.authChecked);
   const setAuthChecked = useWeatherStore((s) => s.setAuthChecked);
   const [tab, setTab] = useState<Tab>('users');
-  const [overview, setOverview] = useState({ users: 0, suspended: 0, activePaidDevices: 0 });
+  const [overview, setOverview] = useState({
+    users: 0,
+    suspended: 0,
+    activePaidDevices: 0,
+    activeTrials: 0,
+    expiredTrials: 0,
+  });
   const [users, setUsers] = useState<any[]>([]);
   const [q, setQ] = useState('');
   const [settings, setSettings] = useState<any[]>([]);
@@ -79,6 +98,8 @@ export default function AdminPage() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [notesDraft, setNotesDraft] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -104,7 +125,13 @@ export default function AdminPage() {
     setErr('');
     try {
       const [o, u, s] = await Promise.all([adminGetOverview(), adminListUsers(q), adminGetSettings()]);
-      setOverview(o);
+      setOverview({
+        users: o.users || 0,
+        suspended: o.suspended || 0,
+        activePaidDevices: o.activePaidDevices || 0,
+        activeTrials: (o as any).activeTrials || 0,
+        expiredTrials: (o as any).expiredTrials || 0,
+      });
       setUsers(u.users || []);
       setSettings(s.settings || []);
       setGroups(s.groups || []);
@@ -175,6 +202,27 @@ export default function AdminPage() {
     }
   };
 
+  const handleSaveNotes = async (userId: string) => {
+    try {
+      await adminUpdateUser(userId, { notes: notesDraft });
+      setEditingNotesId(null);
+      setMsg('Customer notes updated');
+      await load();
+    } catch (e: any) {
+      setErr(e.message || 'Failed to update notes');
+    }
+  };
+
+  const handleExtendTrial = async (userId: string, days: number) => {
+    try {
+      await adminUpdateUser(userId, { extendTrialDays: days });
+      setMsg(`Extended free trial by +${days} days`);
+      await load();
+    } catch (e: any) {
+      setErr(e.message || 'Failed to extend trial');
+    }
+  };
+
   const renderField = (key: string) => {
     const row = byKey.get(key);
     const isSecret = row?.secret;
@@ -214,7 +262,7 @@ export default function AdminPage() {
             <Shield className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="font-black text-sm tracking-wider uppercase">WWebConsole Admin</h1>
+            <h1 className="font-black text-sm tracking-wider uppercase">Customer & Upgrades Manager</h1>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest">admin.wwebconsole.com</p>
           </div>
         </div>
@@ -245,15 +293,18 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <Stat label="Users" value={overview.users} />
-          <Stat label="Suspended" value={overview.suspended} />
-          <Stat label="Paid devices" value={overview.activePaidDevices} />
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Customer KPI Metric Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          <Stat label="Total Customers" value={overview.users} color="text-slate-900 dark:text-white" />
+          <Stat label="Active Pro Devices" value={overview.activePaidDevices} color="text-emerald-500" />
+          <Stat label="Active Free Trials" value={overview.activeTrials} color="text-sky-400" />
+          <Stat label="Expired / Locked" value={overview.expiredTrials} color="text-amber-400" />
+          <Stat label="Suspended Accounts" value={overview.suspended} color="text-rose-400" />
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          <TabBtn active={tab === 'users'} onClick={() => setTab('users')} icon={Users} label="Users" />
+          <TabBtn active={tab === 'users'} onClick={() => setTab('users')} icon={Users} label="Customers & Upgrades" />
           <TabBtn active={tab === 'site'} onClick={() => setTab('site')} icon={Globe} label="Site & SEO" />
           <TabBtn active={tab === 'settings'} onClick={() => setTab('settings')} icon={Settings} label="Integrations" />
         </div>
@@ -270,7 +321,7 @@ export default function AdminPage() {
         )}
 
         {tab === 'users' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -281,81 +332,206 @@ export default function AdminPage() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search email or name"
-                className="flex-1 bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500/40"
+                placeholder="Search email, customer name, station name, or DID..."
+                className="flex-1 bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-sky-500/40 text-slate-900 dark:text-white"
               />
-              <button className="px-4 py-2 text-xs font-semibold bg-sky-600 text-white rounded-lg">Search</button>
+              <button className="px-5 py-2.5 text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white rounded-lg transition-colors">
+                Search Customers
+              </button>
             </form>
 
-            <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-gray-950 text-slate-500 uppercase tracking-wider">
-                  <tr>
-                    <th className="px-3 py-2">User</th>
-                    <th className="px-3 py-2">Access</th>
-                    <th className="px-3 py-2">WL plan</th>
-                    <th className="px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id} className="border-t border-slate-100 dark:border-gray-900">
-                      <td className="px-3 py-2">
-                        <div className="font-semibold">{u.email}</div>
-                        <div className="text-slate-500">
-                          {u.name} · {u.role}
-                          {u.suspended ? ' · SUSPENDED' : ''}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        {u.billing?.subscriptionStatus}
-                        {!u.billing?.accessOk && (
-                          <div className="text-amber-600 dark:text-amber-400 text-[10px]">{u.billing?.accessReason}</div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 font-mono">{u.billing?.wlPlan || '—'}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex flex-wrap gap-1">
-                          <button
-                            onClick={async () => {
-                              await adminUpdateUser(u.id, { suspended: !u.suspended });
-                              await load();
-                            }}
-                            className="px-2 py-1 rounded border border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-900 flex items-center gap-1"
-                          >
-                            {u.suspended ? (
-                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                            ) : (
-                              <Ban className="w-3 h-3 text-rose-500" />
-                            )}
-                            {u.suspended ? 'Unsuspend' : 'Suspend'}
-                          </button>
-                          <button
-                            onClick={async () => {
-                              await adminActivateDevice(u.id, { years: 1, wlPlan: 'pro' });
-                              await load();
-                            }}
-                            className="px-2 py-1 rounded border border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-900"
-                          >
-                            +1yr Pro
-                          </button>
-                          {u.role !== 'admin' && (
-                            <button
-                              onClick={async () => {
-                                await adminUpdateUser(u.id, { role: 'admin' });
-                                await load();
-                              }}
-                              className="px-2 py-1 rounded border border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-900"
-                            >
-                              Make admin
-                            </button>
-                          )}
-                        </div>
-                      </td>
+            <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 dark:bg-gray-950 text-slate-600 dark:text-gray-400 uppercase tracking-wider border-b border-slate-200 dark:border-gray-800">
+                    <tr>
+                      <th className="px-4 py-3 font-bold">Customer Account</th>
+                      <th className="px-4 py-3 font-bold">Plan & Access Status</th>
+                      <th className="px-4 py-3 font-bold">Connected Station & DID</th>
+                      <th className="px-4 py-3 font-bold">Notes</th>
+                      <th className="px-4 py-3 font-bold text-right">Upgrade & Manage</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-gray-900">
+                    {users.map((u) => {
+                      const isPro = u.billing?.subscriptionStatus === 'active' || u.billing?.subscriptionStatus === 'paid';
+                      const expInfo = formatDaysRemaining(
+                        isPro ? u.billing?.subscriptionExpiresAt : u.billing?.freeUntil
+                      );
+
+                      return (
+                        <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-gray-900/30 transition-colors">
+                          {/* Customer info */}
+                          <td className="px-4 py-3 align-top">
+                            <div className="font-bold text-sm text-slate-900 dark:text-white">{u.email}</div>
+                            <div className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 flex items-center gap-1.5">
+                              <span>{u.name || '—'}</span>
+                              {u.role === 'admin' && (
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-500 rounded uppercase">
+                                  Admin
+                                </span>
+                              )}
+                              {u.suspended ? (
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-rose-500/20 text-rose-400 rounded uppercase">
+                                  Suspended
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-1">
+                              Joined {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
+                            </div>
+                          </td>
+
+                          {/* Access / Subscription Status */}
+                          <td className="px-4 py-3 align-top">
+                            <div className="flex items-center gap-1.5">
+                              {isPro ? (
+                                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3" /> Pro Active
+                                </span>
+                              ) : u.billing?.accessOk ? (
+                                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" /> Trial Active
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                                  <Ban className="w-3 h-3" /> Access Locked
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs font-mono font-medium text-slate-600 dark:text-slate-300 mt-1.5">
+                              {expInfo.text !== '—' && (
+                                <span>
+                                  {expInfo.status === 'expired' ? 'Expired' : `${expInfo.text}`} (
+                                  {new Date(
+                                    isPro ? u.billing?.subscriptionExpiresAt : u.billing?.freeUntil
+                                  ).toLocaleDateString()}
+                                  )
+                                </span>
+                              )}
+                            </div>
+                            {u.billing?.accessReason && (
+                              <div className="text-[11px] text-amber-500 mt-0.5">{u.billing.accessReason}</div>
+                            )}
+                          </td>
+
+                          {/* Hardware / Station Info */}
+                          <td className="px-4 py-3 align-top font-mono">
+                            {u.stationName ? (
+                              <div>
+                                <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 text-xs">
+                                  <Radio className="w-3 h-3 text-sky-400 shrink-0" />
+                                  <span>{u.stationName}</span>
+                                </div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                  {u.cloudApiVersion?.toUpperCase() || 'V2'} · DID: {u.cloudDid || 'auto-discovered'}
+                                </div>
+                                {u.lastHttpAt && (
+                                  <div className="text-[10px] text-emerald-500 mt-0.5">
+                                    Last poll: {new Date(u.lastHttpAt).toLocaleTimeString()}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">Unconfigured</span>
+                            )}
+                          </td>
+
+                          {/* Admin Notes */}
+                          <td className="px-4 py-3 align-top max-w-[200px]">
+                            {editingNotesId === u.id ? (
+                              <div className="flex flex-col gap-1.5">
+                                <textarea
+                                  value={notesDraft}
+                                  onChange={(e) => setNotesDraft(e.target.value)}
+                                  rows={2}
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-sky-500/40 rounded p-1.5 text-xs outline-none text-slate-900 dark:text-white"
+                                  placeholder="Internal CRM notes..."
+                                />
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleSaveNotes(u.id)}
+                                    className="px-2 py-0.5 text-[10px] font-bold bg-sky-600 text-white rounded"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingNotesId(null)}
+                                    className="px-2 py-0.5 text-[10px] text-slate-400 hover:text-white"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                onClick={() => {
+                                  setEditingNotesId(u.id);
+                                  setNotesDraft(u.notes || '');
+                                }}
+                                className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 p-1 rounded min-h-[32px] text-[11px] text-slate-600 dark:text-slate-400 italic"
+                                title="Click to edit notes"
+                              >
+                                {u.notes ? u.notes : '+ Add note...'}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Upgrade & Actions */}
+                          <td className="px-4 py-3 align-top text-right">
+                            <div className="flex flex-col items-end gap-1.5">
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={async () => {
+                                    await adminActivateDevice(u.id, { years: 1, wlPlan: 'pro' });
+                                    await load();
+                                    setMsg(`Upgraded ${u.email} to Pro (+1 Year)`);
+                                  }}
+                                  className="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-md flex items-center gap-1 transition-colors shadow-sm"
+                                  title="Activate +1 Year Pro Plan"
+                                >
+                                  <Zap className="w-3 h-3" /> +1yr Pro
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    await adminActivateDevice(u.id, { years: 2, wlPlan: 'pro' });
+                                    await load();
+                                    setMsg(`Upgraded ${u.email} to Pro (+2 Years)`);
+                                  }}
+                                  className="px-2 py-1 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white rounded-md transition-colors"
+                                  title="Activate +2 Years Pro Plan"
+                                >
+                                  +2yr
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleExtendTrial(u.id, 30)}
+                                  className="px-2 py-1 text-[11px] font-semibold border border-sky-500/30 text-sky-400 hover:bg-sky-500/10 rounded transition-colors"
+                                  title="Add +30 Days Free Trial"
+                                >
+                                  +30d Trial
+                                </button>
+
+                                <button
+                                  onClick={async () => {
+                                    await adminUpdateUser(u.id, { suspended: !u.suspended });
+                                    await load();
+                                  }}
+                                  className="px-2 py-1 text-[11px] font-semibold border border-slate-300 dark:border-gray-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-800 rounded transition-colors"
+                                >
+                                  {u.suspended ? 'Unsuspend' : 'Suspend'}
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -423,11 +599,11 @@ export default function AdminPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
-    <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3">
-      <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">{label}</p>
-      <p className="text-2xl font-black mt-1">{value}</p>
+    <div className="bg-white dark:bg-[#0e111a] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 shadow-sm">
+      <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">{label}</p>
+      <p className={`text-2xl font-black mt-1 ${color || 'text-slate-900 dark:text-white'}`}>{value}</p>
     </div>
   );
 }
@@ -447,9 +623,9 @@ function TabBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-2 text-xs font-semibold rounded-lg border flex items-center gap-1.5 ${
+      className={`px-3 py-2 text-xs font-semibold rounded-lg border flex items-center gap-1.5 transition-colors ${
         active
-          ? 'bg-sky-600 text-white border-sky-600'
+          ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
           : 'border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-900'
       }`}
     >

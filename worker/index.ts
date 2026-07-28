@@ -792,17 +792,31 @@ app.get('/api/public/tv/:slug', async (c) => {
 
 // ---------- Admin ----------
 app.get('/api/admin/overview', requireAdmin, async (c) => {
+  const now = Date.now();
   const users = await c.env.DB.prepare('SELECT COUNT(*) as c FROM users').first<{ c: number }>();
   const suspended = await c.env.DB.prepare('SELECT COUNT(*) as c FROM users WHERE suspended = 1').first<{ c: number }>();
   const activePaid = await c.env.DB.prepare(
     `SELECT COUNT(*) as c FROM stations WHERE subscription_status = 'active' AND subscription_expires_at > ?`
   )
-    .bind(Date.now())
+    .bind(now)
     .first<{ c: number }>();
+  const activeTrial = await c.env.DB.prepare(
+    `SELECT COUNT(*) as c FROM users WHERE free_until > ? AND suspended = 0`
+  )
+    .bind(now)
+    .first<{ c: number }>();
+  const expiredTrial = await c.env.DB.prepare(
+    `SELECT COUNT(*) as c FROM users WHERE (free_until IS NULL OR free_until <= ?) AND id NOT IN (SELECT user_id FROM stations WHERE subscription_status = 'active' AND subscription_expires_at > ?)`
+  )
+    .bind(now, now)
+    .first<{ c: number }>();
+
   return c.json({
     users: users?.c || 0,
     suspended: suspended?.c || 0,
     activePaidDevices: activePaid?.c || 0,
+    activeTrials: activeTrial?.c || 0,
+    expiredTrials: expiredTrial?.c || 0,
   });
 });
 
@@ -814,9 +828,16 @@ app.get('/api/admin/users', requireAdmin, async (c) => {
   if (q) {
     const like = `%${q.replace(/[%_]/g, '')}%`;
     const res = await c.env.DB.prepare(
-      `SELECT * FROM users WHERE email LIKE ? COLLATE NOCASE OR name LIKE ? COLLATE NOCASE ORDER BY created_at DESC LIMIT ?`
+      `SELECT u.* FROM users u
+       LEFT JOIN stations s ON s.user_id = u.id
+       WHERE u.email LIKE ? COLLATE NOCASE
+          OR u.name LIKE ? COLLATE NOCASE
+          OR s.name LIKE ? COLLATE NOCASE
+          OR s.cloud_did LIKE ? COLLATE NOCASE
+       GROUP BY u.id
+       ORDER BY u.created_at DESC LIMIT ?`
     )
-      .bind(like, like, limit)
+      .bind(like, like, like, like, limit)
       .all<UserRow>();
     rows = res.results || [];
   } else {
@@ -827,7 +848,17 @@ app.get('/api/admin/users', requireAdmin, async (c) => {
   const out = [];
   for (const u of rows) {
     const station = await getStationForUser(c.env, u.id);
-    out.push({ ...publicUser(u), billing: publicBilling(u, station), stationId: station?.id || null });
+    out.push({
+      ...publicUser(u),
+      notes: u.notes || '',
+      createdAt: u.created_at,
+      billing: publicBilling(u, station),
+      stationId: station?.id || null,
+      stationName: station?.name || station?.cloud_station_name || null,
+      cloudApiVersion: station?.cloud_api_version || null,
+      cloudDid: station?.cloud_did || null,
+      lastHttpAt: station?.last_http_at || null,
+    });
   }
   return c.json({ users: out });
 });
@@ -840,12 +871,22 @@ app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
       notes: z.string().max(500).optional(),
       freeUntil: z.number().nullable().optional(),
       emailVerified: z.boolean().optional(),
+      extendTrialDays: z.number().int().min(1).max(365).optional(),
     })
     .safeParse(await c.req.json());
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   const d = body.data;
-  const id = c.req.param('id');
+  const id = c.req.param('id') || '';
   const now = Date.now();
+
+  const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
+  if (!user) return c.json({ error: 'User not found' }, 404);
+
+  let newFreeUntil = d.freeUntil;
+  if (d.extendTrialDays) {
+    const currentBase = Math.max(user.free_until || 0, now);
+    newFreeUntil = currentBase + d.extendTrialDays * 24 * 60 * 60 * 1000;
+  }
 
   await c.env.DB.prepare(
     `UPDATE users SET
@@ -861,8 +902,8 @@ app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
       d.suspended === undefined ? null : d.suspended ? 1 : 0,
       d.role ?? null,
       d.notes ?? null,
-      d.freeUntil !== undefined ? 1 : 0,
-      d.freeUntil ?? null,
+      newFreeUntil !== undefined ? 1 : 0,
+      newFreeUntil ?? null,
       d.emailVerified === undefined ? null : d.emailVerified ? 1 : 0,
       now,
       id
@@ -873,10 +914,9 @@ app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
     await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
   }
 
-  const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
-  if (!user) return c.json({ error: 'Not found' }, 404);
-  const station = await getStationForUser(c.env, id!);
-  return c.json({ user: publicUser(user), billing: publicBilling(user, station) });
+  const updatedUser = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
+  const station = await getStationForUser(c.env, id);
+  return c.json({ user: publicUser(updatedUser!), billing: publicBilling(updatedUser!, station) });
 });
 
 app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
@@ -888,8 +928,9 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
     .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
 
-  const station = await getStationForUser(c.env, c.req.param('id')!);
-  if (!station) return c.json({ error: 'Station not found' }, 404);
+  const userId = c.req.param('id') || '';
+  const station = await getStationForUser(c.env, userId);
+  if (!station) return c.json({ error: 'Station not found for this user' }, 404);
   if (body.data.wlPlan !== 'pro') {
     return c.json({ error: 'Paid yearly activation requires WeatherLink Pro' }, 400);
   }
@@ -905,8 +946,8 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
       .run();
   }
 
-  const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(c.req.param('id')).first<UserRow>();
-  const updated = await getStationForUser(c.env, c.req.param('id')!);
+  const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<UserRow>();
+  const updated = await getStationForUser(c.env, userId);
   return c.json({ ok: true, billing: publicBilling(user!, updated) });
 });
 
