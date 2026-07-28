@@ -20,8 +20,12 @@ function isAdminHost() {
 }
 
 /** After login/register/verify: admin host → admin home; main site → console. */
-function postAuthPath() {
-  return isAdminHost() ? '/' : '/app';
+function postAuthPath(userRole?: string) {
+  const isAdmHost = isAdminHost();
+  if (userRole === 'admin') {
+    return isAdmHost ? '/' : 'https://admin.wwebconsole.com/';
+  }
+  return isAdmHost ? 'https://wwebconsole.com/app' : '/app';
 }
 
 declare global {
@@ -219,7 +223,12 @@ export function LoginPage() {
     try {
       const { user } = await login(email, password, turnstile.token || undefined);
       setUser(user);
-      navigate(postAuthPath());
+      const target = postAuthPath(user.role);
+      if (target.startsWith('http')) {
+        window.location.href = target;
+      } else {
+        navigate(target);
+      }
     } catch (err: any) {
       turnstile.reset();
       if (err.code === 'EMAIL_NOT_VERIFIED') {

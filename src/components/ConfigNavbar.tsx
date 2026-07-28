@@ -17,6 +17,7 @@ import {
   Sun,
   ExternalLink,
   Clock,
+  Shield,
 } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
 import {
@@ -252,6 +253,18 @@ export default function ConfigNavbar() {
         </div>
 
         <div className="flex items-center gap-2">
+          {user?.role === 'admin' && (
+            <a
+              href="https://admin.wwebconsole.com"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-lg transition-all"
+              title="Open Executive Admin Dashboard"
+            >
+              <Shield className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Admin Executive Portal</span>
+            </a>
+          )}
           <button
             onClick={toggleTheme}
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white rounded-lg"

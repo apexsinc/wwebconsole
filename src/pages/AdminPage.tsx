@@ -205,20 +205,20 @@ export default function AdminPage() {
   if (user.role !== 'admin') {
     return (
       <div className="min-h-screen bg-[#f8fafc] dark:bg-[#070a11] text-slate-900 dark:text-white flex items-center justify-center p-6 text-center select-none">
-        <div className="max-w-md w-full bg-white dark:bg-[#0d121f] border border-rose-500/20 rounded-2xl p-8 shadow-2xl">
-          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 mx-auto mb-4">
+        <div className="max-w-md w-full bg-white dark:bg-[#0d121f] border border-amber-500/20 rounded-2xl p-8 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 mx-auto mb-4">
             <Shield className="w-7 h-7" />
           </div>
-          <h1 className="font-bold text-xl text-slate-900 dark:text-white">Admin Access Restricted</h1>
+          <h1 className="font-bold text-xl text-slate-900 dark:text-white">Customer Account Detected</h1>
           <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 leading-relaxed">
-            Your account (<span className="text-slate-800 dark:text-slate-200 font-mono">{user.email}</span>) does not have administrator privileges.
+            Your account (<span className="text-slate-800 dark:text-slate-200 font-mono">{user.email}</span>) is registered as a customer account for the live weather console. Admin executive privileges are required for this portal.
           </p>
-          <Link
-            to="/app"
-            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold rounded-xl transition-all shadow-lg"
+          <a
+            href="https://wwebconsole.com/app"
+            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold rounded-xl transition-all shadow-lg cursor-pointer"
           >
-            Return to Live Console
-          </Link>
+            Go to Live Weather Console (wwebconsole.com)
+          </a>
         </div>
       </div>
     );
