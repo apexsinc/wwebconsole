@@ -27,6 +27,7 @@
   ],
   "vars": {
     "APP_NAME": "Weatherlink Web Console",
-    "APP_URL": "https://wwebconsole.com"
+    "APP_URL": "https://wwebconsole.com",
+    "ADMIN_EMAILS": "apexsinc@gmail.com,demo@wwebconsole.com"
   }
 }
