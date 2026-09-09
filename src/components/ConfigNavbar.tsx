@@ -147,11 +147,11 @@ export default function ConfigNavbar() {
 
   const handleSave = () => {
     setConfigError('');
-    if (!did.trim()) {
-      setConfigError('Device ID (DID) is required.');
-      return;
-    }
     if (apiVersion === 'v1') {
+      if (!did.trim()) {
+        setConfigError('Device ID (DID) is required.');
+        return;
+      }
       if (!config.hasPassword && !password.trim()) {
         setConfigError('Account Password is required for API V1.');
         return;
@@ -519,6 +519,24 @@ export default function ConfigNavbar() {
                             autoComplete="new-password"
                             placeholder={config.hasApiSecret ? 'Leave blank to keep current' : 'Paste your V2 API secret here'}
                             className={inputCls}
+                          />
+                        </div>
+
+                        {/* V2: Device ID (DID) — optional, for accounts with multiple stations on one API key */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>
+                            Device ID (DID)
+                            <span className="ml-2 text-slate-400 normal-case font-normal text-[10px]">
+                              optional — only needed if your API key has multiple stations
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            value={did}
+                            onChange={(e) => setDid(e.target.value)}
+                            placeholder="e.g. 001D0A00DE6A or 001D0A00DE6A, 001D0A00DE6B"
+                            autoComplete="off"
+                            className={monoInputCls}
                           />
                         </div>
 

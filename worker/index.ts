@@ -1037,7 +1037,22 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
 
   const userId = c.req.param('id') || '';
-  const station = await getStationForUser(c.env, userId);
+  let station = await getStationForUser(c.env, userId);
+  if (!station) {
+    // Mirrors /api/billing/checkout: a registered user should always have a
+    // station row (created at signup), but self-heal for legacy/edge-case
+    // accounts instead of silently blocking the admin's manual grant.
+    const targetUser = await c.env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first<{ id: string }>();
+    if (!targetUser) return c.json({ error: 'Customer not found' }, 404);
+    const now = Date.now();
+    const id = newId();
+    await c.env.DB.prepare(
+      `INSERT INTO stations (id, user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`
+    )
+      .bind(id, userId, 'Device 1', now, now)
+      .run();
+    station = await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?').bind(id).first<StationRow>();
+  }
   if (!station) return c.json({ error: 'Station not found for this user' }, 404);
   if (body.data.wlPlan !== 'pro') {
     return c.json({ error: 'Paid yearly activation requires WeatherLink Pro' }, 400);

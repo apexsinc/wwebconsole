@@ -30,22 +30,28 @@ export function hasAccountAccess(user: UserRow, station?: StationRow | null): { 
   }
 
   const now = Date.now();
+
+  // A paid (or admin-comped) Pro subscription always takes precedence over
+  // the free trial, even if the trial window hasn't lapsed yet — otherwise
+  // upgrading a still-in-trial user has no visible effect until their trial
+  // naturally expires.
+  const subStatus = (station?.subscription_status || 'none') as SubscriptionStatus;
+  const expires = station?.subscription_expires_at || 0;
+  const hasActivePro = subStatus === 'active' && expires > now && normalizeWlPlan(station?.wl_plan) === 'pro';
+  if (hasActivePro) {
+    return { ok: true, status: 'active' };
+  }
+
   if (user.free_until && user.free_until > now) {
     return { ok: true, status: 'trial' };
   }
 
-  const subStatus = (station?.subscription_status || 'none') as SubscriptionStatus;
-  const expires = station?.subscription_expires_at || 0;
   if (subStatus === 'active' && expires > now) {
-    const plan = normalizeWlPlan(station?.wl_plan);
-    if (plan !== 'pro') {
-      return {
-        ok: false,
-        reason: 'Paid plans require a WeatherLink Pro subscription on the device',
-        status: 'active',
-      };
-    }
-    return { ok: true, status: 'active' };
+    return {
+      ok: false,
+      reason: 'Paid plans require a WeatherLink Pro subscription on the device',
+      status: 'active',
+    };
   }
 
   return {

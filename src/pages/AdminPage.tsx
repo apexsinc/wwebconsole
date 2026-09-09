@@ -638,9 +638,13 @@ export default function AdminPage() {
                               <div className="flex items-center gap-1.5">
                                 <button
                                   onClick={async () => {
-                                    await adminActivateDevice(u.id, { years: 1, wlPlan: 'pro' });
-                                    await load();
-                                    setMsg(`Upgraded ${u.email} to Pro (+1 Year)`);
+                                    try {
+                                      await adminActivateDevice(u.id, { years: 1, wlPlan: 'pro' });
+                                      await load();
+                                      setMsg(`Upgraded ${u.email} to Pro (+1 Year)`);
+                                    } catch (e: any) {
+                                      setErr(e.message || `Failed to upgrade ${u.email} to Pro`);
+                                    }
                                   }}
                                   className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
                                   title="Activate +1 Year Pro Plan"
@@ -649,9 +653,13 @@ export default function AdminPage() {
                                 </button>
                                 <button
                                   onClick={async () => {
-                                    await adminActivateDevice(u.id, { years: 2, wlPlan: 'pro' });
-                                    await load();
-                                    setMsg(`Upgraded ${u.email} to Pro (+2 Years)`);
+                                    try {
+                                      await adminActivateDevice(u.id, { years: 2, wlPlan: 'pro' });
+                                      await load();
+                                      setMsg(`Upgraded ${u.email} to Pro (+2 Years)`);
+                                    } catch (e: any) {
+                                      setErr(e.message || `Failed to upgrade ${u.email} to Pro`);
+                                    }
                                   }}
                                   className="px-2.5 py-1.5 text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 rounded-xl transition-all cursor-pointer"
                                   title="Activate +2 Years Pro Plan"
@@ -771,11 +779,15 @@ export default function AdminPage() {
           onClose={() => setSelectedUser(null)}
           onExtendTrial={(days) => handleExtendTrial(selectedUser.id, days)}
           onActivatePro={(years) => {
-            adminActivateDevice(selectedUser.id, { years, wlPlan: 'pro' }).then(() => {
-              load();
-              setMsg(`Activated +${years}yr Pro for ${selectedUser.email}`);
-              setSelectedUser(null);
-            });
+            adminActivateDevice(selectedUser.id, { years, wlPlan: 'pro' })
+              .then(() => {
+                load();
+                setMsg(`Activated +${years}yr Pro for ${selectedUser.email}`);
+                setSelectedUser(null);
+              })
+              .catch((e: any) => {
+                setErr(e.message || `Failed to activate Pro for ${selectedUser.email}`);
+              });
           }}
           onDeleteAccount={() => handleDeleteUser(selectedUser)}
         />
