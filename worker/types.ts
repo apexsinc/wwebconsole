@@ -73,6 +73,9 @@ export interface Env {
   /** Optional Workers secrets that override D1 settings */
   TURNSTILE_SECRET_KEY?: string;
   RESEND_API_KEY?: string;
+  POLAR_ACCESS_TOKEN?: string;
+  POLAR_PRODUCT_ID?: string;
+  POLAR_WEBHOOK_SECRET?: string;
 }
 
 export interface UserRow {

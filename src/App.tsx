@@ -20,6 +20,9 @@ import {
   ShieldAlert,
   CheckCircle2,
   Sparkles,
+  Loader2,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 
 import TabletFrame from './components/TabletFrame.js';
@@ -30,7 +33,7 @@ import SettingsModal from './components/SettingsModal.js';
 import ConfigNavbar from './components/ConfigNavbar.js';
 import { GlassPanel, WeatherMetric } from './components/WeatherPanel.js';
 import { useWeatherStore } from './store.js';
-import { fetchMe, useWeatherQuery } from './services/api.js';
+import { fetchMe, useWeatherQuery, createCheckoutSession, verifyCheckout } from './services/api.js';
 import { LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage } from './pages/AuthPages.js';
 import AccountPage from './pages/AccountPage.js';
 import AdminPage from './pages/AdminPage.js';
@@ -131,8 +134,26 @@ function UpgradeProModal({
   onOpenSettings: () => void;
 }) {
   const isPhilippines = useIsPhilippines();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   if (!isOpen) return null;
+
+  const handleUpgrade = async () => {
+    setCheckoutError('');
+    setIsSubmitting(true);
+    try {
+      const res = await createCheckoutSession();
+      if (res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL was returned by the server.');
+      }
+    } catch (err: any) {
+      setCheckoutError(err?.message || 'Failed to start Polar checkout. Please try again or contact support.');
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 select-none cursor-default">
@@ -190,12 +211,35 @@ function UpgradeProModal({
           </div>
         </div>
 
-        <div className="w-full">
+        {checkoutError && (
+          <div className="w-full text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl p-3 mb-4 text-left">
+            {checkoutError}
+          </div>
+        )}
+
+        <div className="w-full flex flex-col gap-2.5">
+          <button
+            onClick={handleUpgrade}
+            disabled={isSubmitting}
+            className="w-full px-5 py-3.5 text-sm font-bold bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 rounded-xl transition-all cursor-pointer active:scale-95 shadow-[0_4px_20px_rgba(245,158,11,0.35)] flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Redirecting to Polar Checkout…</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Upgrade to Pro with Polar</span>
+              </>
+            )}
+          </button>
           <a
             href="mailto:support@apexs.ph?subject=Console%20Pro%20Account%20Subscription%20Upgrade"
-            className="w-full px-5 py-3 text-sm font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition-all cursor-pointer active:scale-95 shadow-[0_4px_20px_rgba(245,158,11,0.35)] flex items-center justify-center gap-2"
+            className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors py-1"
           >
-            <Sparkles className="w-4 h-4" /> Upgrade Now to Pro
+            Need invoice, PO, or bank transfer? Contact support
           </a>
         </div>
       </div>
@@ -210,8 +254,43 @@ function MainDashboard() {
   const billing = useWeatherStore((state) => state.billing);
   const user = useWeatherStore((state) => state.user);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [checkoutBanner, setCheckoutBanner] = useState<{ type: 'success' | 'error' | 'loading'; message: string } | null>(null);
 
   useWeatherQuery(true);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get('checkout');
+    const checkoutId = params.get('checkout_id');
+
+    if (checkoutStatus === 'success' && checkoutId) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setCheckoutBanner({ type: 'loading', message: 'Verifying your Polar checkout session…' });
+      verifyCheckout(checkoutId)
+        .then((res) => {
+          if (res.ok) {
+            setCheckoutBanner({
+              type: 'success',
+              message: '🎉 Welcome to Console Pro! Your 1-Year subscription is now active.',
+            });
+            if (res.billing) {
+              useWeatherStore.getState().setBilling(res.billing);
+            }
+          } else {
+            setCheckoutBanner({
+              type: 'error',
+              message: res.message || 'Payment is processing. Subscription will activate shortly.',
+            });
+          }
+        })
+        .catch((err: any) => {
+          setCheckoutBanner({
+            type: 'error',
+            message: err?.message || 'Verification failed. If your payment went through, contact support.',
+          });
+        });
+    }
+  }, []);
 
   const expiresAt = billing?.subscriptionExpiresAt ? Number(billing.subscriptionExpiresAt) :
     billing?.freeUntil ? Number(billing.freeUntil) :
@@ -256,6 +335,31 @@ function MainDashboard() {
   return (
     <div className="flex-1 flex flex-col justify-between h-full relative">
       <UpgradeProModal isOpen={isTrialExpired} onOpenSettings={() => setIsSettingsOpen(true)} />
+
+      {checkoutBanner && (
+        <div
+          className={`mx-4 mt-3 p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs font-medium z-40 ${
+            checkoutBanner.type === 'success'
+              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+              : checkoutBanner.type === 'loading'
+              ? 'bg-sky-500/15 border-sky-500/40 text-sky-300'
+              : 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {checkoutBanner.type === 'loading' && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+            {checkoutBanner.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+            {checkoutBanner.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+            <span>{checkoutBanner.message}</span>
+          </div>
+          <button
+            onClick={() => setCheckoutBanner(null)}
+            className="p-1 hover:bg-white/10 rounded-md transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {weather.ts === 0 && !isTrialExpired && (
         <div className="absolute inset-0 bg-black/75 backdrop-blur-md z-30 flex items-center justify-center p-6 select-none">

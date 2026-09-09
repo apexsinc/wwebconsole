@@ -37,6 +37,9 @@ keys = [
     "RESEND_API_KEY",
     "CLOUDFLARE_API_TOKEN",
     "CLOUDFLARE_ACCOUNT_ID",
+    "POLAR_ACCESS_TOKEN",
+    "POLAR_PRODUCT_ID",
+    "POLAR_WEBHOOK_SECRET",
 ]
 # Prefer LOCAL_APP_URL for local APP_URL
 app_url = vals.get("LOCAL_APP_URL") or vals.get("APP_URL") or "http://localhost:5173"

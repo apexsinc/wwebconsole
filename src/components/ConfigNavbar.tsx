@@ -18,11 +18,14 @@ import {
   ExternalLink,
   Clock,
   Shield,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
 import {
   buildStationPatch,
   createShareLink,
+  createCheckoutSession,
   deleteShareLink,
   logout,
   useConfigMutation,
@@ -93,7 +96,25 @@ export default function ConfigNavbar() {
   const [copied, setCopied] = useState('');
   const [configError, setConfigError] = useState('');
   const [shareError, setShareError] = useState('');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
   const billing = useWeatherStore((s) => s.billing);
+
+  const handleUpgradeCheckout = async () => {
+    setCheckoutError('');
+    setCheckoutLoading(true);
+    try {
+      const res = await createCheckoutSession();
+      if (res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL received from server.');
+      }
+    } catch (err: any) {
+      setCheckoutError(err?.message || 'Failed to start checkout. Please try again.');
+      setCheckoutLoading(false);
+    }
+  };
 
   const isPaidPlan = billing?.subscriptionStatus === 'active' || billing?.subscriptionStatus === 'paid';
   const expiresAt = isPaidPlan
@@ -533,6 +554,30 @@ export default function ConfigNavbar() {
                         {' · '}poll <span className="text-sky-300">{billing.pollIntervalSec}s</span>
                       </p>
                     )}
+
+                    <div className="pt-2 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={handleUpgradeCheckout}
+                        disabled={checkoutLoading}
+                        className="w-full py-2.5 px-4 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 flex items-center justify-center gap-2 transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                      >
+                        {checkoutLoading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Opening Polar Checkout…</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{isPaidPlan ? 'Renew / Extend Pro Access (Polar)' : 'Upgrade to Console Pro (Polar)'}</span>
+                          </>
+                        )}
+                      </button>
+                      {checkoutError && (
+                        <p className="text-xs text-rose-400 leading-snug">{checkoutError}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 

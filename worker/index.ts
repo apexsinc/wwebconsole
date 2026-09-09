@@ -28,6 +28,7 @@ import {
   publicBilling,
   setStationWlPlan,
 } from './billing';
+import { createPolarCheckoutSession, verifyAndApplyCheckout, handlePolarWebhook } from './polar';
 import { decryptJson, newId, randomSlug } from './crypto';
 import { createAndSendOtp, consumeOtp } from './otp';
 import {
@@ -652,6 +653,83 @@ app.post('/api/billing/activate', requireAuth, async (c) => {
     return c.json({ error: err.message }, 400);
   }
 });
+
+// ---------- Polar Billing & Checkout ----------
+app.post('/api/billing/checkout', requireAuth, async (c) => {
+  const user = c.get('user');
+  const body = z
+    .object({
+      stationId: z.string().optional(),
+    })
+    .safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+
+  let station = body.data.stationId
+    ? await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?').bind(body.data.stationId).first<StationRow>()
+    : await getStationForUser(c.env, user.id);
+
+  if (!station) {
+    const now = Date.now();
+    const id = newId();
+    await c.env.DB.prepare(
+      `INSERT INTO stations (id, user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`
+    )
+      .bind(id, user.id, 'Device 1', now, now)
+      .run();
+    station = await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?').bind(id).first<StationRow>();
+  }
+
+  if (!station) return c.json({ error: 'Station not found' }, 404);
+
+  const appUrl = c.req.header('origin') || c.env.APP_URL || 'https://wwebconsole.com';
+
+  try {
+    const result = await createPolarCheckoutSession(c.env, user, station, appUrl);
+    return c.json({ ok: true, checkoutUrl: result.checkoutUrl, checkoutId: result.checkoutId });
+  } catch (err: any) {
+    console.error('Polar checkout error:', err);
+    return c.json({ error: err.message || 'Failed to initiate Polar checkout' }, 500);
+  }
+});
+
+app.post('/api/billing/verify-checkout', requireAuth, async (c) => {
+  const user = c.get('user');
+  const body = z
+    .object({
+      checkoutId: z.string().min(1),
+    })
+    .safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: 'Missing checkoutId' }, 400);
+
+  try {
+    const result = await verifyAndApplyCheckout(c.env, body.data.checkoutId, user);
+    if (!result.ok) {
+      return c.json({ ok: false, error: result.message, status: result.status }, 400);
+    }
+    const station = await getStationForUser(c.env, user.id);
+    return c.json({ ok: true, message: result.message, billing: publicBilling(user, station) });
+  } catch (err: any) {
+    console.error('Polar verify checkout error:', err);
+    return c.json({ error: err.message || 'Failed to verify checkout' }, 500);
+  }
+});
+
+const handleWebhookRequest = async (c: any) => {
+  try {
+    const payload = await c.req.json().catch(() => null);
+    if (!payload) return c.text('Bad Request', 400);
+
+    const result = await handlePolarWebhook(c.env, payload);
+    return c.json({ ok: true, result });
+  } catch (err: any) {
+    console.error('Polar webhook error:', err);
+    return c.json({ error: err.message || 'Webhook processing failed' }, 500);
+  }
+};
+
+app.post('/api/webhooks/polar', handleWebhookRequest);
+app.post('/api/billing/webhook', handleWebhookRequest);
+
 
 // ---------- Share links ----------
 app.get('/api/share', requireAuth, async (c) => {

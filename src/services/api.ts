@@ -300,3 +300,17 @@ export function buildStationPatch(form: {
   // wlPlan is not user-writable (billing / admin controlled)
   return patch;
 }
+
+export async function createCheckoutSession(stationId?: string) {
+  return api<{ ok: boolean; checkoutUrl: string; checkoutId: string }>('/api/billing/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ stationId }),
+  });
+}
+
+export async function verifyCheckout(checkoutId: string) {
+  return api<{ ok: boolean; message?: string; billing?: BillingInfo }>('/api/billing/verify-checkout', {
+    method: 'POST',
+    body: JSON.stringify({ checkoutId }),
+  });
+}

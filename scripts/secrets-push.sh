@@ -6,6 +6,20 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT}/.env"
 cd "$ROOT"
+
+# Resolve Node runtime from ~/.local/node/bin, antigravity ide server, or PATH
+if ! command -v node >/dev/null 2>&1; then
+  for candidate in \
+    "${HOME}/.local/node/bin" \
+    $(ls -d "${HOME}/.antigravity-ide-server/bin"/*/ 2>/dev/null | tail -n 1) \
+    "${HOME}/.local/bin" \
+    "/usr/local/bin"; do
+    if [[ -x "${candidate}/node" ]]; then
+      export PATH="${candidate}:${PATH}"
+      break
+    fi
+  done
+fi
 export PATH="${HOME}/.local/node/bin:${PATH}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -14,10 +28,11 @@ if [[ ! -f "$ENV_FILE" ]]; then
 fi
 
 python3 - "$ENV_FILE" <<'PY'
-import json, os, subprocess, sys
+import json, os, shutil, subprocess, sys
 from pathlib import Path
 
 env_path = Path(sys.argv[1])
+root_path = env_path.parent
 vals = {}
 for line in env_path.read_text(encoding="utf-8").splitlines():
     s = line.strip()
@@ -33,13 +48,20 @@ for line in env_path.read_text(encoding="utf-8").splitlines():
 for k, v in vals.items():
     os.environ[k] = v
 
+wrangler_bin = root_path / "node_modules" / ".bin" / "wrangler"
+def get_wrangler_cmd(args: list) -> list:
+    if wrangler_bin.exists():
+        node_exec = shutil.which("node") or "node"
+        return [node_exec, str(wrangler_bin)] + args
+    return ["npx", "wrangler"] + args
+
 def put_secret(name: str) -> None:
     value = vals.get(name) or ""
     if not value:
         print(f"skip {name} (empty)")
         return
     subprocess.run(
-        ["npx", "wrangler", "secret", "put", name],
+        get_wrangler_cmd(["secret", "put", name]),
         input=value.encode(),
         check=True,
         stdout=subprocess.DEVNULL,
@@ -54,6 +76,9 @@ for name in (
     "RESEND_API_KEY",
     "ADMIN_EMAIL",
     "ADMIN_EMAILS",
+    "POLAR_ACCESS_TOKEN",
+    "POLAR_PRODUCT_ID",
+    "POLAR_WEBHOOK_SECRET",
 ):
     put_secret(name)
 
@@ -87,7 +112,7 @@ if rs_key:
 
 sql = "; ".join(stmts)
 subprocess.check_call(
-    ["npx", "wrangler", "d1", "execute", "wwebconsole-db", "--remote", "--json", "--command", sql],
+    get_wrangler_cmd(["d1", "execute", "wwebconsole-db", "--remote", "--json", "--command", sql]),
     stdout=subprocess.DEVNULL,
 )
 print(f"D1 flags: turnstile_enabled={ts_on} resend_enabled={rs_on}")
