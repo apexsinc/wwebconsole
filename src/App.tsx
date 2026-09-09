@@ -31,6 +31,7 @@ import CompassRose from './components/CompassRose.js';
 import BottomBar from './components/BottomBar.js';
 import SettingsModal from './components/SettingsModal.js';
 import ConfigNavbar from './components/ConfigNavbar.js';
+import PolarCheckoutModal from './components/PolarCheckoutModal.js';
 import { GlassPanel, WeatherMetric } from './components/WeatherPanel.js';
 import { useWeatherStore } from './store.js';
 import { fetchMe, useWeatherQuery, createCheckoutSession, verifyCheckout } from './services/api.js';
@@ -129,9 +130,11 @@ const PHP_PRICE = Math.round(USD_PRICE * 60); // ₱2,340
 function UpgradeProModal({
   isOpen,
   onOpenSettings,
+  onStartCheckout,
 }: {
   isOpen: boolean;
   onOpenSettings: () => void;
+  onStartCheckout: (checkoutUrl: string, checkoutId: string) => void;
 }) {
   const isPhilippines = useIsPhilippines();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -145,7 +148,17 @@ function UpgradeProModal({
     try {
       const res = await createCheckoutSession();
       if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+        if (window.PolarEmbedCheckout?.create) {
+          try {
+            await window.PolarEmbedCheckout.create(res.checkoutUrl, 'dark');
+            setIsSubmitting(false);
+            return;
+          } catch {
+            // Fallback to internal modal
+          }
+        }
+        onStartCheckout(res.checkoutUrl, res.checkoutId);
+        setIsSubmitting(false);
       } else {
         throw new Error('No checkout URL was returned by the server.');
       }
@@ -254,6 +267,7 @@ function MainDashboard() {
   const billing = useWeatherStore((state) => state.billing);
   const user = useWeatherStore((state) => state.user);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeCheckout, setActiveCheckout] = useState<{ url: string; id: string } | null>(null);
   const [checkoutBanner, setCheckoutBanner] = useState<{ type: 'success' | 'error' | 'loading'; message: string } | null>(null);
 
   useWeatherQuery(true);
@@ -334,7 +348,24 @@ function MainDashboard() {
 
   return (
     <div className="flex-1 flex flex-col justify-between h-full relative">
-      <UpgradeProModal isOpen={isTrialExpired} onOpenSettings={() => setIsSettingsOpen(true)} />
+      <UpgradeProModal
+        isOpen={isTrialExpired}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onStartCheckout={(url, id) => setActiveCheckout({ url, id })}
+      />
+
+      <PolarCheckoutModal
+        isOpen={Boolean(activeCheckout)}
+        onClose={() => setActiveCheckout(null)}
+        checkoutUrl={activeCheckout?.url || null}
+        checkoutId={activeCheckout?.id || null}
+        onSuccess={() => {
+          setCheckoutBanner({
+            type: 'success',
+            message: '🎉 Welcome to Console Pro! Your 1-Year subscription is now active.',
+          });
+        }}
+      />
 
       {checkoutBanner && (
         <div

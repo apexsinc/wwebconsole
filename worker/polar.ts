@@ -69,6 +69,7 @@ export async function createPolarCheckoutSession(
     product_id: productId,
     customer_email: user.email,
     customer_name: user.name || undefined,
+    embed_origin: cleanAppUrl,
     customer_metadata: {
       userId: user.id,
       stationId: station.id,

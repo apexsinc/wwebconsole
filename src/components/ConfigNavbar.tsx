@@ -33,6 +33,7 @@ import {
 } from '../services/api.js';
 import { useTheme } from '../hooks/useTheme.js';
 import { PasswordInput } from './PasswordInput.js';
+import PolarCheckoutModal from './PolarCheckoutModal.js';
 
 function useCountdown(targetTimestamp: number | null | undefined) {
   const [timeLeft, setTimeLeft] = useState<{
@@ -98,6 +99,7 @@ export default function ConfigNavbar() {
   const [shareError, setShareError] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [activeCheckout, setActiveCheckout] = useState<{ url: string; id: string } | null>(null);
   const billing = useWeatherStore((s) => s.billing);
 
   const handleUpgradeCheckout = async () => {
@@ -106,7 +108,17 @@ export default function ConfigNavbar() {
     try {
       const res = await createCheckoutSession();
       if (res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+        if (window.PolarEmbedCheckout?.create) {
+          try {
+            await window.PolarEmbedCheckout.create(res.checkoutUrl, 'dark');
+            setCheckoutLoading(false);
+            return;
+          } catch {
+            // fallback to internal modal
+          }
+        }
+        setActiveCheckout({ url: res.checkoutUrl, id: res.checkoutId });
+        setCheckoutLoading(false);
       } else {
         throw new Error('No checkout URL received from server.');
       }
@@ -675,6 +687,17 @@ export default function ConfigNavbar() {
             )}
           </div>
         </div>
+      )}
+      {activeCheckout && (
+        <PolarCheckoutModal
+          isOpen={Boolean(activeCheckout)}
+          onClose={() => setActiveCheckout(null)}
+          checkoutUrl={activeCheckout.url}
+          checkoutId={activeCheckout.id}
+          onSuccess={() => {
+            setIsOpen(false);
+          }}
+        />
       )}
     </>
   );
