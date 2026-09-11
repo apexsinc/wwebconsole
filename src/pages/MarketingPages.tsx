@@ -349,7 +349,12 @@ export function HomePage() {
           
           <div className="relative z-10">
             <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-sky-100 pb-1">
-              Free for {site?.freeTrialDays ?? 60} days (2 months)
+              {(() => {
+                const days = site?.freeTrialDays ?? 60;
+                const months = Math.round(days / 30);
+                const monthSuffix = months > 0 ? ` (${months} ${months === 1 ? 'month' : 'months'})` : '';
+                return `Free for ${days} days${monthSuffix}`;
+              })()}
             </h2>
             <p className="text-lg text-sky-100/90 mt-3 font-medium max-w-md">
               Then {price.formatted}
@@ -459,7 +464,7 @@ export function PricingPage() {
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 sm:p-12 shadow-[0_4px_30px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 transition-colors">
             <p className="text-xs uppercase tracking-widest font-black text-[#073075]/60 dark:text-sky-400/80">Trial</p>
             <p className="mt-4 font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-[#020b18] dark:text-white tracking-tight transition-colors">
-              {site?.freeTrialDays ?? 30} days free
+              {site?.freeTrialDays ?? 60} days free
             </p>
             <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-6 leading-relaxed font-medium transition-colors">{site?.pricing_basic_blurb || ''}</p>
             <Link to="/register" className="inline-flex mt-8 text-base font-bold text-[#073075] dark:text-sky-400 hover:underline">

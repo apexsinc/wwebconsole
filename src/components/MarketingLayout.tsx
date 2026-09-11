@@ -104,10 +104,9 @@ export function MarketingLayout() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `px-4 py-2 text-[15px] rounded-lg transition-all ${
-                    isActive
-                      ? 'text-sky-300 font-bold bg-white/10 shadow-sm'
-                      : 'text-white/80 font-medium hover:text-white hover:bg-white/5'
+                  `px-4 py-2 text-[15px] rounded-lg transition-all ${isActive
+                    ? 'text-sky-300 font-bold bg-white/10 shadow-sm'
+                    : 'text-white/80 font-medium hover:text-white hover:bg-white/5'
                   }`
                 }
               >

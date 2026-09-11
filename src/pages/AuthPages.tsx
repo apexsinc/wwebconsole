@@ -298,7 +298,7 @@ export function RegisterPage() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authCfg, setAuthCfg] = useState({ turnstileEnabled: false, turnstileSiteKey: '', freeTrialDays: 30 });
+  const [authCfg, setAuthCfg] = useState({ turnstileEnabled: false, turnstileSiteKey: '', freeTrialDays: 60 });
   const turnstile = useTurnstile(authCfg.turnstileSiteKey, authCfg.turnstileEnabled);
 
   useEffect(() => {
@@ -349,7 +349,7 @@ export function RegisterPage() {
   return (
     <AuthShell
       title="Create account"
-      subtitle={`${authCfg.freeTrialDays || 30}-day free access · then yearly per device (WeatherLink Pro)`}
+      subtitle={`${authCfg.freeTrialDays || 60}-day free access · then yearly per device (WeatherLink Pro)}`}
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && (
