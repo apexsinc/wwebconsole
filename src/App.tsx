@@ -3,7 +3,7 @@
 * SPDX-License-Identifier: Apache-2.0
 */
 
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,16 +29,26 @@ import TabletFrame from './components/TabletFrame.js';
 import Header from './components/Header.js';
 import CompassRose from './components/CompassRose.js';
 import BottomBar from './components/BottomBar.js';
-import SettingsModal from './components/SettingsModal.js';
 import ConfigNavbar from './components/ConfigNavbar.js';
-import PolarCheckoutModal from './components/PolarCheckoutModal.js';
 import { GlassPanel, WeatherMetric } from './components/WeatherPanel.js';
+// Heavy routes split to keep initial bundle small (was 641KB warning).
+const SettingsModal = lazy(() => import('./components/SettingsModal.js'));
+const PolarCheckoutModal = lazy(() => import('./components/PolarCheckoutModal.js'));
+const TvPage = lazy(() => import('./pages/TvPage.js'));
+const AccountPage = lazy(() => import('./pages/AccountPage.js'));
+const AdminPage = lazy(() => import('./pages/AdminPage.js'));
+
+function RouteFallback({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400" role="status" aria-live="polite">
+      <span className="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-700 border-t-sky-500 animate-spin" aria-hidden="true" />
+      <p className="text-sm font-medium">{label}</p>
+    </div>
+  );
+}
 import { useWeatherStore } from './store.js';
 import { fetchMe, useWeatherQuery, createCheckoutSession, verifyCheckout } from './services/api.js';
 import { LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage } from './pages/AuthPages.js';
-import AccountPage from './pages/AccountPage.js';
-import AdminPage from './pages/AdminPage.js';
-import TvPage from './pages/TvPage.js';
 import { MarketingLayout } from './components/MarketingLayout.js';
 import {
   AboutPage,
@@ -365,6 +375,7 @@ function MainDashboard() {
         onStartCheckout={(url, id) => setActiveCheckout({ url, id })}
       />
 
+      <Suspense fallback={null}>
       <PolarCheckoutModal
         isOpen={Boolean(activeCheckout)}
         onClose={() => setActiveCheckout(null)}
@@ -377,6 +388,7 @@ function MainDashboard() {
           });
         }}
       />
+      </Suspense>
 
       {checkoutBanner && (
         <div
@@ -598,7 +610,9 @@ function MainDashboard() {
       )}
 
       <BottomBar onOpenSettings={() => setIsSettingsOpen(true)} />
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <Suspense fallback={null}>
+        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      </Suspense>
     </div>
   );
 }
@@ -675,6 +689,7 @@ function HostAwareRoutes() {
   // Dedicated admin host: login only (no public registration). Cloudflare Access OTP sits in front.
   if (host === 'admin.wwebconsole.com' || host.startsWith('admin.') || host === 'admin.localhost') {
     return (
+      <Suspense fallback={<RouteFallback label="Loading admin…" />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -683,10 +698,12 @@ function HostAwareRoutes() {
         <Route path="/verify" element={<Navigate to="/login" replace />} />
         <Route path="/*" element={<AdminPage />} />
       </Routes>
+      </Suspense>
     );
   }
 
   return (
+    <Suspense fallback={<RouteFallback label="Loading…" />}>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -711,6 +728,7 @@ function HostAwareRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 
