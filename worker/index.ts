@@ -942,8 +942,22 @@ app.get('/api/admin/users', requireAdmin, async (c) => {
   }
 
   const out = [];
+  // Batch stations in 1 query instead of N sequential getStationForUser calls.
+  const stationByUser = new Map<string, StationRow>();
+  if (rows.length > 0) {
+    const ids = rows.map((u) => u.id);
+    const placeholders = ids.map(() => '?').join(',');
+    const { results: stationRows } = await c.env.DB.prepare(
+      `SELECT * FROM stations WHERE user_id IN (${placeholders})`
+    )
+      .bind(...ids)
+      .all<StationRow>();
+    for (const s of stationRows || []) {
+      if (s?.user_id && !stationByUser.has(s.user_id)) stationByUser.set(s.user_id, s);
+    }
+  }
   for (const u of rows) {
-    const station = await getStationForUser(c.env, u.id);
+    const station = stationByUser.get(u.id) || null;
     const parsedWeather = station ? parseStoredWeather(station) : null;
     out.push({
       ...publicUser(u),

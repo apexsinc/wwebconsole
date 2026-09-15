@@ -158,7 +158,8 @@ export function localizeYearlyPrice(usd: number, country: string | null | undefi
   const amount = roundAmount(currency, usd * rate);
   let formatted: string;
   try {
-    formatted = new Intl.NumberFormat(undefined, {
+    // Pin locale for deterministic output across isolates (was `undefined` → nondeterministic).
+    formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       maximumFractionDigits: ZERO_DECIMAL.has(currency) ? 0 : 0,
