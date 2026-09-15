@@ -689,6 +689,14 @@ export default function AdminPage() {
                         </tr>
                       );
                     })}
+                    {users.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center">
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">No customers match your filters</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Try clearing search or checking a different subscription tab.</p>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

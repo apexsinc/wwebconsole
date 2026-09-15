@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, Loader2, CheckCircle2 } from 'lucide-react';
 import { verifyCheckout } from '../services/api.js';
 import { useWeatherStore } from '../store.js';
+import { loadPolarEmbed } from './polarEmbed.js';
 
 interface PolarCheckoutModalProps {
   isOpen: boolean;
@@ -29,6 +30,12 @@ export default function PolarCheckoutModal({
       setVerifyError('');
     }
   }, [checkoutUrl]);
+
+  // Phase 0: lazy-load Polar embed only when modal opens (no global script).
+  useEffect(() => {
+    if (!isOpen || !checkoutUrl) return;
+    loadPolarEmbed().catch((err) => setVerifyError(err?.message || 'Failed to load checkout.'));
+  }, [isOpen, checkoutUrl]);
 
   // Handle ESC key to close
   useEffect(() => {

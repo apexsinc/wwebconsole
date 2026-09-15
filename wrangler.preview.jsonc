@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wwebconsole-preview",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./worker/index.ts",
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wwebconsole-preview-db",
+      "database_id": "REPLACE_WITH_PREVIEW_D1_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "APP_NAME": "Weatherlink Web Console (Preview)",
+    "APP_URL": "https://wwebconsole-preview.<ACCOUNT>.workers.dev",
+    "ADMIN_EMAILS": "apexsinc@gmail.com,demo@wwebconsole.com"
+  }
+}

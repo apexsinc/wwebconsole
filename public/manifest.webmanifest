@@ -1,0 +1,24 @@
+{
+  "name": "WWebConsole — WeatherLink Web Console",
+  "short_name": "WWebConsole",
+  "description": "Independent web console for WeatherLink stations. Live dashboard and TV share links.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0d14",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
