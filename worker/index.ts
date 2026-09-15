@@ -13,6 +13,7 @@ import {
   publicUser,
   purgeDeletedAccounts,
   purgeExpiredAuthRows,
+  purgeOldContactMessages,
   registerUser,
   requestAccountDeletion,
   requestEmailChange,
@@ -461,11 +462,17 @@ app.get('/api/station', requireAuth, async (c) => {
   if (gate.blocked) return gate.response;
   const { station, user } = gate;
   if (!station) return c.json({ error: 'Station not found' }, 404);
-  const creds = await decryptJson<StationCredentials>(
-    c.env.CREDENTIALS_KEY,
-    station.credentials_enc,
-    station.credentials_iv
-  );
+  let creds: StationCredentials;
+  try {
+    creds = await decryptJson<StationCredentials>(
+      c.env.CREDENTIALS_KEY,
+      station.credentials_enc,
+      station.credentials_iv
+    );
+  } catch {
+    // Key rotated or data corrupted: surface re-entry prompt, not empty-creds misreport.
+    return c.json({ error: 'Stored credentials could not be decrypted. Please re-enter all credential fields.', code: 'DECRYPT_FAILED' }, 400);
+  }
   const weather = parseStoredWeather(station);
   return c.json({
     weather,
@@ -515,11 +522,16 @@ app.patch('/api/station', requireAuth, async (c) => {
     // password alone on v2 is optional hybrid — ok
   }
 
-  const existingCreds = await decryptJson<StationCredentials>(
-    c.env.CREDENTIALS_KEY,
-    station.credentials_enc,
-    station.credentials_iv
-  );
+  let existingCreds: StationCredentials;
+  try {
+    existingCreds = await decryptJson<StationCredentials>(
+      c.env.CREDENTIALS_KEY,
+      station.credentials_enc,
+      station.credentials_iv
+    );
+  } catch {
+    return c.json({ error: 'Stored credentials could not be decrypted. Please re-enter all credential fields (password, token, secret).', code: 'DECRYPT_FAILED' }, 400);
+  }
   let enc: string, iv: string;
   try {
     const res = await saveCredentials(c.env, existingCreds, {
@@ -580,11 +592,12 @@ app.patch('/api/station', requireAuth, async (c) => {
 
   const result = await refreshStation(c.env, updated);
   updated = (await getStationForUser(c.env, user.id))!;
+  // Creds were just encrypted above; a decrypt miss here means key rotation mid-request.
   const creds = await decryptJson<StationCredentials>(
     c.env.CREDENTIALS_KEY,
     updated.credentials_enc,
     updated.credentials_iv
-  );
+  ).catch(() => ({} as StationCredentials));
 
   return c.json({
     weather: result.weather,
@@ -613,7 +626,7 @@ app.get('/api/weather/current', requireAuth, async (c) => {
     c.env.CREDENTIALS_KEY,
     station.credentials_enc,
     station.credentials_iv
-  );
+  ).catch(() => ({} as StationCredentials));
   const weather = parseStoredWeather(station);
   return c.json({
     weather,
@@ -1188,6 +1201,7 @@ export default {
       (async () => {
         await purgeDeletedAccounts(env);
         await purgeExpiredAuthRows(env);
+        await purgeOldContactMessages(env);
         await pollAllStations(env);
       })()
     );
@@ -1212,6 +1226,11 @@ async function pollAllStations(env: Env) {
     .all<StationRow>();
 
   for (const station of results || []) {
+    // Wall-time guard: stop this run after ~50s so cron never overruns the isolate.
+    if (Date.now() - now > 50_000) {
+      console.error('Cron pollAllStations: time budget exceeded, deferring remainder to next tick');
+      break;
+    }
     try {
       const interval = (station.poll_interval_sec || 900) * 1000;
       if (station.last_http_at && now - station.last_http_at < interval - 15_000) continue;

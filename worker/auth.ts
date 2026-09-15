@@ -82,6 +82,12 @@ export async function purgeExpiredAuthRows(env: Env) {
   await env.DB.prepare('DELETE FROM otp_codes WHERE expires_at < ? OR consumed_at IS NOT NULL').bind(now).run();
 }
 
+/** Contact messages hold PII (ip, user_agent) — retain 365 days, then purge. */
+export async function purgeOldContactMessages(env: Env, maxAgeDays = 365) {
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  await env.DB.prepare('DELETE FROM contact_messages WHERE created_at < ?').bind(cutoff).run().catch(() => undefined);
+}
+
 export async function destroySession(c: Context<{ Bindings: Env; Variables: AppVars }>) {
   const raw = getCookie(c, SESSION_COOKIE);
   const sid = await parseSessionCookieValue(c.env.SESSION_SECRET, raw);
