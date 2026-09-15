@@ -146,7 +146,7 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
             transition={{ duration: 0.35, ease: 'easeInOut' }}
             className="whitespace-nowrap text-xs md:text-[13px] font-sans italic text-gray-300 tracking-wide font-medium truncate text-center"
           >
-            {weather.stationName || config.stationName} - {tickerMessages[tickerIndex]}
+            {weather.stationName || config.stationName || 'Connecting…'} - {tickerMessages[tickerIndex]}
           </motion.div>
         </AnimatePresence>
       </div>

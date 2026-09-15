@@ -43,8 +43,8 @@ export default function TabletFrame({ children }: TabletFrameProps) {
         {/* Top Camera Notch & Light Sensor */}
         {!isFullscreen && (
           <div className="absolute top-1.5 md:top-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-none z-20">
-            <div className="w-1.2 h-1.2 md:w-1.5 md:h-1.5 rounded-full bg-[#0d0f14] shadow-inner border border-black/10" />
-            <div className="w-0.8 h-0.8 rounded-full bg-[#1c4587]/30 animate-pulse-soft" />
+            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-[#0d0f14] shadow-inner border border-black/10" />
+            <div className="w-1 h-1 rounded-full bg-[#1c4587]/30 animate-pulse-soft" />
           </div>
         )}
 

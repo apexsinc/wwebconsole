@@ -349,7 +349,7 @@ export function RegisterPage() {
   return (
     <AuthShell
       title="Create account"
-      subtitle={`${authCfg.freeTrialDays || 60}-day free access · then yearly per device (WeatherLink Pro)}`}
+      subtitle={`${authCfg.freeTrialDays || 60}-day free access · then yearly per device (WeatherLink Pro)`}
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && (

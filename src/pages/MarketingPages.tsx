@@ -236,6 +236,7 @@ export function HomePage() {
                     height={1079}
                     fetchPriority="high"
                     decoding="async"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1024px"
                   />
                 </div>
               </motion.div>
@@ -292,6 +293,7 @@ export function HomePage() {
                 height={634}
                 loading="lazy"
                 decoding="async"
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 480px"
               />
             </motion.div>
           </motion.div>
@@ -504,7 +506,7 @@ export function AboutPage() {
       </div>
       <div className="max-w-4xl mx-auto px-4 py-16 relative z-10">
         <div className="bg-white dark:bg-slate-900 p-10 sm:p-14 rounded-3xl shadow-[0_10px_40px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 text-lg sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium transition-colors">
-          <MarkdownLite text={site?.about_body || ''} />
+          <MarkdownLite text={site?.about_body || '## Independent console for WeatherLink® stations\n\n- Live dashboard for temperature, wind, rain, pressure and sun times\n- TV share links for wall displays\n- Secure, private credentials per account\n\nThis page is managed from Admin → Site & SEO. If you see this fallback copy, the CMS value is empty.'} />
         </div>
       </div>
     </div>
@@ -724,7 +726,7 @@ export function PrivacyPage() {
       <div className="max-w-3xl mx-auto px-4 py-14">
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-slate-900">Privacy Policy</h1>
         <div className="mt-8 bg-white p-8 sm:p-10 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100">
-          <MarkdownLite text={site?.privacy_body || ''} />
+          <MarkdownLite text={site?.privacy_body || '## Privacy Policy\n\n- We store only what your console needs: account, station credentials (encrypted), and share links.\n- Contact messages are retained to respond to support requests.\n- Manage marketing copy from Admin → Site & SEO.'} />
         </div>
       </div>
     </div>
@@ -739,7 +741,7 @@ export function TermsPage() {
       <div className="max-w-3xl mx-auto px-4 py-14">
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-slate-900">Terms of Service</h1>
         <div className="mt-8 bg-white p-8 sm:p-10 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100">
-          <MarkdownLite text={site?.terms_body || ''} />
+          <MarkdownLite text={site?.terms_body || '## Terms of Service\n\n- Free trial, then yearly Pro per device.\n- You are responsible for your WeatherLink® credentials and station sharing.\n- Manage legal copy from Admin → Site & SEO.'} />
         </div>
       </div>
     </div>
@@ -754,7 +756,7 @@ export function ChangelogPage() {
       <div className="max-w-3xl mx-auto px-4 py-14">
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-slate-900">Changelog</h1>
         <div className="mt-8 bg-white p-8 sm:p-10 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100">
-          <MarkdownLite text={site?.changelog_body || ''} />
+          <MarkdownLite text={site?.changelog_body || '## Changelog\n\n- Latest updates appear here once published from Admin → Site & SEO.\n- See CHANGELOG.md in the repo for version history.'} />
         </div>
       </div>
     </div>

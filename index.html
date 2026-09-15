@@ -11,8 +11,21 @@
     <meta name="theme-color" content="#0284c7" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="canonical" href="https://wwebconsole.com/" />
+    <meta property="og:title" content="Weatherlink Web Console — station console for the web" />
+    <meta property="og:description" content="Independent web console for WeatherLink® stations. Live dashboard and TV share links. Start free. Not affiliated with Davis Instruments." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://wwebconsole.com/" />
+    <meta property="og:site_name" content="WWebConsole" />
     <meta property="og:image" content="https://wwebconsole.com/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Weatherlink Web Console — station console for the web" />
+    <meta name="twitter:description" content="Independent web console for WeatherLink® stations. Live dashboard and TV share links. Start free." />
+    <meta name="twitter:image" content="https://wwebconsole.com/og.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <script>
       (function () {
         try {
@@ -22,7 +35,7 @@
         } catch (e) {}
       })();
     </script>
-    <script async defer src="https://cdn.jsdelivr.net/npm/@polar-sh/checkout@0.1/dist/embed.global.js"></script>
+    <!-- Phase 0: Polar checkout embed is lazy-loaded only inside PolarCheckoutModal (see src/components/polarEmbed.ts). No global third-party script here for privacy/perf. -->
   </head>
   <body>
     <div id="root"></div>

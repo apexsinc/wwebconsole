@@ -86,12 +86,35 @@ export default function TvPage() {
   const getRainUnit = (unit?: string) => (unit === 'mm' ? 'mm' : 'in');
 
   if (query.isError) {
+    const rawMessage = (query.error as Error)?.message || 'Unable to load this display.';
+    // Phase 0: don't leak raw API text verbatim — show friendly copy + retry.
+    const friendlyMessage = /not found|no such|invalid slug/i.test(rawMessage)
+      ? 'This TV link looks invalid or expired. Check the URL or create a new share link from the console.'
+      : 'We could not reach the station for this display. Check your connection and try again.';
     return (
       <div className="h-screen bg-[#0a0d14] flex items-center justify-center text-center p-6">
-        <div>
+        <div className="max-w-sm w-full">
           <Wifi className="w-8 h-8 text-rose-400 mx-auto mb-3" />
           <h1 className="text-white font-bold">Display unavailable</h1>
-          <p className="text-gray-400 text-sm mt-2">{(query.error as Error).message}</p>
+          <p className="text-gray-400 text-sm mt-2">{friendlyMessage}</p>
+          <details className="mt-3 text-left">
+            <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-300">Technical details</summary>
+            <p className="text-xs text-gray-500 mt-1 break-words">{rawMessage.slice(0, 300)}</p>
+          </details>
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <button
+              onClick={() => query.refetch()}
+              className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold transition-colors"
+            >
+              Retry
+            </button>
+            <a
+              href="/"
+              className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+            >
+              Back home
+            </a>
+          </div>
         </div>
       </div>
     );
