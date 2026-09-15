@@ -270,7 +270,18 @@ function MainDashboard() {
   const [activeCheckout, setActiveCheckout] = useState<{ url: string; id: string } | null>(null);
   const [checkoutBanner, setCheckoutBanner] = useState<{ type: 'success' | 'error' | 'loading'; message: string } | null>(null);
 
-  useWeatherQuery(true);
+  const weatherQuery = useWeatherQuery(true);
+
+  useEffect(() => {
+    const loadDemo = async () => {
+      const { demoWeatherPayload } = await import('./components/onboarding.js');
+      useWeatherStore.getState().setAll(demoWeatherPayload());
+    };
+    const onDemo = () => loadDemo();
+    window.addEventListener('wwc:load-demo', onDemo);
+    if (new URLSearchParams(window.location.search).get('demo') === '1') loadDemo();
+    return () => window.removeEventListener('wwc:load-demo', onDemo);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -393,17 +404,55 @@ function MainDashboard() {
       )}
 
       {weather.ts === 0 && !isTrialExpired && (
-        <div className="absolute inset-0 bg-black/75 backdrop-blur-md z-30 flex items-center justify-center p-6 select-none">
-          <div className="max-w-md bg-[#0e111a] border border-[#2d343f] rounded-2xl p-6 shadow-2xl text-center flex flex-col items-center gap-4">
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-md z-30 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-[#0e111a] border border-[#2d343f] rounded-2xl p-6 shadow-2xl text-center flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
               <Wifi className="w-6 h-6 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-white font-sans font-bold text-base">Awaiting Station Connection</h3>
-              <p className="text-gray-400 text-xs mt-1.5 leading-relaxed">
-                Configure your WeatherLink Cloud credentials in the top bar, then create a TV Share URL for big-screen monitors.
+              <h3 className="text-white font-sans font-bold text-base">Connect your station — 3 quick steps</h3>
+              <ol className="mt-3 flex items-center justify-center gap-2 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                <li className="px-2.5 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300">1 Connect</li>
+                <li aria-hidden="true">→</li>
+                <li className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">2 Units</li>
+                <li aria-hidden="true">→</li>
+                <li className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">3 TV share</li>
+              </ol>
+              <p className="text-gray-400 text-xs mt-3 leading-relaxed">
+                Add your WeatherLink Cloud API key + secret (V2 recommended, DID only for multi-station keys).
+                {weatherQuery.isFetching ? ' Checking for data…' : ' Then pick units and share a TV link.'}
+                {weatherQuery.isError ? ' Last fetch failed — check credentials and retry.' : ''}
               </p>
             </div>
+            <div className="flex flex-wrap items-center justify-center gap-2.5 w-full">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('wwc:open-setup', { detail: { tab: 'link' } }))}
+                className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold transition-colors min-h-[44px]"
+              >
+                Open station setup
+              </button>
+              <button
+                onClick={() => weatherQuery.refetch()}
+                disabled={weatherQuery.isFetching}
+                className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-bold hover:bg-white/10 transition-colors min-h-[44px] disabled:opacity-50"
+              >
+                {weatherQuery.isFetching ? 'Checking…' : 'Retry fetch'}
+              </button>
+              <button
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('demo', '1');
+                  window.history.replaceState({}, document.title, url.toString());
+                  window.dispatchEvent(new CustomEvent('wwc:load-demo'));
+                }}
+                className="px-5 py-2.5 rounded-xl text-sky-300 text-sm font-semibold hover:text-white transition-colors min-h-[44px]"
+              >
+                Preview demo data
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              V2: WeatherLink → Account → API (key + secret). DID is 12-hex on Stations page. V1 legacy uses DID + password + token.
+            </p>
           </div>
         </div>
       )}

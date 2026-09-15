@@ -125,12 +125,30 @@ export default function TvPage() {
       <div className="flex-1 flex flex-col justify-center">
         <TabletFrame>
           <div className="flex-1 flex flex-col justify-between h-full relative">
-            {weather.ts === 0 && (
+            {weather.ts === 0 && !query.isError && (
               <div className="absolute inset-0 bg-black/75 backdrop-blur-md z-30 flex items-center justify-center p-6">
                 <div className="max-w-md bg-[#0e111a] border border-[#2d343f] rounded-2xl p-6 text-center">
                   <Wifi className="w-6 h-6 text-amber-500 animate-pulse mx-auto mb-3" />
                   <h3 className="text-white font-bold">Waiting for weather data</h3>
-                  <p className="text-gray-400 text-xs mt-2">This TV display will update when the station comes online.</p>
+                  <p className="text-gray-400 text-xs mt-2">
+                    This TV display will update when the station comes online.
+                    {query.isFetching ? ' Checking now…' : ' Check the DID in /app → Configure, then retry.'}
+                  </p>
+                  <div className="mt-4 flex items-center justify-center gap-2.5">
+                    <button
+                      onClick={() => query.refetch()}
+                      disabled={query.isFetching}
+                      className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold transition-colors min-h-[44px] disabled:opacity-50"
+                    >
+                      {query.isFetching ? 'Checking…' : 'Retry'}
+                    </button>
+                    <a
+                      href="/app?setup=1"
+                      className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-bold hover:bg-white/10 transition-colors min-h-[44px] inline-flex items-center"
+                    >
+                      Open setup
+                    </a>
+                  </div>
                 </div>
               </div>
             )}

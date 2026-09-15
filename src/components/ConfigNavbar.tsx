@@ -86,6 +86,23 @@ export default function ConfigNavbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<'link' | 'tv'>('link');
 
+  // Onboarding: allow dashboard overlay / ?setup=1 to deep-open this modal.
+  useEffect(() => {
+    const onOpenSetup = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail as { tab?: 'link' | 'tv' } | undefined;
+      if (detail?.tab) setTab(detail.tab);
+      setIsOpen(true);
+    };
+    window.addEventListener('wwc:open-setup', onOpenSetup as EventListener);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('setup') === '1') {
+      setTab('link');
+      setIsOpen(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    return () => window.removeEventListener('wwc:open-setup', onOpenSetup as EventListener);
+  }, []);
+
   const [apiVersion, setApiVersion] = useState<'v1' | 'v2'>(config.cloudApiVersion ?? 'v2');
   const [did, setDid] = useState(config.cloudDid ?? '');
   const [password, setPassword] = useState('');
@@ -588,7 +605,13 @@ export default function ConfigNavbar() {
 
                     <p className="text-xs text-slate-400 leading-relaxed flex items-start gap-1.5">
                       <HelpCircle className="w-4 h-4 shrink-0 text-slate-400 mt-0.5" />
-                      Credentials stay private to your account. Secrets are never shown again after you save.
+                      <span>
+                        Credentials stay private to your account. Secrets are never shown again after you save.{' '}
+                        <span className="text-slate-300">
+                          V2 API key + secret: WeatherLink → Account → API. DID: WeatherLink → Stations (12-hex, e.g. 001D0A00DE6A).
+                          Use V1 only for legacy DID + password setups.
+                        </span>
+                      </span>
                     </p>
                   </div>
 
