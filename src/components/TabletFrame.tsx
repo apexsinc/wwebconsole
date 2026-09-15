@@ -26,13 +26,13 @@ export default function TabletFrame({ children }: TabletFrameProps) {
     <div className={`w-full mx-auto flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden ${
       isFullscreen 
         ? 'max-w-full h-screen max-h-screen p-0' 
-        : 'max-w-[1400px] h-auto min-h-[calc(100vh-80px)] md:h-[calc(100vh-80px)] md:max-h-[calc(100vh-80px)] px-4 py-2'
+        : 'max-w-[1200px] xl:max-w-[1400px] h-auto min-h-[calc(100dvh-80px)] md:h-[calc(100vh-80px)] md:max-h-[calc(100vh-80px)] px-2 sm:px-4 py-2'
     }`}>
       {/* Outer Tablet Bezel (Black rim, White inner bezel) */}
       <div className={`relative w-full shadow-[0_20px_50px_-15px_rgba(0,0,0,0.15)] flex flex-col ${
         isFullscreen
           ? 'bg-transparent rounded-none p-0 border-0 h-full'
-          : 'bg-white rounded-[1.5rem] md:rounded-[2.2rem] p-3 md:p-4 border-[5px] border-black'
+          : 'bg-white rounded-2xl md:rounded-[2.2rem] p-2 sm:p-3 md:p-4 border-2 md:border-[5px] border-black'
       }`}>
 
         {/* Reflection Glare */}
@@ -52,7 +52,7 @@ export default function TabletFrame({ children }: TabletFrameProps) {
         <div className={`relative w-full tablet-screen-shell screen-bg overflow-y-auto md:overflow-hidden flex flex-col justify-between ${
           isFullscreen
             ? 'rounded-none border-0 h-full max-h-full flex-1'
-            : 'rounded-[1rem] md:rounded-[1.5rem] border border-white/10 h-auto min-h-[calc(100vh-170px)] md:h-[calc(100vh-170px)] md:max-h-[calc(100vh-170px)]'
+            : 'rounded-xl md:rounded-[1.5rem] border border-white/10 h-auto min-h-[calc(100dvh-170px)] md:h-[calc(100vh-170px)] md:max-h-[calc(100vh-170px)]'
         }`}>
 
           {/* Main Weather Console Content */}
@@ -66,7 +66,7 @@ export default function TabletFrame({ children }: TabletFrameProps) {
 
         {/* Bottom Bezel "DAVIS" Logo and Status light */}
         {!isFullscreen && (
-          <div className="relative mt-1.5 md:mt-3 flex items-center justify-between px-6 pointer-events-none shrink-0">
+          <div className="relative mt-1.5 md:mt-3 flex items-center justify-between px-4 md:px-6 pointer-events-none shrink-0">
           {/* Status Indicator */}
           <div className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${status === 'online'

@@ -1,9 +1,11 @@
-name: Preview — Phase 0 (wwebconsole-preview)
+name: Preview — wwebconsole-preview
 
 on:
   push:
     branches:
       - preview/phase-0
+      - preview/phase-1
+      - 'preview/**'
   workflow_dispatch:
 
 jobs:
@@ -13,8 +15,6 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: preview/phase-0
 
       - uses: actions/setup-node@v4
         with:

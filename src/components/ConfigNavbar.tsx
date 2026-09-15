@@ -240,11 +240,11 @@ export default function ConfigNavbar() {
 
   return (
     <>
-      <nav id="config-navbar" className="w-full bg-slate-900 dark:bg-[#0a0d14] border-b border-slate-800 px-6 py-4 flex items-center justify-between select-none">
-        <div className="flex items-center gap-3">
-          <img src="/apexs-logo.png" alt="APEXS Logo" className="h-9 w-auto object-contain" />
-          <div>
-            <h1 className="text-white font-sans font-black tracking-wider text-sm md:text-base uppercase leading-none">
+      <nav id="config-navbar" className="w-full bg-slate-900 dark:bg-[#0a0d14] border-b border-slate-800 px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2 select-none">
+        <div className="flex items-center gap-3 min-w-0">
+          <img src="/apexs-logo.png" alt="WWebConsole by APEXS logo" className="h-9 w-auto object-contain" />
+          <div className="min-w-0">
+            <h1 className="text-white font-sans font-black tracking-wider text-sm md:text-base uppercase leading-none truncate">
               Weatherlink Web Console
             </h1>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -253,11 +253,37 @@ export default function ConfigNavbar() {
                   connection.status === 'online' ? 'bg-emerald-500' : 'bg-rose-500'
                 }`}
               />
-              <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest font-semibold">
+              <span className="text-[11px] font-mono text-gray-400 uppercase tracking-widest font-semibold truncate">
                 {user?.email || 'guest'} · {connection.status}
               </span>
             </div>
           </div>
+        </div>
+
+        <div className="flex sm:hidden items-center gap-2 w-full order-3">
+          {countdown && (
+            <div
+              className={`flex items-center gap-1.5 text-[11px] font-mono border px-3 py-1.5 rounded-full font-bold uppercase tracking-wider ${
+                countdown.expired
+                  ? 'bg-rose-950/50 border-rose-500/40 text-rose-400'
+                  : countdown.days < 3
+                  ? 'bg-amber-950/50 border-amber-500/40 text-amber-300'
+                  : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+              <span>
+                {isPaidPlan ? 'Plan' : 'Trial'}: {countdown.expired ? 'EXPIRED' : countdown.formatted}
+              </span>
+            </div>
+          )}
+          <button
+            onClick={() => navigate('/account')}
+            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white rounded-xl min-h-[44px]"
+          >
+            <UserRound className="w-3.5 h-3.5 text-sky-400" />
+            Account
+          </button>
         </div>
 
         <div className="hidden sm:flex items-center gap-2.5 absolute left-1/2 -translate-x-1/2 pointer-events-none">

@@ -100,23 +100,25 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
   const hasMultipleDevices = weatherList.length > 1;
 
   return (
-    <div className="w-full bg-[#030712]/90 border-t border-[#01497c]/30 px-4 py-1 flex items-center justify-between text-gray-400 text-xs md:text-sm font-sans select-none relative z-20">
+    <footer className="w-full bg-[#030712]/90 border-t border-[#01497c]/30 px-3 md:px-4 py-2 flex items-center justify-between gap-2 text-gray-400 text-xs md:text-sm font-sans select-none relative z-20">
       
       {/* Navigation Arrows & Device Slide Controls */}
-      <div className="flex items-center gap-1.5 z-20">
+      <div className="flex items-center gap-1.5 z-20 shrink-0">
         <button 
           onClick={prevStation}
           disabled={!hasMultipleDevices}
-          className="w-7 h-7 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-          title={hasMultipleDevices ? "Previous Weather Station" : "Previous Page"}
+          aria-label={hasMultipleDevices ? "Previous weather station" : "Previous station (single station)"}
+          className="w-11 h-11 rounded-xl bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          title={hasMultipleDevices ? "Previous Weather Station" : "Single station"}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
         <button 
           onClick={nextStation}
           disabled={!hasMultipleDevices}
-          className="w-7 h-7 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-          title={hasMultipleDevices ? "Next Weather Station" : "Next Page"}
+          aria-label={hasMultipleDevices ? "Next weather station" : "Next station (single station)"}
+          className="w-11 h-11 rounded-xl bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          title={hasMultipleDevices ? "Next Weather Station" : "Single station"}
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -136,7 +138,7 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
       </div>
 
       {/* Ticker / Banner message with Smooth Motion Animations */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none z-10 max-w-[55%] overflow-hidden h-6">
+      <div className="flex-1 flex items-center justify-center pointer-events-none z-10 min-w-0 overflow-hidden h-6 px-2" aria-live="polite">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${currentStationIndex}-${tickerIndex}`}
@@ -144,7 +146,7 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.35, ease: 'easeInOut' }}
-            className="whitespace-nowrap text-xs md:text-[13px] font-sans italic text-gray-300 tracking-wide font-medium truncate text-center"
+            className="whitespace-nowrap text-xs md:text-[13px] font-sans italic text-gray-300 tracking-wide font-medium truncate text-center max-w-full"
           >
             {weather.stationName || config.stationName || 'Connecting…'} - {tickerMessages[tickerIndex]}
           </motion.div>
@@ -152,39 +154,43 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
       </div>
 
       {/* Control Utility Buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         {/* Sound Toggle (faithfully replicates the physical console sound beep switch!) */}
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}
-          className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+          aria-label={soundEnabled ? 'Mute console beeps' : 'Enable console beeps'}
+          aria-pressed={soundEnabled}
+          className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
             soundEnabled 
               ? 'bg-sky-950/20 border-sky-500/20 text-sky-400 hover:border-sky-500/40' 
               : 'bg-gray-950/80 border-gray-800 text-gray-600 hover:border-gray-700'
           }`}
           title={soundEnabled ? 'Mute Console Beeps' : 'Enable Console Beeps'}
         >
-          {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
         </button>
 
         {/* Fullscreen Toggle */}
         <button
           onClick={toggleFullscreen}
-          className="w-7 h-7 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          className="w-11 h-11 rounded-xl bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
           title="Toggle Fullscreen Console"
         >
-          {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+          {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
         </button>
 
         {/* Console System/Config settings */}
         <button
           onClick={onOpenSettings}
-          className="w-7 h-7 rounded-lg bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          aria-label="Open console settings"
+          className="w-11 h-11 rounded-xl bg-gray-950/80 border border-gray-800 hover:border-gray-700 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
           title="Console System Settings"
         >
-          <Settings className="w-3.5 h-3.5" />
+          <Settings className="w-4 h-4" />
         </button>
       </div>
 
-    </div>
+    </footer>
   );
 }
