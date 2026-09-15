@@ -477,7 +477,7 @@ export default function ConfigNavbar() {
                       <>
                         {/* V1: Device ID (DID) */}
                         <div className="flex flex-col gap-1.5">
-                          <label className={labelCls}>
+                          <label className={labelCls} htmlFor="wwc-did">
                             Device ID (DID)
                             <span className="ml-2 text-slate-400 normal-case font-normal text-[10px]">
                               for multiple devices, separate DIDs with commas
@@ -487,6 +487,7 @@ export default function ConfigNavbar() {
                             type="text"
                             value={did}
                             onChange={(e) => setDid(e.target.value)}
+                            id="wwc-did"
                             placeholder="e.g. 001D0A00DE6A or 001D0A00DE6A, 001D0A00DE6B"
                             autoComplete="off"
                             className={monoInputCls}
@@ -495,13 +496,14 @@ export default function ConfigNavbar() {
 
                         {/* V1: Password */}
                         <div className="flex flex-col gap-1.5">
-                          <label className={labelCls}>
+                          <label className={labelCls} htmlFor="wwc-password">
                             Account Password
                             {config.hasPassword && (
                               <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved — leave blank to keep</span>
                             )}
                           </label>
                           <PasswordInput
+                            id="wwc-password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoComplete="new-password"
@@ -512,7 +514,7 @@ export default function ConfigNavbar() {
 
                         {/* V1: API Token */}
                         <div className="flex flex-col gap-1.5">
-                          <label className={labelCls}>
+                          <label className={labelCls} htmlFor="wwc-token">
                             API Token
                             {config.hasApiToken && (
                               <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved — leave blank to keep</span>
@@ -522,6 +524,7 @@ export default function ConfigNavbar() {
                             type="text"
                             value={apiToken}
                             onChange={(e) => setApiToken(e.target.value)}
+                            id="wwc-token"
                             placeholder={config.hasApiToken ? 'Leave blank to keep current' : 'Paste your API token here'}
                             autoComplete="off"
                             className={monoInputCls}
@@ -532,7 +535,7 @@ export default function ConfigNavbar() {
                       <>
                         {/* V2: API Key */}
                         <div className="flex flex-col gap-1.5">
-                          <label className={labelCls}>
+                          <label className={labelCls} htmlFor="wwc-apikey">
                             API Key
                             {config.hasApiToken && (
                               <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved — leave blank to keep</span>
@@ -542,6 +545,7 @@ export default function ConfigNavbar() {
                             type="text"
                             value={apiToken}
                             onChange={(e) => setApiToken(e.target.value)}
+                            id="wwc-apikey"
                             placeholder={config.hasApiToken ? 'Leave blank to keep current' : 'Paste your V2 API key here'}
                             autoComplete="off"
                             className={monoInputCls}
@@ -550,13 +554,14 @@ export default function ConfigNavbar() {
 
                         {/* V2: API Secret */}
                         <div className="flex flex-col gap-1.5">
-                          <label className={labelCls}>
+                          <label className={labelCls} htmlFor="wwc-secret">
                             API Secret
                             {config.hasApiSecret && (
                               <span className="ml-2 text-emerald-400 normal-case font-normal text-[10px]">✓ saved — leave blank to keep</span>
                             )}
                           </label>
                           <PasswordInput
+                            id="wwc-secret"
                             value={apiSecret}
                             onChange={(e) => setApiSecret(e.target.value)}
                             autoComplete="new-password"
@@ -567,13 +572,14 @@ export default function ConfigNavbar() {
 
                         {/* V2: Device ID (DID) — optional, for accounts with multiple stations on one API key */}
                         <div className="flex flex-col gap-1.5">
-                          <label className={labelCls}>
+                          <label className={labelCls} htmlFor="wwc-did-v2">
                             Device ID (DID)
                             <span className="ml-2 text-slate-400 normal-case font-normal text-[10px]">
                               optional — only needed if your API key has multiple stations
                             </span>
                           </label>
                           <input
+                            id="wwc-did-v2"
                             type="text"
                             value={did}
                             onChange={(e) => setDid(e.target.value)}

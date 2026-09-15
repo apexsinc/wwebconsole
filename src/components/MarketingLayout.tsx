@@ -6,6 +6,7 @@ import { useTheme } from '../hooks/useTheme.js';
 
 const NAV = [
   { to: '/features', label: 'Features' },
+  { to: '/pricing', label: 'Pricing' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ];
@@ -87,6 +88,9 @@ export function MarketingLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--wwc-page)] text-[var(--wwc-text)]">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[200] focus:px-4 focus:py-2 focus:rounded-xl focus:bg-white focus:text-slate-900 focus:text-sm focus:font-bold">
+        Skip to content
+      </a>
       <header className="sticky top-0 z-50 border-b border-white/5 bg-[#020b18]/80 text-white backdrop-blur-xl transition-colors">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <Link
@@ -94,7 +98,7 @@ export function MarketingLayout() {
             className="flex items-center gap-3 font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-white group"
           >
             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center p-1 border border-white/10 shadow-sm group-hover:bg-white/20 transition-colors">
-              <img src="/apexs-logo.png" alt="Logo" className="w-full h-full object-contain" />
+              <img src="/apexs-logo.png" alt="WWebConsole by APEXS logo" className="w-full h-full object-contain" />
             </div>
             {name}
           </Link>
@@ -137,9 +141,10 @@ export function MarketingLayout() {
             </Link>
             <button
               type="button"
-              className="md:hidden p-2 rounded-md text-white/70 hover:bg-white/10 transition-colors"
+              className="md:hidden p-2 rounded-md text-white/70 hover:bg-white/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               onClick={() => setOpen((v) => !v)}
-              aria-label="Menu"
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-expanded={open}
             >
               {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -167,7 +172,7 @@ export function MarketingLayout() {
         )}
       </header>
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <Outlet context={{ site }} />
       </main>
 

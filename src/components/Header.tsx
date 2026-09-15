@@ -34,26 +34,26 @@ export default function Header() {
   const formattedDate = format(displayDate, 'MM/dd/yy EEEE');
 
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-2 w-full border-b border-gray-850 pb-2 select-none">
+    <header className="flex flex-col items-center justify-center text-center gap-2 w-full border-b border-gray-850 pb-2">
       {/* Centered Home Icon */}
-      <div className="w-8 h-8 rounded-lg bg-sky-950/30 border border-sky-500/20 flex items-center justify-center text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.1)]">
+      <div className="w-8 h-8 rounded-lg bg-sky-950/30 border border-sky-500/20 flex items-center justify-center text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.1)]" aria-hidden="true">
         <Home className="w-4.5 h-4.5" />
       </div>
 
       {/* Station Name */}
       <h1 className="text-white font-sans font-bold text-base md:text-lg tracking-tight leading-none mt-0.5">
-        {stationName || "Jim's Home"}
+        {stationName || 'Connecting…'}
       </h1>
 
       {/* Time & Date Display */}
       <div className="flex flex-col items-center mt-1 text-center">
-        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">
+        <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">
           Last Updated
         </span>
         <div className="text-xs md:text-sm font-sans font-semibold text-gray-300 tracking-tight leading-none">
           {formattedTime} <span className="text-gray-500 font-normal mx-1">|</span> {formattedDate}
         </div>
       </div>
-    </div>
+    </header>
   );
 }
