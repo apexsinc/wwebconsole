@@ -426,9 +426,9 @@ function MainDashboard() {
           initial={{ opacity: 0.85 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="pt-2 px-2 pb-0 md:pt-3 md:px-3 md:pb-0 grid grid-cols-1 md:grid-cols-[1fr_240px_1fr] lg:grid-cols-[1fr_280px_1fr] gap-4 md:gap-4 items-stretch flex-1 overflow-y-auto md:overflow-hidden min-h-0"
+          className="pt-2 px-2 pb-0 md:pt-3 md:px-3 md:pb-0 grid grid-cols-1 md:grid-cols-[1fr_240px_1fr] lg:grid-cols-[1fr_280px_1fr] gap-3 md:gap-4 items-stretch flex-1 overflow-y-auto md:overflow-hidden min-h-0"
         >
-          <div className="flex flex-col min-h-[350px] md:min-h-0 relative z-10 h-full gap-2.5 md:gap-4">
+          <div className="flex flex-col min-h-0 sm:min-h-[280px] md:min-h-0 relative z-10 h-full gap-2.5 md:gap-4">
             <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
               <WeatherMetric
                 title="Outside Temperature"
