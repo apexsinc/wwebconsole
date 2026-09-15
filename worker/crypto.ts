@@ -82,7 +82,15 @@ export async function encryptJson(keyHex: string | undefined, data: unknown): Pr
   return { enc: b64encode(ciphertext), iv: b64encode(iv) };
 }
 
+export class DecryptFailedError extends Error {
+  constructor(message = 'Failed to decrypt stored credentials (key rotated or data corrupted).') {
+    super(message);
+    this.name = 'DecryptFailedError';
+  }
+}
+
 export async function decryptJson<T>(keyHex: string | undefined, enc: string, iv: string): Promise<T> {
+  // No stored credentials — legitimate empty state, not an error.
   if (!enc || !iv || !keyHex) return {} as T;
   try {
     const key = await importAesKey(keyHex);
@@ -94,7 +102,8 @@ export async function decryptJson<T>(keyHex: string | undefined, enc: string, iv
     return JSON.parse(new TextDecoder().decode(plaintext)) as T;
   } catch (err) {
     console.error('decryptJson failed:', err);
-    return {} as T;
+    // Throw instead of silent {} — callers must not merge empty creds over stored ones.
+    throw new DecryptFailedError();
   }
 }
 
