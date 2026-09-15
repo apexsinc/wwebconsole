@@ -172,7 +172,9 @@ app.get('/sitemap.xml', async (c) => {
 });
 
 function isAdminHostname(hostname: string): boolean {
-  return hostname === 'admin.wwebconsole.com' || hostname.startsWith('admin.') || hostname === 'admin.localhost';
+  const h = (hostname || '').toLowerCase();
+  // Strict exact-match: never trust attacker-controlled subdomains like admin.evil.com.
+  return h === 'admin.wwebconsole.com' || h === 'admin.localhost' || h.endsWith('.admin.wwebconsole.com');
 }
 
 // ---------- Auth ----------
@@ -424,6 +426,8 @@ app.post('/api/account/email/confirm', requireAuth, async (c) => {
 });
 
 app.post('/api/account/delete', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'accountSensitive', c.get('user').id);
+  if (limited) return limited;
   const body = z.object({ confirm: z.literal('DELETE') }).safeParse(await c.req.json());
   if (!body.success) return c.json({ error: 'Type DELETE to confirm' }, 400);
   const user = c.get('user');
@@ -434,6 +438,8 @@ app.post('/api/account/delete', requireAuth, async (c) => {
 });
 
 app.post('/api/account/delete/cancel', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'accountSensitive', c.get('user').id);
+  if (limited) return limited;
   await cancelAccountDeletion(c.env, c.get('user').id);
   const fresh = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(c.get('user').id).first<UserRow>();
   return c.json({ ok: true, user: publicUser(fresh!) });
@@ -656,6 +662,8 @@ app.post('/api/billing/activate', requireAuth, async (c) => {
 
 // ---------- Polar Billing & Checkout ----------
 app.post('/api/billing/checkout', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
+  if (limited) return limited;
   const user = c.get('user');
   const body = z
     .object({
@@ -681,18 +689,21 @@ app.post('/api/billing/checkout', requireAuth, async (c) => {
 
   if (!station) return c.json({ error: 'Station not found' }, 404);
 
-  const appUrl = c.req.header('origin') || c.env.APP_URL || 'https://wwebconsole.com';
+  // Never trust Origin header for payment redirect base (open-redirect risk).
+  const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
 
   try {
     const result = await createPolarCheckoutSession(c.env, user, station, appUrl);
     return c.json({ ok: true, checkoutUrl: result.checkoutUrl, checkoutId: result.checkoutId });
   } catch (err: any) {
     console.error('Polar checkout error:', err);
-    return c.json({ error: err.message || 'Failed to initiate Polar checkout' }, 500);
+    return c.json({ error: 'Failed to initiate checkout. Please try again.' }, 500);
   }
 });
 
 app.post('/api/billing/verify-checkout', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
+  if (limited) return limited;
   const user = c.get('user');
   const body = z
     .object({
@@ -715,6 +726,8 @@ app.post('/api/billing/verify-checkout', requireAuth, async (c) => {
 });
 
 const handleWebhookRequest = async (c: any) => {
+  const limited = enforceRateLimit(c, 'apiDefault');
+  if (limited) return limited;
   try {
     const payload = await c.req.json().catch(() => null);
     if (!payload) return c.text('Bad Request', 400);
@@ -899,9 +912,14 @@ app.get('/api/admin/overview', requireAdmin, async (c) => {
 });
 
 app.get('/api/admin/users', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
   const qParse = z.string().max(120).optional().safeParse(c.req.query('q') || undefined);
   const q = (qParse.success ? qParse.data : '')?.trim() || '';
-  const limit = 100;
+  const limitParse = z.coerce.number().int().min(1).max(200).optional().safeParse(c.req.query('limit'));
+  const offsetParse = z.coerce.number().int().min(0).max(100000).optional().safeParse(c.req.query('offset'));
+  const limit = limitParse.success && limitParse.data ? limitParse.data : 100;
+  const offset = offsetParse.success && offsetParse.data ? offsetParse.data : 0;
   let rows: UserRow[] = [];
   if (q) {
     const like = `%${q.replace(/[%_]/g, '')}%`;
@@ -913,13 +931,13 @@ app.get('/api/admin/users', requireAdmin, async (c) => {
           OR s.name LIKE ? COLLATE NOCASE
           OR s.cloud_did LIKE ? COLLATE NOCASE
        GROUP BY u.id
-       ORDER BY u.created_at DESC LIMIT ?`
+       ORDER BY u.created_at DESC LIMIT ? OFFSET ?`
     )
-      .bind(like, like, like, like, limit)
+      .bind(like, like, like, like, limit, offset)
       .all<UserRow>();
     rows = res.results || [];
   } else {
-    const res = await c.env.DB.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT ?').bind(limit).all<UserRow>();
+    const res = await c.env.DB.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?').bind(limit, offset).all<UserRow>();
     rows = res.results || [];
   }
 
@@ -950,10 +968,14 @@ app.get('/api/admin/users', requireAdmin, async (c) => {
       weather: parsedWeather,
     });
   }
-  return c.json({ users: out });
+  return c.json({ users: out, limit, offset, nextOffset: offset + rows.length });
 });
 
 app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
+  const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
+  if (!idParse.success) return c.json({ error: 'Invalid user id' }, 400);
   const body = z
     .object({
       suspended: z.boolean().optional(),
@@ -966,7 +988,7 @@ app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
     .safeParse(await c.req.json());
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
   const d = body.data;
-  const id = c.req.param('id') || '';
+  const id = idParse.data;
   const now = Date.now();
 
   const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
@@ -1010,8 +1032,12 @@ app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
 });
 
 app.delete('/api/admin/users/:id', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
   const adminUser = c.get('user');
-  const targetId = c.req.param('id') || '';
+  const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
+  if (!idParse.success) return c.json({ error: 'Invalid user id' }, 400);
+  const targetId = idParse.data;
 
   if (adminUser?.id === targetId) {
     return c.json({ error: 'You cannot delete your own admin account.' }, 400);
@@ -1022,12 +1048,20 @@ app.delete('/api/admin/users/:id', requireAdmin, async (c) => {
 
   await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetId).run();
   await c.env.DB.prepare('DELETE FROM stations WHERE user_id = ?').bind(targetId).run();
+  // Keep parity with purgeDeletedAccounts: avoid orphan share/devices/otp rows.
+  await c.env.DB.prepare('DELETE FROM share_links WHERE user_id = ?').bind(targetId).run().catch(() => undefined);
+  await c.env.DB.prepare('DELETE FROM devices WHERE user_id = ?').bind(targetId).run().catch(() => undefined);
+  await c.env.DB.prepare('DELETE FROM otp_codes WHERE user_id = ?').bind(targetId).run().catch(() => undefined);
   await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetId).run();
 
   return c.json({ ok: true, message: 'Customer account and associated station data deleted successfully.' });
 });
 
 app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
+  const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
+  if (!idParse.success) return c.json({ error: 'Invalid user id' }, 400);
   const body = z
     .object({
       years: z.number().int().min(1).max(5).default(1),
@@ -1036,7 +1070,7 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
     .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
 
-  const userId = c.req.param('id') || '';
+  const userId = idParse.data;
   let station = await getStationForUser(c.env, userId);
   if (!station) {
     // Mirrors /api/billing/checkout: a registered user should always have a

@@ -17,9 +17,10 @@ export async function verifyTurnstile(env: Env, token: string | undefined, ip?: 
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     body,
+    signal: AbortSignal.timeout(8000),
   });
-  const data = (await res.json()) as { success?: boolean; 'error-codes'?: string[] };
+  const data = (await res.json()) as { success?: boolean; hostname?: string; 'error-codes'?: string[] };
   if (!data.success) {
-    throw new Error(`Turnstile failed: ${(data['error-codes'] || []).join(', ') || 'invalid'}`);
+    throw new Error('Turnstile verification failed. Please retry.');
   }
 }
