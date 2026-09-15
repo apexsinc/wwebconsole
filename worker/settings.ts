@@ -234,7 +234,31 @@ export async function getSetting(env: Env, key: string): Promise<string> {
 
 export async function getSettingsMap(env: Env, keys: string[]): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
-  for (const key of keys) out[key] = await getSetting(env, key);
+  const unique = [...new Set(keys)];
+  // Fast path: Workers secrets for sensitive keys.
+  const dbKeys = unique.filter(
+    (k) => !((k === 'turnstile_secret_key' && env.TURNSTILE_SECRET_KEY) || (k === 'resend_api_key' && env.RESEND_API_KEY))
+  );
+  if (unique.includes('turnstile_secret_key') && env.TURNSTILE_SECRET_KEY) out['turnstile_secret_key'] = env.TURNSTILE_SECRET_KEY;
+  if (unique.includes('resend_api_key') && env.RESEND_API_KEY) out['resend_api_key'] = env.RESEND_API_KEY;
+
+  if (dbKeys.length > 0) {
+    // Single round-trip instead of N sequential SELECTs (was 52 queries per /api/public/site).
+    const placeholders = dbKeys.map(() => '?').join(',');
+    const { results } = await env.DB.prepare(
+      `SELECT key, value FROM app_settings WHERE key IN (${placeholders})`
+    )
+      .bind(...dbKeys)
+      .all<{ key: string; value: string }>();
+    const found = new Map((results || []).map((r) => [r.key, r.value]));
+    for (const key of dbKeys) {
+      const v = found.get(key);
+      out[key] = v != null && v !== '' ? v : SITE_DEFAULTS[key] ?? '';
+    }
+  }
+  for (const key of unique) {
+    if (out[key] === undefined) out[key] = SITE_DEFAULTS[key] ?? '';
+  }
   return out;
 }
 
@@ -249,10 +273,24 @@ export async function setSetting(env: Env, key: string, value: string) {
 }
 
 export async function ensureSiteSettingsSeeded(env: Env) {
-  for (const [key, value] of Object.entries(SITE_DEFAULTS)) {
-    const existing = await env.DB.prepare('SELECT key FROM app_settings WHERE key = ?').bind(key).first();
-    if (!existing) await setSetting(env, key, value);
-  }
+  const entries = Object.entries(SITE_DEFAULTS);
+  const keys = entries.map(([k]) => k);
+  const placeholders = keys.map(() => '?').join(',');
+  const { results } = await env.DB.prepare(`SELECT key FROM app_settings WHERE key IN (${placeholders})`)
+    .bind(...keys)
+    .all<{ key: string }>();
+  const existing = new Set((results || []).map((r) => r.key));
+  const missing = entries.filter(([k]) => !existing.has(k));
+  if (missing.length === 0) return;
+  const now = Date.now();
+  const stmts = missing.map(([k, v]) =>
+    env.DB.prepare(
+      `INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO NOTHING`
+    ).bind(k, v, now)
+  );
+  // Single batch instead of 2N round-trips per admin settings load.
+  await env.DB.batch(stmts as any);
 }
 
 export async function listSettingsForAdmin(env: Env) {

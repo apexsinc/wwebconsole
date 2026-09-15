@@ -5,7 +5,7 @@
  * Phase 1: shared design-system primitives. Use these instead of
  * re-defining inputCls/selectCls/labelCls per file.
  */
-import type { ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, HTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, HTMLAttributes, LabelHTMLAttributes } from 'react';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -28,7 +28,7 @@ export function Button({
   return <button {...rest} className={`${base} ${variants[variant]} ${className}`} />;
 }
 
-export function FieldLabel({ className = '', ...rest }: HTMLAttributes<HTMLLabelElement>) {
+export function FieldLabel({ className = '', ...rest }: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
       {...rest}
