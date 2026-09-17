@@ -7,6 +7,7 @@ import { useTheme } from '../hooks/useTheme.js';
 const NAV = [
   { to: '/features', label: 'Features' },
   { to: '/pricing', label: 'Pricing' },
+  { to: '/blogs', label: 'Blog' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ];
@@ -188,6 +189,9 @@ export function MarketingLayout() {
             <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--wwc-text)]">Product</p>
             <Link to="/features" className="hover:text-[var(--wwc-accent)]">
               Features
+            </Link>
+            <Link to="/blogs" className="hover:text-[var(--wwc-accent)]">
+              Blog
             </Link>
             <Link to="/changelog" className="hover:text-[var(--wwc-accent)]">
               Changelog
