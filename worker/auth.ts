@@ -273,6 +273,94 @@ export async function markEmailVerified(env: Env, email: string) {
     .run();
 }
 
+export type GoogleProfileInput = {
+  sub: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+};
+
+export type GoogleLoginOutcome =
+  | { kind: 'login'; user: UserRow }
+  | { kind: 'created'; user: UserRow }
+  | { kind: 'blocked' };
+
+/**
+ * Sign in / register with Google. Links by google_sub first, then by
+ * verified email. Password login keeps working (sentinel hash fails closed).
+ * On the admin host only existing users may sign in — never auto-create.
+ */
+export async function findOrCreateGoogleUser(
+  env: Env,
+  profile: GoogleProfileInput,
+  opts: { allowCreate: boolean }
+): Promise<GoogleLoginOutcome> {
+  const now = Date.now();
+  const normalized = profile.email.trim().toLowerCase();
+
+  let user = await env.DB.prepare('SELECT * FROM users WHERE google_sub = ?')
+    .bind(profile.sub)
+    .first<UserRow>();
+
+  if (!user) {
+    user = await env.DB.prepare('SELECT * FROM users WHERE email = ? COLLATE NOCASE')
+      .bind(normalized)
+      .first<UserRow>();
+    if (user) {
+      // Only link when Google confirms the email (prevents takeover via unverified accounts).
+      if (!profile.emailVerified) throw new Error('Google email is not verified. Use password sign-in first.');
+      await env.DB.prepare('UPDATE users SET google_sub = ?, email_verified = 1, updated_at = ? WHERE id = ?')
+        .bind(profile.sub, now, user.id)
+        .run();
+      user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(user.id).first<UserRow>();
+    }
+  }
+
+  if (!user) {
+    if (!opts.allowCreate) return { kind: 'blocked' };
+    // Allowlisted admin emails cannot self-register (prevents squatting).
+    if (isAdminEmail(env, normalized)) return { kind: 'blocked' };
+    const id = newId();
+    const trialMs = await freeTrialMs(env);
+    const freeUntil = now + trialMs;
+    await env.DB.prepare(
+      `INSERT INTO users (
+        id, email, password_hash, name, role, suspended, email_verified, free_until, notes, google_sub, created_at, updated_at
+      ) VALUES (?, ?, 'google-oauth', ?, 'user', 0, 1, ?, '', ?, ?, ?)`
+    )
+      .bind(id, normalized, profile.name.trim() || normalized.split('@')[0], freeUntil, profile.sub, now, now)
+      .run();
+    const stationId = newId();
+    await env.DB.prepare(
+      `INSERT INTO stations (
+        id, user_id, name, cloud_api_version, cloud_did, cloud_station_id, cloud_station_name,
+        latitude, longitude, timezone, credentials_enc, credentials_iv,
+        unit_temp, unit_wind, unit_baro, unit_rain,
+        wl_plan, device_label, subscription_status, subscription_expires_at, poll_interval_sec,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, 'v2', '', '', '', NULL, NULL, '', '', '', 'C', 'kmh', 'hPa', 'mm',
+        'unknown', 'Device 1', 'trial', ?, 900, ?, ?)`
+    )
+      .bind(stationId, id, 'My Station', freeUntil, now, now)
+      .run();
+    await env.DB.prepare(
+      `INSERT INTO devices (
+        id, user_id, station_id, label, wl_plan, subscription_status, subscription_expires_at, poll_interval_sec, created_at, updated_at
+      ) VALUES (?, ?, ?, 'Device 1', 'unknown', 'trial', ?, 900, ?, ?)`
+    )
+      .bind(newId(), id, stationId, freeUntil, now, now)
+      .run();
+    user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
+    if (!user) throw new Error('Google sign-in failed. Please try again.');
+    user = await ensureAdminRole(env, user);
+    return { kind: 'created', user };
+  }
+
+  if (user.suspended) throw new Error('Account suspended. Contact support.');
+  user = await ensureAdminRole(env, user);
+  return { kind: 'login', user };
+}
+
 export async function updatePassword(env: Env, email: string, password: string) {
   const hash = await hashPassword(password);
   const user = await env.DB.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE')

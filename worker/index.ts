@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 import {
   cancelAccountDeletion,
@@ -7,6 +8,7 @@ import {
   confirmEmailChange,
   createSession,
   destroySession,
+  findOrCreateGoogleUser,
   loginUser,
   markEmailVerified,
   optionalAuth,
@@ -30,7 +32,7 @@ import {
   setStationWlPlan,
 } from './billing';
 import { createPolarCheckoutSession, verifyAndApplyCheckout, handlePolarWebhook } from './polar';
-import { decryptJson, newId, randomSlug } from './crypto';
+import { decryptJson, hmacSha256Hex, newId, randomSlug } from './crypto';
 import { createAndSendOtp, consumeOtp } from './otp';
 import {
   buildRobotsTxt,
@@ -60,6 +62,14 @@ import {
 } from './security';
 import { verifyTurnstile } from './turnstile';
 import { isAdminHostname } from './hosts.ts';
+import {
+  buildGoogleAuthUrl,
+  exchangeGoogleCode,
+  googleRedirectUri,
+  signOAuthState,
+  verifyGoogleIdToken,
+  verifyOAuthState,
+} from './google.ts';
 import type { Env, ShareLinkRow, StationCredentials, StationRow, UserRow } from './types';
 import {
   connectionFromRow,
@@ -353,6 +363,73 @@ app.post('/api/auth/reset-password', async (c) => {
 app.post('/api/auth/logout', async (c) => {
   await destroySession(c);
   return c.json({ ok: true });
+});
+
+// ---------- Sign in with Google (OAuth 2.0 code flow) ----------
+const OAUTH_STATE_COOKIE = 'wwc_oauth_state';
+
+function googleClientId(c: { env: Env }) {
+  return c.env.GOOGLE_CLIENT_ID || '';
+}
+
+app.get('/api/auth/google/start', async (c) => {
+  const clientId = googleClientId(c);
+  if (!clientId) return c.json({ error: 'Google sign-in is not configured yet.' }, 501);
+  const q = z
+    .object({ mode: z.enum(['login', 'register']).default('login') })
+    .safeParse({ mode: c.req.query('mode') || undefined });
+  const mode = q.success ? q.data.mode : 'login';
+  const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
+  const state = await signOAuthState(c.env.SESSION_SECRET, hmacSha256Hex, {
+    nonce: randomSlug(24),
+    mode,
+    next: '/app',
+    exp: Date.now() + 10 * 60 * 1000,
+  });
+  setCookie(c, OAUTH_STATE_COOKIE, state, {
+    path: '/',
+    httpOnly: true,
+    secure: !isDevEnvironment(c.env, c.req.url),
+    sameSite: 'Lax',
+    maxAge: 600,
+  });
+  return c.redirect(buildGoogleAuthUrl({ clientId, redirectUri: googleRedirectUri(appUrl), state }), 302);
+});
+
+app.get('/api/auth/google/callback', async (c) => {
+  const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
+  const fail = (code: string) => c.redirect(`${appUrl}/login?error=${code}`, 302);
+  const limited = enforceRateLimit(c, 'authLogin');
+  if (limited) return fail('google_rate_limited');
+
+  const clientId = googleClientId(c);
+  const clientSecret = c.env.GOOGLE_CLIENT_SECRET || '';
+  if (!clientId || !clientSecret) return fail('google_not_configured');
+
+  const code = c.req.query('code') || '';
+  const returnedState = c.req.query('state') || '';
+  const cookieState = getCookie(c, OAUTH_STATE_COOKIE) || '';
+  if (!code || !returnedState) return fail('google_denied');
+  // Double-submit CSRF check: query state must equal the signed HttpOnly cookie.
+  if (!cookieState || returnedState !== cookieState) return fail('google_failed');
+  const verified = await verifyOAuthState(c.env.SESSION_SECRET, hmacSha256Hex, returnedState);
+  deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
+  if (!verified) return fail('google_failed');
+
+  try {
+    const { idToken } = await exchangeGoogleCode(clientId, clientSecret, code, googleRedirectUri(appUrl));
+    const profile = await verifyGoogleIdToken(idToken, clientId);
+    const onAdminHost = isAdminHostname(new URL(c.req.url).hostname);
+    const outcome = await findOrCreateGoogleUser(c.env, profile, { allowCreate: !onAdminHost });
+    if (outcome.kind === 'blocked') {
+      return c.redirect(`${appUrl}/login?error=${onAdminHost ? 'google_admin_only' : 'google_blocked'}`, 302);
+    }
+    await createSession(c, outcome.user.id);
+    return c.redirect(`${appUrl}${verified.next}`, 302);
+  } catch (err: any) {
+    console.error('Google OAuth callback failed:', err?.message || err);
+    return fail('google_failed');
+  }
 });
 
 app.get('/api/auth/me', optionalAuth, async (c) => {

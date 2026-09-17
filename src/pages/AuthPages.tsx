@@ -12,6 +12,7 @@ import {
 } from '../services/api.js';
 import { useWeatherStore } from '../store.js';
 import { PasswordInput } from '../components/PasswordInput.js';
+import { GoogleButton, OAuthDivider, googleErrorMessage } from '../components/GoogleButton.js';
 
 function isAdminHost() {
   if (typeof window === 'undefined') return false;
@@ -210,6 +211,13 @@ export function LoginPage() {
 
   useEffect(() => {
     fetchAuthConfig().then(setAuthCfg).catch(() => undefined);
+    // Google OAuth callback failures land here as ?error=google_*.
+    const params = new URLSearchParams(window.location.search);
+    const msg = googleErrorMessage(params.get('error'));
+    if (msg) {
+      setError(msg);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   const onSubmit = async (e: FormEvent) => {
@@ -243,6 +251,8 @@ export function LoginPage() {
 
   return (
     <AuthShell title="Sign in" subtitle={isAdminHost() ? 'Admin sign in' : 'Open your WeatherLink console'}>
+      <GoogleButton mode="login" />
+      <OAuthDivider />
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
         <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
@@ -351,6 +361,8 @@ export function RegisterPage() {
       title="Create account"
       subtitle={`${authCfg.freeTrialDays || 60}-day free access · then yearly per device (WeatherLink Pro)`}
     >
+      <GoogleButton mode="register" />
+      <OAuthDivider />
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && (
           <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3">
