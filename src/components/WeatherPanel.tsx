@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { motion, useAnimation } from 'motion/react';
+import { motion, useAnimation, useReducedMotion } from 'motion/react';
 import { RefreshCw, LucideIcon } from 'lucide-react';
 
 interface GlassPanelProps {
@@ -64,6 +64,7 @@ export function WeatherMetric({
 }: WeatherMetricProps) {
   const [isRotating, setIsRotating] = useState(false);
   const controls = useAnimation();
+  const reduceMotion = useReducedMotion();
 
   const handleRefreshClick = async () => {
     if (isRotating) return;
@@ -98,15 +99,21 @@ export function WeatherMetric({
         </div>
 
         <div className="flex items-baseline gap-1 mt-1">
-          <motion.span
-            className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-[2.75rem] xl:text-5xl 2xl:text-[3rem] font-display font-bold text-white tracking-tight leading-none"
-            key={value}
-            initial={{ opacity: 0.7, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {value}
-          </motion.span>
+          {reduceMotion ? (
+            <span className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-[2.75rem] xl:text-5xl 2xl:text-[3rem] font-display font-bold text-white tracking-tight leading-none">
+              {value}
+            </span>
+          ) : (
+            <motion.span
+              className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-[2.75rem] xl:text-5xl 2xl:text-[3rem] font-display font-bold text-white tracking-tight leading-none"
+              key={value}
+              initial={{ opacity: 0.7, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {value}
+            </motion.span>
+          )}
           {unit && (
             <span className="text-sm md:text-base lg:text-base xl:text-lg 2xl:text-xl font-semibold text-gray-400 font-sans ml-0.5 lg:ml-1 select-none">
               {unit}
