@@ -30,6 +30,7 @@ import Header from './components/Header.js';
 import CompassRose from './components/CompassRose.js';
 import BottomBar from './components/BottomBar.js';
 import ConfigNavbar from './components/ConfigNavbar.js';
+import Toaster from './components/Toaster.js';
 import { GlassPanel, WeatherMetric } from './components/WeatherPanel.js';
 // Heavy routes split to keep initial bundle small (was 641KB warning).
 const SettingsModal = lazy(() => import('./components/SettingsModal.js'));
@@ -646,11 +647,7 @@ function ProtectedConsole() {
   }, [setUser, setBilling, setAuthChecked]);
 
   if (!authChecked) {
-    return (
-      <div className="h-screen bg-[#e8edf3] dark:bg-[#0a0d14] flex items-center justify-center text-slate-500 dark:text-gray-400 text-sm">
-        Loading…
-      </div>
-    );
+    return <RouteFallback label="Checking your session…" />;
   }
 
   if (!user) return <Navigate to="/login" replace />;
@@ -737,6 +734,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <HostAwareRoutes />
+        <Toaster />
       </BrowserRouter>
     </QueryClientProvider>
   );

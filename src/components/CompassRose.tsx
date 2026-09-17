@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useWeatherStore } from '../store.js';
 
 export function getWindDirectionText(deg: number): string {
@@ -14,6 +14,7 @@ export default function CompassRose() {
   const [displaySpeed, setDisplaySpeed] = useState(wind_speed_last);
   const [displayDir, setDisplayDir] = useState(wind_dir_last);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const reduceMotion = useReducedMotion();
 
   const convertWind = (speedMph: number, unit?: 'mph' | 'kmh' | 'kts' | 'ms') => {
     if (unit === 'kmh') return speedMph * 1.60934;
@@ -152,7 +153,7 @@ export default function CompassRose() {
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           initial={{ rotate: displayDir }}
           animate={{ rotate: displayDir }}
-          transition={isInitialLoad ? { duration: 0 } : { type: 'spring', stiffness: 35, damping: 14 }}
+          transition={isInitialLoad || reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 35, damping: 14 }}
         >
           {/* Neutral Matte White Pointer Arrow pointing outward */}
           <div className="relative w-full h-full flex flex-col items-center">
@@ -176,9 +177,9 @@ export default function CompassRose() {
           <motion.span
             className="text-5xl md:text-7xl font-display font-bold text-white tracking-tighter leading-none mt-1"
             key={convertedSpeed}
-            initial={{ opacity: 0.8 }}
+            initial={reduceMotion ? false : { opacity: 0.8 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2 }}
           >
             {convertedSpeed.toFixed(1)}
           </motion.span>

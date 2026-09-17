@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Settings, Volume2, VolumeX, Maximize, Minimize, Play, Pause } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useWeatherStore } from '../store.js';
+import { toast } from './Toaster.js';
 
 interface BottomBarProps {
   onOpenSettings: () => void;
@@ -20,6 +21,7 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [tickerIndex, setTickerIndex] = useState(0);
+  const reduceMotion = useReducedMotion();
 
   const convertTemp = (tempF: number, unit?: 'F' | 'C') => (unit === 'C' ? ((tempF - 32) * 5) / 9 : tempF);
   const getTempUnit = (unit?: 'F' | 'C') => (unit === 'C' ? '°C' : '°F');
@@ -87,8 +89,8 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      document.documentElement.requestFullscreen().catch(() => {
+        toast('Fullscreen was blocked by the browser. Use the F key or your browser menu instead.', 'error');
       });
     } else {
       if (document.exitFullscreen) {
@@ -139,13 +141,13 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
 
       {/* Ticker / Banner message with Smooth Motion Animations */}
       <div className="flex-1 flex items-center justify-center pointer-events-none z-10 min-w-0 overflow-hidden h-6 px-2" aria-live="polite">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`${currentStationIndex}-${tickerIndex}`}
-            initial={{ opacity: 0, y: 6 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.35, ease: 'easeInOut' }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            transition={{ duration: reduceMotion ? 0 : 0.35, ease: 'easeInOut' }}
             className="whitespace-nowrap text-xs md:text-[13px] font-sans italic text-gray-300 tracking-wide font-medium truncate text-center max-w-full"
           >
             {weather.stationName || config.stationName || 'Connecting…'} - {tickerMessages[tickerIndex]}
