@@ -79,6 +79,8 @@ for name in (
     "POLAR_ACCESS_TOKEN",
     "POLAR_PRODUCT_ID",
     "POLAR_WEBHOOK_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
 ):
     put_secret(name)
 
