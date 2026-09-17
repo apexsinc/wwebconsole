@@ -25,7 +25,8 @@ describe('crypto', () => {
     const hash = await hashPassword('correct-horse-battery');
     assert.equal(await verifyPassword('correct-horse-battery', hash), true);
     assert.equal(await verifyPassword('wrong-password', hash), false);
-    assert.match(hash, /^pbkdf2\$310000\$/);
+    // Workers Web Crypto caps PBKDF2 at 100k (see crypto.ts PBKDF2_ITERATIONS).
+    assert.match(hash, /^pbkdf2\$100000\$/);
   });
 
   it('hmacSha256Hex is deterministic', async () => {

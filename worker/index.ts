@@ -59,6 +59,7 @@ import {
   WRITABLE_SETTING_KEYS,
 } from './security';
 import { verifyTurnstile } from './turnstile';
+import { isAdminHostname } from './hosts.ts';
 import type { Env, ShareLinkRow, StationCredentials, StationRow, UserRow } from './types';
 import {
   connectionFromRow,
@@ -172,11 +173,7 @@ app.get('/sitemap.xml', async (c) => {
   });
 });
 
-function isAdminHostname(hostname: string): boolean {
-  const h = (hostname || '').toLowerCase();
-  // Strict exact-match: never trust attacker-controlled subdomains like admin.evil.com.
-  return h === 'admin.wwebconsole.com' || h === 'admin.localhost' || h.endsWith('.admin.wwebconsole.com');
-}
+export { isAdminHostname } from './hosts.ts';
 
 // ---------- Auth ----------
 app.post('/api/auth/register', async (c) => {

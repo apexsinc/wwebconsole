@@ -232,16 +232,26 @@ export async function getSetting(env: Env, key: string): Promise<string> {
   return SITE_DEFAULTS[key] ?? '';
 }
 
-export async function getSettingsMap(env: Env, keys: string[]): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
-  const unique = [...new Set(keys)];
-  // Fast path: Workers secrets for sensitive keys.
-  const dbKeys = unique.filter(
-    (k) => !((k === 'turnstile_secret_key' && env.TURNSTILE_SECRET_KEY) || (k === 'resend_api_key' && env.RESEND_API_KEY))
-  );
-  if (unique.includes('turnstile_secret_key') && env.TURNSTILE_SECRET_KEY) out['turnstile_secret_key'] = env.TURNSTILE_SECRET_KEY;
-  if (unique.includes('resend_api_key') && env.RESEND_API_KEY) out['resend_api_key'] = env.RESEND_API_KEY;
+/** Pure merge for getSettingsMap — unit-testable without a DB (see ./settingsMerge.ts). */
+import { mergeSettingsValues as mergeSettingsValuesPure } from './settingsMerge.ts';
 
+export function mergeSettingsValues(
+  keys: string[],
+  found: Map<string, string>,
+  secrets: Record<string, string>
+): Record<string, string> {
+  return mergeSettingsValuesPure(keys, found, secrets, SITE_DEFAULTS);
+}
+
+export async function getSettingsMap(env: Env, keys: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(keys)];
+  const secrets: Record<string, string> = {};
+  // Fast path: Workers secrets for sensitive keys (never hit D1 for these).
+  if (unique.includes('turnstile_secret_key') && env.TURNSTILE_SECRET_KEY) secrets['turnstile_secret_key'] = env.TURNSTILE_SECRET_KEY;
+  if (unique.includes('resend_api_key') && env.RESEND_API_KEY) secrets['resend_api_key'] = env.RESEND_API_KEY;
+  const dbKeys = unique.filter((k) => secrets[k] === undefined);
+
+  let found = new Map<string, string>();
   if (dbKeys.length > 0) {
     // Single round-trip instead of N sequential SELECTs (was 52 queries per /api/public/site).
     const placeholders = dbKeys.map(() => '?').join(',');
@@ -250,16 +260,9 @@ export async function getSettingsMap(env: Env, keys: string[]): Promise<Record<s
     )
       .bind(...dbKeys)
       .all<{ key: string; value: string }>();
-    const found = new Map((results || []).map((r) => [r.key, r.value]));
-    for (const key of dbKeys) {
-      const v = found.get(key);
-      out[key] = v != null && v !== '' ? v : SITE_DEFAULTS[key] ?? '';
-    }
+    found = new Map((results || []).map((r) => [r.key, r.value]));
   }
-  for (const key of unique) {
-    if (out[key] === undefined) out[key] = SITE_DEFAULTS[key] ?? '';
-  }
-  return out;
+  return mergeSettingsValues(unique, found, secrets);
 }
 
 export async function setSetting(env: Env, key: string, value: string) {
