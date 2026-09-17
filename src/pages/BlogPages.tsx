@@ -6,6 +6,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
+import { motion, useReducedMotion, useScroll, useSpring } from 'motion/react';
 import { CalendarDays, Tag, ArrowLeft, ArrowRight } from 'lucide-react';
 import { MarkdownLite, usePageSeo } from './MarketingPages.js';
 import type { PublicSiteConfig } from '../services/api.js';
@@ -178,15 +179,44 @@ export function BlogPostPage() {
   const { site } = useOutletContext<Ctx>();
   const { slug } = useParams();
   const [post, setPost] = useState<BlogPost | null>(null);
+  const [related, setRelated] = useState<BlogPost[]>([]);
   const [missing, setMissing] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 25 });
   usePageSeo(site, 'seo_home_title', 'seo_home_description', `/post/${slug || ''}`, post?.title || 'Post', post?.excerpt || '');
 
   useEffect(() => {
     document.title = post ? `${post.title} — WWebConsole Blog` : 'Post — WWebConsole Blog';
+    // JSON-LD Article schema for SEO.
+    const id = 'wwc-blog-jsonld';
+    document.getElementById(id)?.remove();
+    if (post) {
+      const s = document.createElement('script');
+      s.id = id;
+      s.type = 'application/ld+json';
+      s.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: post.title,
+        description: post.excerpt,
+        datePublished: new Date(post.publishAt).toISOString(),
+        author: { '@type': 'Organization', name: post.author || 'WWebConsole' },
+        image: post.coverImageUrl || undefined,
+        mainEntityOfPage: `https://wwebconsole.com/post/${post.slug}`,
+      });
+      document.head.appendChild(s);
+    }
+    return () => {
+      document.getElementById(id)?.remove();
+    };
   }, [post]);
 
   useEffect(() => {
     let cancelled = false;
+    setPost(null);
+    setRelated([]);
+    setMissing(false);
     fetch(`/api/public/blog/${encodeURIComponent(slug || '')}`)
       .then((r) => {
         if (r.status === 404) {
@@ -196,7 +226,15 @@ export function BlogPostPage() {
         return r.json() as Promise<{ post?: BlogPost }>;
       })
       .then((d) => {
-        if (!cancelled && d?.post) setPost(d.post);
+        if (!cancelled && d?.post) {
+          setPost(d.post);
+          fetch(`/api/public/blog/${encodeURIComponent(slug || '')}/related`)
+            .then((r) => r.json() as Promise<{ posts?: BlogPost[] }>)
+            .then((rel) => {
+              if (!cancelled) setRelated(rel.posts || []);
+            })
+            .catch(() => undefined);
+        }
         else if (!cancelled && d) setMissing(true);
       })
       .catch(() => {
@@ -232,6 +270,13 @@ export function BlogPostPage() {
 
   return (
     <article className="bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-64px)] pb-24">
+      {!reduceMotion && (
+        <motion.div
+          aria-hidden="true"
+          style={{ scaleX: progress }}
+          className="fixed top-0 left-0 right-0 h-1 origin-left bg-gradient-to-r from-sky-600 to-sky-400 z-[100]"
+        />
+      )}
       <main id="main-content" className="max-w-3xl mx-auto px-4 py-12">
         <Link to="/blogs" className="inline-flex items-center gap-1.5 text-sm font-bold text-sky-700 dark:text-sky-300 min-h-[44px]">
           <ArrowLeft className="w-4 h-4" /> All posts
@@ -257,8 +302,41 @@ export function BlogPostPage() {
           <p className="text-lg text-slate-600 dark:text-slate-300 font-medium leading-relaxed mt-6">{post.excerpt}</p>
         )}
         <div className="mt-6 bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-2xl ring-1 ring-slate-200 dark:ring-white/10">
-          <MarkdownLite text={post.body} />
+          <MarkdownLite text={post.body} large />
         </div>
+
+        {related.length > 0 && (
+          <motion.section
+            aria-label="Related posts"
+            initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.5 }}
+            className="mt-12"
+          >
+            <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Keep reading
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Related guides from the station blog.</p>
+            <div className="mt-6 grid sm:grid-cols-3 gap-5">
+              {related.map((r) => (
+                <Link
+                  key={r.id}
+                  to={`/post/${r.slug}`}
+                  className="group rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-white/10 overflow-hidden hover:shadow-[0_20px_40px_rgba(7,48,117,0.08)] hover:-translate-y-1 transition-all"
+                >
+                  <Cover post={r} />
+                  <div className="p-4">
+                    <h3 className="font-bold text-slate-900 dark:text-white leading-snug group-hover:text-sky-700 dark:group-hover:text-sky-300 transition-colors">
+                      {r.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-2">{formatDate(r.publishAt)}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </motion.section>
+        )}
       </main>
     </article>
   );

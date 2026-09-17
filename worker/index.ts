@@ -55,6 +55,7 @@ import {
   listAllPosts,
   listPublishedPosts,
   listPublishedSlugs,
+  listRelatedPosts,
   resolveCoverImage,
   type BlogPostRow,
 } from './blog.ts';
@@ -198,6 +199,13 @@ app.get('/api/public/blog/:slug', async (c) => {
   const post = await getPublishedPost(c.env, slug);
   if (!post) return c.json({ error: 'Post not found' }, 404);
   return c.json({ post });
+});
+
+app.get('/api/public/blog/:slug/related', async (c) => {
+  const limited = enforceRateLimit(c, 'publicTv');
+  if (limited) return limited;
+  const slug = (c.req.param('slug') || '').slice(0, 160);
+  return c.json({ posts: await listRelatedPosts(c.env, slug, 3) });
 });
 
 // Cover image redirect (cached Unsplash URL, else live fetch, else 404 → gradient fallback).

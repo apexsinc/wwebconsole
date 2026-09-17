@@ -68,6 +68,27 @@ export async function getPublishedPost(env: Env, slug: string) {
   return row ? publicPost(row) : null;
 }
 
+/** Related posts: tag overlap first, recency as tiebreak. Never includes self. */
+export async function listRelatedPosts(env: Env, slug: string, limit = 3) {
+  const now = Date.now();
+  const current = await env.DB.prepare(`SELECT tags FROM blog_posts WHERE slug = ? COLLATE NOCASE`)
+    .bind(slug)
+    .first<{ tags: string }>();
+  const currentTags = new Set((current?.tags || '').split(',').map((t) => t.trim()).filter(Boolean));
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM blog_posts WHERE slug != ? COLLATE NOCASE AND status = 'published' AND publish_at <= ? ORDER BY publish_at DESC LIMIT 60`
+  )
+    .bind(slug, now)
+    .all<BlogPostRow>();
+  const scored = (results || []).map((p) => {
+    const tags = p.tags.split(',').map((t) => t.trim()).filter(Boolean);
+    const overlap = tags.filter((t) => currentTags.has(t)).length;
+    return { p, overlap };
+  });
+  scored.sort((a, b) => b.overlap - a.overlap || b.p.publish_at - a.p.publish_at);
+  return scored.slice(0, limit).map((s) => publicPost(s.p));
+}
+
 export async function listAllPosts(env: Env, limit = 200) {
   const { results } = await env.DB.prepare(
     `SELECT * FROM blog_posts ORDER BY publish_at DESC LIMIT ?`

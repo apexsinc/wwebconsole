@@ -37,17 +37,52 @@ const FEATURE_FALLBACKS = [
   { title: 'Works in the browser', body: 'Open your console from any device — nothing to install on site.' },
 ];
 
-export function MarkdownLite({ text }: { text: string }) {
+/** Inline markdown: [text](url) links and **bold**. Safe: only http(s) and site-relative URLs become links. */
+export function renderInline(text: string, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const re = /(\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  const pushText = (t: string) => {
+    if (t) nodes.push(<span key={`${keyPrefix}-t-${k++}`}>{t}</span>);
+  };
+  while ((m = re.exec(text)) !== null) {
+    pushText(text.slice(last, m.index));
+    last = m.index + m[0].length;
+    const label = m[2] ?? m[4] ?? '';
+    const href = m[3];
+    if (href !== undefined) {
+      const safe = /^(https?:\/\/|\/(?!\/))/.test(href);
+      nodes.push(
+        safe ? (
+          <a key={`${keyPrefix}-a-${k++}`} href={href} className="font-semibold text-sky-700 dark:text-sky-300 underline decoration-sky-300 dark:decoration-sky-700 underline-offset-2 hover:opacity-80">
+            {label}
+          </a>
+        ) : (
+          <span key={`${keyPrefix}-x-${k++}`}>{m[0]}</span>
+        )
+      );
+    } else {
+      nodes.push(<strong key={`${keyPrefix}-b-${k++}`} className="font-bold text-[var(--wwc-text)]">{label}</strong>);
+    }
+  }
+  pushText(text.slice(last));
+  return nodes;
+}
+
+export function MarkdownLite({ text, large }: { text: string; large?: boolean }) {
   const lines = (text || '').split(/\n/);
   const nodes: ReactNode[] = [];
   let list: string[] = [];
+  const bodyCls = large ? 'text-base sm:text-lg leading-relaxed' : 'text-sm leading-relaxed';
 
   const flushList = (key: string) => {
     if (!list.length) return;
     nodes.push(
-      <ul key={key} className="list-disc pl-5 space-y-1.5 text-sm text-[var(--wwc-muted)]">
+      <ul key={key} className={`list-disc pl-5 space-y-1.5 ${bodyCls} text-[var(--wwc-muted)]`}>
         {list.map((item, i) => (
-          <li key={i}>{item}</li>
+          <li key={i}>{renderInline(item, `${key}-li-${i}`)}</li>
         ))}
       </ul>
     );
@@ -67,7 +102,7 @@ export function MarkdownLite({ text }: { text: string }) {
       nodes.push(
         <h2
           key={`h-${i}`}
-          className="text-lg font-bold text-[var(--wwc-text)] font-[family-name:var(--font-display)] mt-8 mb-3 first:mt-0"
+          className={`${large ? 'text-2xl' : 'text-lg'} font-bold text-[var(--wwc-text)] font-[family-name:var(--font-display)] mt-8 mb-3 first:mt-0`}
         >
           {heading}
         </h2>
@@ -80,8 +115,8 @@ export function MarkdownLite({ text }: { text: string }) {
     }
     flushList(`ul-before-p-${i}`);
     nodes.push(
-      <p key={`p-${i}`} className="text-sm leading-relaxed text-[var(--wwc-muted)] whitespace-pre-wrap">
-        {trimmed}
+      <p key={`p-${i}`} className={`${bodyCls} text-[var(--wwc-muted)] whitespace-pre-wrap`}>
+        {renderInline(trimmed, `p-${i}`)}
       </p>
     );
   });
