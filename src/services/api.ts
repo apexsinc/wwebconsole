@@ -175,6 +175,44 @@ export async function adminDeleteUser(userId: string) {
   return api<{ ok: boolean; message?: string }>(`/api/admin/users/${userId}`, { method: 'DELETE' });
 }
 
+export type AdminBlogPost = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  coverImageUrl: string | null;
+  coverQuery: string | null;
+  coverAlt: string;
+  publishAt: number;
+  author: string | null;
+  tags: string[];
+  status: string;
+};
+
+export async function adminListBlog() {
+  return api<{ posts: AdminBlogPost[] }>('/api/admin/blog');
+}
+
+export async function adminCreateBlog(payload: Record<string, unknown>) {
+  return api<{ post: AdminBlogPost }>('/api/admin/blog', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function adminUpdateBlog(id: string, payload: Record<string, unknown>) {
+  return api<{ post: AdminBlogPost }>(`/api/admin/blog/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+}
+
+export async function adminDeleteBlog(id: string) {
+  return api<{ ok: boolean }>(`/api/admin/blog/${id}`, { method: 'DELETE' });
+}
+
+export async function adminFetchBlogCover(id: string, query?: string, refresh?: boolean) {
+  return api<{ ok: boolean; coverImageUrl: string }>(`/api/admin/blog/${id}/cover`, {
+    method: 'POST',
+    body: JSON.stringify({ query, refresh }),
+  });
+}
+
 export async function adminGetSettings() {
   return api<{ settings: any[]; groups?: { id: string; label: string; keys: string[] }[] }>('/api/admin/settings');
 }

@@ -49,6 +49,16 @@ import {
   SITE_SETTING_GROUPS,
 } from './settings';
 import {
+  fetchAndStoreCover,
+  getBlogSeo,
+  getPublishedPost,
+  listAllPosts,
+  listPublishedPosts,
+  listPublishedSlugs,
+  resolveCoverImage,
+  type BlogPostRow,
+} from './blog.ts';
+import {
   clientIp,
   corsOriginAllowlist,
   enforceRateLimit,
@@ -170,13 +180,45 @@ app.post('/api/public/contact', async (c) => {
   return c.json({ ok: true });
 });
 
+// ---------- Public blog (/blogs, /post/:slug) ----------
+app.get('/api/public/blog', async (c) => {
+  const limited = enforceRateLimit(c, 'publicTv');
+  if (limited) return limited;
+  const limitParse = z.coerce.number().int().min(1).max(50).optional().safeParse(c.req.query('limit'));
+  const offsetParse = z.coerce.number().int().min(0).max(100000).optional().safeParse(c.req.query('offset'));
+  const limit = limitParse.success && limitParse.data ? limitParse.data : 24;
+  const offset = offsetParse.success && offsetParse.data ? offsetParse.data : 0;
+  return c.json({ ...(await listPublishedPosts(c.env, limit, offset)), limit, offset });
+});
+
+app.get('/api/public/blog/:slug', async (c) => {
+  const limited = enforceRateLimit(c, 'publicTv');
+  if (limited) return limited;
+  const slug = (c.req.param('slug') || '').slice(0, 160);
+  const post = await getPublishedPost(c.env, slug);
+  if (!post) return c.json({ error: 'Post not found' }, 404);
+  return c.json({ post });
+});
+
+// Cover image redirect (cached Unsplash URL, else live fetch, else 404 → gradient fallback).
+app.get('/api/public/blog/cover/:slug', async (c) => {
+  const slug = (c.req.param('slug') || '').slice(0, 160);
+  const row = await c.env.DB.prepare('SELECT * FROM blog_posts WHERE slug = ? COLLATE NOCASE')
+    .bind(slug)
+    .first<BlogPostRow>();
+  if (!row) return c.text('Not found', 404);
+  const url = await resolveCoverImage(c.env, row);
+  if (!url) return c.text('No cover', 404);
+  return c.redirect(url, 302);
+});
+
 app.get('/robots.txt', async (c) => {
   const body = await buildRobotsTxt(c.env);
   return c.text(body, 200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
 });
 
 app.get('/sitemap.xml', async (c) => {
-  const body = await buildSitemapXml(c.env);
+  const body = await buildSitemapXml(c.env, await listPublishedSlugs(c.env));
   return c.text(body, 200, {
     'Content-Type': 'application/xml; charset=utf-8',
     'Cache-Control': 'public, max-age=300',
@@ -1213,6 +1255,116 @@ app.get('/api/admin/settings', requireAdmin, async (c) => {
   return c.json({ settings: await listSettingsForAdmin(c.env), groups: SITE_SETTING_GROUPS });
 });
 
+// ---------- Admin blog (/admin → Blog tab) ----------
+const blogPostSchema = z.object({
+  title: z.string().min(3).max(160),
+  slug: z.string().max(160).optional(),
+  excerpt: z.string().max(400).optional().default(''),
+  body: z.string().max(60000).optional().default(''),
+  coverQuery: z.string().max(80).optional().default(''),
+  coverAlt: z.string().max(160).optional().default(''),
+  status: z.enum(['draft', 'scheduled', 'published']).optional().default('draft'),
+  publishAt: z.number().int().min(0).optional(),
+  author: z.string().max(80).optional().default(''),
+  tags: z.string().max(200).optional().default(''),
+});
+
+function slugify(title: string) {
+  return title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120) || `post-${Date.now()}`;
+}
+
+app.get('/api/admin/blog', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
+  return c.json({ posts: await listAllPosts(c.env) });
+});
+
+app.post('/api/admin/blog', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
+  const body = blogPostSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+  const d = body.data;
+  const now = Date.now();
+  const id = newId();
+  const slug = (d.slug || slugify(d.title)).toLowerCase();
+  const exists = await c.env.DB.prepare('SELECT id FROM blog_posts WHERE slug = ? COLLATE NOCASE').bind(slug).first();
+  if (exists) return c.json({ error: 'A post with this slug already exists.' }, 400);
+  await c.env.DB.prepare(
+    `INSERT INTO blog_posts (id, slug, title, excerpt, body, cover_image_url, cover_query, cover_alt, status, publish_at, author, tags, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(id, slug, d.title.trim(), (d.excerpt || '').trim(), d.body || '', d.coverQuery || '', d.coverAlt || d.title.trim(),
+      d.status, d.publishAt ?? now, d.author || '', d.tags || '', now, now)
+    .run();
+  const row = await c.env.DB.prepare('SELECT * FROM blog_posts WHERE id = ?').bind(id).first<BlogPostRow>();
+  return c.json({ post: row });
+});
+
+app.patch('/api/admin/blog/:id', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
+  const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
+  if (!idParse.success) return c.json({ error: 'Invalid post id' }, 400);
+  const body = blogPostSchema.partial().safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+  const d = body.data;
+  const id = idParse.data;
+  const row = await c.env.DB.prepare('SELECT * FROM blog_posts WHERE id = ?').bind(id).first<BlogPostRow>();
+  if (!row) return c.json({ error: 'Post not found' }, 404);
+  if (d.slug && d.slug.toLowerCase() !== row.slug.toLowerCase()) {
+    const clash = await c.env.DB.prepare('SELECT id FROM blog_posts WHERE slug = ? COLLATE NOCASE').bind(d.slug).first();
+    if (clash) return c.json({ error: 'A post with this slug already exists.' }, 400);
+  }
+  await c.env.DB.prepare(
+    `UPDATE blog_posts SET
+      slug = COALESCE(?, slug), title = COALESCE(?, title), excerpt = COALESCE(?, excerpt),
+      body = COALESCE(?, body), cover_query = COALESCE(?, cover_query), cover_alt = COALESCE(?, cover_alt),
+      status = COALESCE(?, status), publish_at = COALESCE(?, publish_at),
+      author = COALESCE(?, author), tags = COALESCE(?, tags), updated_at = ?
+     WHERE id = ?`
+  )
+    .bind(
+      d.slug?.toLowerCase() ?? null, d.title?.trim() ?? null, d.excerpt?.trim() ?? null,
+      d.body ?? null, d.coverQuery ?? null, d.coverAlt ?? null,
+      d.status ?? null, d.publishAt ?? null, d.author ?? null, d.tags ?? null, Date.now(), id
+    )
+    .run();
+  const updated = await c.env.DB.prepare('SELECT * FROM blog_posts WHERE id = ?').bind(id).first<BlogPostRow>();
+  return c.json({ post: updated });
+});
+
+app.delete('/api/admin/blog/:id', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
+  const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
+  if (!idParse.success) return c.json({ error: 'Invalid post id' }, 400);
+  await c.env.DB.prepare('DELETE FROM blog_posts WHERE id = ?').bind(idParse.data).run();
+  return c.json({ ok: true });
+});
+
+// (Re)fetch the Unsplash cover for a post (cached into cover_image_url).
+app.post('/api/admin/blog/:id/cover', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
+  const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
+  if (!idParse.success) return c.json({ error: 'Invalid post id' }, 400);
+  const body = z.object({ query: z.string().max(80).optional(), refresh: z.boolean().optional() })
+    .safeParse(await c.req.json().catch(() => ({})));
+  if (body.success && body.data.query) {
+    await c.env.DB.prepare('UPDATE blog_posts SET cover_query = ?, cover_image_url = ?, updated_at = ? WHERE id = ?')
+      .bind(body.data.query, '', Date.now(), idParse.data)
+      .run();
+  } else if (body.success && body.data.refresh) {
+    await c.env.DB.prepare('UPDATE blog_posts SET cover_image_url = ?, updated_at = ? WHERE id = ?')
+      .bind('', Date.now(), idParse.data)
+      .run();
+  }
+  const url = await fetchAndStoreCover(c.env, idParse.data);
+  if (!url) return c.json({ error: 'Could not fetch a cover. Set UNSPLASH_ACCESS_KEY or check the query.' }, 400);
+  return c.json({ ok: true, coverImageUrl: url });
+});
+
 app.put('/api/admin/settings', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
@@ -1244,10 +1396,14 @@ export default {
     const accept = request.headers.get('Accept') || '';
     const isHtmlNav =
       request.method === 'GET' &&
-      (accept.includes('text/html') || url.pathname === '/' || seoPageFromPath(url.pathname));
+      (accept.includes('text/html') ||
+        url.pathname === '/' ||
+        seoPageFromPath(url.pathname) ||
+        url.pathname === '/blogs' ||
+        url.pathname.startsWith('/post/'));
 
     if (isHtmlNav && assetRes.ok) {
-      const seo = await getSeoForPath(env, url.pathname);
+      const seo = (await getSeoForPath(env, url.pathname)) || (await getBlogSeo(env, url.pathname));
       if (seo) {
         const html = await assetRes.text();
         const injected = injectSeoIntoHtml(html, seo);

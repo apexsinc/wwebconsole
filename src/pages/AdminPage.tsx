@@ -22,8 +22,9 @@ import {
 } from '../services/api.js';
 import { useWeatherStore } from '../store.js';
 import { useTheme } from '../hooks/useTheme.js';
+import BlogAdmin from '../components/BlogAdmin.js';
 
-type Tab = 'users' | 'site' | 'settings';
+type Tab = 'users' | 'site' | 'settings' | 'blog';
 type SettingGroup = { id: string; label: string; keys: string[] };
 
 const TEXTAREA_KEYS = new Set([
@@ -416,6 +417,17 @@ export default function AdminPage() {
             >
               API & Integrations
             </button>
+            <button
+              type="button"
+              onClick={() => setTab('blog')}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+                tab === 'blog'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Blog Posts
+            </button>
           </div>
         </div>
 
@@ -762,6 +774,11 @@ export default function AdminPage() {
               Save Integrations
             </button>
           </form>
+        )}
+
+        {/* ── Blog Tab ── */}
+        {tab === 'blog' && (
+          <BlogAdmin notify={setMsg} error={setErr} />
         )}
       </div>
 

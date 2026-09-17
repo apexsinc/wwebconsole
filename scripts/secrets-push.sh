@@ -81,6 +81,7 @@ for name in (
     "POLAR_WEBHOOK_SECRET",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
+    "UNSPLASH_ACCESS_KEY",
 ):
     put_secret(name)
 

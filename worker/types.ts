@@ -78,6 +78,7 @@ export interface Env {
   POLAR_WEBHOOK_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  UNSPLASH_ACCESS_KEY?: string;
 }
 
 export interface UserRow {

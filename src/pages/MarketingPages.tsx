@@ -37,7 +37,7 @@ const FEATURE_FALLBACKS = [
   { title: 'Works in the browser', body: 'Open your console from any device — nothing to install on site.' },
 ];
 
-function MarkdownLite({ text }: { text: string }) {
+export function MarkdownLite({ text }: { text: string }) {
   const lines = (text || '').split(/\n/);
   const nodes: ReactNode[] = [];
   let list: string[] = [];
@@ -109,7 +109,7 @@ function useLocalizedPrice(site: PublicSiteConfig | null) {
   };
 }
 
-function usePageSeo(
+export function usePageSeo(
   site: PublicSiteConfig | null,
   titleKey: string,
   descKey: string,

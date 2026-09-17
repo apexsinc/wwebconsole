@@ -458,13 +458,14 @@ export async function buildRobotsTxt(env: Env): Promise<string> {
     .trim() + '\n';
 }
 
-export async function buildSitemapXml(env: Env): Promise<string> {
+export async function buildSitemapXml(env: Env, blogSlugs: string[] = []): Promise<string> {
   const site = await getPublicSiteConfig(env);
   const base = (site.site_canonical_base || 'https://wwebconsole.com').replace(/\/+$/, '');
   if (!site.indexable) {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`;
   }
-  const paths = ['/', '/features', '/pricing', '/about', '/contact', '/privacy', '/terms', '/changelog'];
+  const paths = ['/', '/features', '/pricing', '/about', '/contact', '/privacy', '/terms', '/changelog', '/blogs',
+    ...blogSlugs.map((s) => `/post/${s}`)];
   const urls = paths
     .map((p) => {
       const loc = p === '/' ? `${base}/` : `${base}${p}`;
