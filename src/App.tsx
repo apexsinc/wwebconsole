@@ -38,6 +38,8 @@ const PolarCheckoutModal = lazy(() => import('./components/PolarCheckoutModal.js
 const TvPage = lazy(() => import('./pages/TvPage.js'));
 const AccountPage = lazy(() => import('./pages/AccountPage.js'));
 const AdminPage = lazy(() => import('./pages/AdminPage.js'));
+const BlogListPage = lazy(() => import('./pages/BlogPages.js').then((m) => ({ default: m.BlogListPage })));
+const BlogPostPage = lazy(() => import('./pages/BlogPages.js').then((m) => ({ default: m.BlogPostPage })));
 
 function RouteFallback({ label = 'Loading…' }: { label?: string }) {
   return (
@@ -717,6 +719,8 @@ function HostAwareRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/blogs" element={<BlogListPage />} />
+        <Route path="/post/:slug" element={<BlogPostPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />

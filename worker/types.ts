@@ -76,6 +76,9 @@ export interface Env {
   POLAR_ACCESS_TOKEN?: string;
   POLAR_PRODUCT_ID?: string;
   POLAR_WEBHOOK_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  UNSPLASH_ACCESS_KEY?: string;
 }
 
 export interface UserRow {
@@ -92,6 +95,7 @@ export interface UserRow {
   pending_email: string | null;
   pending_email_code_hash: string | null;
   pending_email_expires_at: number | null;
+  google_sub: string | null;
   created_at: number;
   updated_at: number;
 }
