@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Admin Blog tab: list, create/edit, schedule, Unsplash covers.
+ * Admin Blog tab: list, create/edit, schedule, cover images.
  */
 import { FormEvent, useEffect, useState } from 'react';
 import { ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-react';
@@ -116,10 +116,10 @@ export default function BlogAdmin({ notify, error }: { notify: (msg: string) => 
     setCoverBusy(p.id);
     try {
       await adminFetchBlogCover(p.id, undefined, true);
-      notify('Cover fetched from Unsplash');
+      notify('Cover fetched');
       await load();
     } catch (err: any) {
-      error(err.message || 'Cover fetch failed. Set UNSPLASH_ACCESS_KEY first.');
+      error(err.message || 'Cover fetch failed. Set PIXABAY_API_KEY first.');
     } finally {
       setCoverBusy('');
     }
@@ -186,7 +186,7 @@ export default function BlogAdmin({ notify, error }: { notify: (msg: string) => 
                       <button
                         onClick={() => onCover(p)}
                         disabled={coverBusy === p.id}
-                        title="Fetch Unsplash cover"
+                        title="Fetch cover"
                         aria-label={`Fetch cover for ${p.title}`}
                         className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50"
                       >
@@ -282,7 +282,7 @@ export default function BlogAdmin({ notify, error }: { notify: (msg: string) => 
                 <input value={editing.author} onChange={(e) => setEditing({ ...editing!, author: e.target.value })} className="rounded-xl border px-4 py-3 text-sm font-normal normal-case tracking-normal bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 min-h-[44px]" />
               </label>
               <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider">
-                Cover query (Unsplash)
+                Cover query
                 <input value={editing.coverQuery} onChange={(e) => setEditing({ ...editing!, coverQuery: e.target.value })} placeholder="e.g. thunderstorm" className="rounded-xl border px-4 py-3 text-sm font-normal normal-case tracking-normal bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 min-h-[44px]" />
               </label>
               <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider">

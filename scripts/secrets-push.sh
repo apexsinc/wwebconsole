@@ -82,6 +82,7 @@ for name in (
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "UNSPLASH_ACCESS_KEY",
+    "PIXABAY_API_KEY",
 ):
     put_secret(name)
 

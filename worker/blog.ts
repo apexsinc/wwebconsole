@@ -98,12 +98,36 @@ export async function listAllPosts(env: Env, limit = 200) {
   return (results || []).map((p) => ({ ...publicPost(p), status: p.status }));
 }
 
-/** Resolve a cover image: cached URL, else Unsplash API by cover_query, else null. */
+/** Resolve a cover image: cached URL, else Pixabay/Unsplash by cover_query, else null. */
 export async function resolveCoverImage(env: Env, post: BlogPostRow): Promise<string | null> {
   if (post.cover_image_url) return post.cover_image_url;
-  const key = env.UNSPLASH_ACCESS_KEY || '';
   const query = post.cover_query || post.title;
-  if (!key || !query) return null;
+  if (!query) return null;
+  // Pixabay first (key is configured), Unsplash as fallback.
+  const pixabayKey = env.PIXABAY_API_KEY || '';
+  if (pixabayKey) {
+    try {
+      const res = await fetch(
+        `https://pixabay.com/api/?key=${encodeURIComponent(pixabayKey)}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=3`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { hits?: { largeImageURL?: string; webformatURL?: string }[] };
+        const url = data.hits?.[0]?.largeImageURL || data.hits?.[0]?.webformatURL || null;
+        if (url) {
+          await env.DB.prepare('UPDATE blog_posts SET cover_image_url = ?, updated_at = ? WHERE id = ?')
+            .bind(url, Date.now(), post.id)
+            .run()
+            .catch(() => undefined);
+          return url;
+        }
+      }
+    } catch {
+      /* fall through to Unsplash */
+    }
+  }
+  const key = env.UNSPLASH_ACCESS_KEY || '';
+  if (!key) return null;
   try {
     const res = await fetch(
       `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape`,

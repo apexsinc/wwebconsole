@@ -79,6 +79,7 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   UNSPLASH_ACCESS_KEY?: string;
+  PIXABAY_API_KEY?: string;
 }
 
 export interface UserRow {
