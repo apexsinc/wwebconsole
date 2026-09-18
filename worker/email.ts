@@ -4,7 +4,8 @@ import type { Env } from './types';
 export async function sendEmail(env: Env, to: string, subject: string, html: string, text?: string) {
   const enabled = await isEnabled(env, 'resend_enabled');
   if (!enabled) {
-    console.log('[email:disabled]', { to, subject, text: text || html.replace(/<[^>]+>/g, ' ') });
+    // Never log message bodies: OTP codes travel through this path.
+    console.log('[email:disabled]', { to, subject });
     return { id: 'disabled', skipped: true };
   }
 

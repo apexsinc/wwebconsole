@@ -39,6 +39,7 @@ export async function securityHeaders(c: Context<{ Bindings: Env }>, next: Next)
   c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   c.res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   c.res.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  c.res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   if (isApi) {
     c.res.headers.set('Cache-Control', 'no-store');
     c.res.headers.set(
@@ -71,6 +72,7 @@ export function withSpaSecurityHeaders(res: Response): Response {
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   headers.set('Content-Security-Policy', SPA_CONTENT_SECURITY_POLICY);
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }

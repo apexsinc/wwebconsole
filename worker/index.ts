@@ -32,7 +32,7 @@ import {
   setStationWlPlan,
 } from './billing';
 import { createPolarCheckoutSession, verifyAndApplyCheckout, handlePolarWebhook } from './polar';
-import { decryptJson, hmacSha256Hex, newId, randomSlug } from './crypto';
+import { decryptJson, hmacSha256Hex, newId, randomSlug, verifyStandardWebhookSignature } from './crypto';
 import { createAndSendOtp, consumeOtp } from './otp';
 import {
   buildRobotsTxt,
@@ -109,9 +109,15 @@ app.use('/api/*', limitJsonBody);
 
 app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME }));
 
-app.get('/api/auth/config', async (c) => c.json(await getPublicAuthConfig(c.env)));
+app.get('/api/auth/config', async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault');
+  if (limited) return limited;
+  return c.json(await getPublicAuthConfig(c.env));
+});
 
 app.get('/api/public/site', async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault');
+  if (limited) return limited;
   const country = c.req.header('cf-ipcountry') || c.req.header('CF-IPCountry') || null;
   return c.json(await getPublicSiteConfig(c.env, country));
 });
@@ -210,6 +216,8 @@ app.get('/api/public/blog/:slug/related', async (c) => {
 
 // Cover image redirect (cached Unsplash URL, else live fetch, else 404 → gradient fallback).
 app.get('/api/public/blog/cover/:slug', async (c) => {
+  const limited = enforceRateLimit(c, 'publicTv');
+  if (limited) return limited;
   const slug = (c.req.param('slug') || '').slice(0, 160);
   const row = await c.env.DB.prepare('SELECT * FROM blog_posts WHERE slug = ? COLLATE NOCASE')
     .bind(slug)
@@ -423,6 +431,8 @@ function googleClientId(c: { env: Env }) {
 }
 
 app.get('/api/auth/google/start', async (c) => {
+  const limited = enforceRateLimit(c, 'authLogin');
+  if (limited) return limited;
   const clientId = googleClientId(c);
   if (!clientId) return c.json({ error: 'Google sign-in is not configured yet.' }, 501);
   const q = z
@@ -582,6 +592,8 @@ async function assertAccess(c: { env: Env; json: Function; get: Function }) {
 
 // ---------- Station / weather ----------
 app.get('/api/station', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
+  if (limited) return limited;
   const gate = await assertAccess(c);
   if (gate.blocked) return gate.response;
   const { station, user } = gate;
@@ -608,6 +620,8 @@ app.get('/api/station', requireAuth, async (c) => {
 });
 
 app.patch('/api/station', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
+  if (limited) return limited;
   const gate = await assertAccess(c);
   if (gate.blocked) return gate.response;
   const { station: existingStation, user } = gate;
@@ -667,7 +681,8 @@ app.patch('/api/station', requireAuth, async (c) => {
     enc = res.enc;
     iv = res.iv;
   } catch (err: any) {
-    return c.json({ error: err.message || 'Failed to encrypt credentials' }, 500);
+    console.error('Station credential save failed:', err?.message || err);
+    return c.json({ error: 'Failed to save credentials. Please retry.' }, 500);
   }
 
   await c.env.DB.prepare(
@@ -733,6 +748,8 @@ app.patch('/api/station', requireAuth, async (c) => {
 });
 
 app.get('/api/weather/current', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
+  if (limited) return limited;
   const gate = await assertAccess(c);
   if (gate.blocked) return gate.response;
   let station = gate.station;
@@ -866,14 +883,38 @@ const handleWebhookRequest = async (c: any) => {
   const limited = enforceRateLimit(c, 'apiDefault');
   if (limited) return limited;
   try {
-    const payload = await c.req.json().catch(() => null);
+    // Read the raw body: signature verification requires the exact bytes.
+    const rawBody = await c.req.text();
+    let payload: any = null;
+    try {
+      payload = rawBody ? JSON.parse(rawBody) : null;
+    } catch {
+      return c.text('Bad Request', 400);
+    }
     if (!payload) return c.text('Bad Request', 400);
+
+    // Verify Standard Webhooks signature when a secret is configured.
+    // Without POLAR_WEBHOOK_SECRET we cannot authenticate the sender:
+    // accept-and-log (backward compatible) so subscription polling still works.
+    const webhookSecret = c.env.POLAR_WEBHOOK_SECRET || '';
+    if (webhookSecret) {
+      const ok = await verifyStandardWebhookSignature({
+        secret: webhookSecret,
+        webhookId: c.req.header('webhook-id') || '',
+        timestamp: c.req.header('webhook-timestamp') || '',
+        rawBody,
+        signatureHeader: c.req.header('webhook-signature') || '',
+      });
+      if (!ok) return c.text('Invalid signature', 401);
+    } else {
+      console.warn('Polar webhook received without POLAR_WEBHOOK_SECRET configured — skipping signature check');
+    }
 
     const result = await handlePolarWebhook(c.env, payload);
     return c.json({ ok: true, result });
   } catch (err: any) {
-    console.error('Polar webhook error:', err);
-    return c.json({ error: err.message || 'Webhook processing failed' }, 500);
+    console.error('Polar webhook error:', err?.message || err);
+    return c.json({ error: 'Webhook processing failed' }, 500);
   }
 };
 
@@ -883,6 +924,8 @@ app.post('/api/billing/webhook', handleWebhookRequest);
 
 // ---------- Share links ----------
 app.get('/api/share', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
+  if (limited) return limited;
   const gate = await assertAccess(c);
   if (gate.blocked) return gate.response;
   const user = gate.user;
@@ -953,6 +996,8 @@ app.post('/api/share', requireAuth, async (c) => {
 });
 
 app.delete('/api/share/:id', requireAuth, async (c) => {
+  const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
+  if (limited) return limited;
   const gate = await assertAccess(c);
   if (gate.blocked) return gate.response;
   const user = c.get('user');
@@ -1020,6 +1065,8 @@ app.get('/api/public/tv/:slug', async (c) => {
 
 // ---------- Admin ----------
 app.get('/api/admin/overview', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
   const now = Date.now();
   const users = await c.env.DB.prepare('SELECT COUNT(*) as c FROM users').first<{ c: number }>();
   const suspended = await c.env.DB.prepare('SELECT COUNT(*) as c FROM users WHERE suspended = 1').first<{ c: number }>();
@@ -1260,6 +1307,8 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
 });
 
 app.get('/api/admin/settings', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
   return c.json({ settings: await listSettingsForAdmin(c.env), groups: SITE_SETTING_GROUPS });
 });
 

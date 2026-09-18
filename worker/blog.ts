@@ -35,6 +35,27 @@ export function coverObjectKey(slug: string) {
   return `blog/${slug}.jpg`;
 }
 
+/** Hosts we ever fetch cover bytes from (Pixabay + Unsplash CDNs). */
+const COVER_FETCH_HOSTS = new Set([
+  'pixabay.com',
+  'cdn.pixabay.com',
+  'images.unsplash.com',
+]);
+
+/** Defense-in-depth: never fetch cover bytes from an unlisted host. */
+export function isAllowedCoverHost(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (new URL(url).protocol !== 'https:') return false;
+    for (const allowed of COVER_FETCH_HOSTS) {
+      if (host === allowed || host.endsWith(`.${allowed}`)) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function publicPost(p: BlogPostRow) {
   return {
     id: p.id,
@@ -118,6 +139,10 @@ export async function archiveCoverToCdn(
   postId: string
 ): Promise<string | null> {
   if (!env.COVERS) return null;
+  if (!isAllowedCoverHost(sourceUrl)) {
+    console.error('Cover fetch blocked: host not allowlisted');
+    return null;
+  }
   try {
     const res = await fetch(sourceUrl, { signal: AbortSignal.timeout(20000) });
     if (!res.ok) return null;

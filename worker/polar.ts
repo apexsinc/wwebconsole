@@ -162,6 +162,21 @@ export async function verifyAndApplyCheckout(
   let stationId = meta.stationId as string | undefined;
   const userId = (meta.userId as string | undefined) || currentUser?.id;
 
+  // Bind the checkout to the account that paid: metadata is server-set at
+  // creation, so a mismatch means a foreign checkoutId was submitted.
+  if (currentUser) {
+    if (meta.userId && meta.userId !== currentUser.id) {
+      return { ok: false, status: checkout.status, message: 'This checkout belongs to a different account.' };
+    }
+    const metaEmail = (meta.userEmail as string | undefined)?.toLowerCase();
+    if (metaEmail && metaEmail !== currentUser.email.toLowerCase()) {
+      return { ok: false, status: checkout.status, message: 'This checkout belongs to a different account.' };
+    }
+    if (checkout.customer_email && checkout.customer_email.toLowerCase() !== currentUser.email.toLowerCase()) {
+      return { ok: false, status: checkout.status, message: 'This checkout was paid with a different email.' };
+    }
+  }
+
   if (!stationId && userId) {
     const station = await env.DB.prepare('SELECT id FROM stations WHERE user_id = ? ORDER BY created_at ASC')
       .bind(userId)
@@ -173,6 +188,16 @@ export async function verifyAndApplyCheckout(
 
   if (!stationId) {
     throw new Error('Could not identify station associated with this checkout.');
+  }
+
+  // The station must belong to the claiming user — never activate a foreign station.
+  if (currentUser) {
+    const owned = await env.DB.prepare('SELECT id FROM stations WHERE id = ? AND user_id = ?')
+      .bind(stationId, currentUser.id)
+      .first<{ id: string }>();
+    if (!owned) {
+      return { ok: false, status: checkout.status, message: 'This checkout is not for one of your stations.' };
+    }
   }
 
   // Activate Pro yearly subscription (+1 year from now or extends current expiry)

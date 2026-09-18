@@ -148,6 +148,70 @@ export async function hmacSha256Hex(secret: string, message: string): Promise<st
     .join('');
 }
 
+async function hmacSha256Base64(secret: Uint8Array, message: string): Promise<string> {
+  const key = await crypto.subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+  const bytes = new Uint8Array(sig);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length || a.length === 0) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * Verify a Standard Webhooks (Svix-compatible, e.g. Polar) signature.
+ * Secret may carry the `whsec_` prefix; signature header may hold several
+ * space-separated `v1,<base64>` signatures. Timestamp must be within 5 min.
+ */
+export async function verifyStandardWebhookSignature(opts: {
+  secret: string;
+  webhookId: string;
+  timestamp: string;
+  rawBody: string;
+  signatureHeader: string;
+  toleranceSec?: number;
+}): Promise<boolean> {
+  const { webhookId, timestamp, rawBody, signatureHeader } = opts;
+  const tolerance = opts.toleranceSec ?? 300;
+  if (!opts.secret || !webhookId || !timestamp || !rawBody || !signatureHeader) return false;
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > tolerance) return false;
+  let keyB64 = opts.secret.startsWith('whsec_') ? opts.secret.slice('whsec_'.length) : opts.secret;
+  let keyBytes: Uint8Array;
+  try {
+    const bin = atob(keyB64);
+    keyBytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+  } catch {
+    return false;
+  }
+  const expected = await hmacSha256Base64(keyBytes, `${webhookId}.${timestamp}.${rawBody}`);
+  // Compare in hex space to keep the check constant-time.
+  const expectedHex = Array.from(
+    Uint8Array.from(atob(expected), (ch) => ch.charCodeAt(0))
+  )
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return signatureHeader
+    .split(' ')
+    .filter((s) => s.startsWith('v1,'))
+    .some((s) => {
+      try {
+        const sigHex = Array.from(Uint8Array.from(atob(s.slice(3)), (ch) => ch.charCodeAt(0)))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+        return timingSafeEqualHex(sigHex, expectedHex);
+      } catch {
+        return false;
+      }
+    });
+}
+
 export async function signSessionCookieValue(secret: string | undefined, sessionId: string): Promise<string> {
   if (!secret) return sessionId;
   const sig = (await hmacSha256Hex(secret, sessionId)).slice(0, 32);
