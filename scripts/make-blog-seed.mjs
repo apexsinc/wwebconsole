@@ -114,7 +114,7 @@ const ANGLES = [
   },
   {
     kind: 'Checklist',
-    title: (t) => `The ${t} checklist every station needs`,
+    title: (t) => `The ${t} walkthrough every station needs`,
     excerpt: (t) => `A printable-style audit for ${t} you can finish in under an hour.`,
     secA: 'Before you touch anything',
     bodyA: (t) => `Screenshot today's readings first — that "before" picture is what makes the checklist satisfying. Then gather the whole job into one trip: a cloth, a screwdriver, your phone for photos, and the login for your console. Working through ${t} systematically beats heroic troubleshooting every time, because most station problems are boring: something loose, something dirty, something grown-over. The checklist below finds all three in under an hour.`,
