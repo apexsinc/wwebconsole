@@ -20,6 +20,8 @@ export type BlogPost = {
   coverImageUrl: string | null;
   coverQuery: string | null;
   coverAlt: string;
+  coverCredit: string | null;
+  coverPageUrl: string | null;
   publishAt: number;
   author: string | null;
   tags: string[];
@@ -297,6 +299,17 @@ export function BlogPostPage() {
         </p>
         <div className="mt-6">
           <Cover post={post} large />
+          {post.coverCredit && (
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-right">
+              {post.coverPageUrl ? (
+                <a href={post.coverPageUrl} target="_blank" rel="noreferrer noopener" className="hover:underline">
+                  {post.coverCredit}
+                </a>
+              ) : (
+                post.coverCredit
+              )}
+            </p>
+          )}
         </div>
         {post.excerpt && (
           <p className="text-lg text-slate-600 dark:text-slate-300 font-medium leading-relaxed mt-6">{post.excerpt}</p>

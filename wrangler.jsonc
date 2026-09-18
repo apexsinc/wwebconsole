@@ -18,6 +18,12 @@
       "migrations_dir": "migrations"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "COVERS",
+      "bucket_name": "wwebconsole-cdn"
+    }
+  ],
   "triggers": {
     "crons": ["*/2 * * * *"]
   },

@@ -19,12 +19,20 @@ export interface BlogPostRow {
   cover_image_url: string;
   cover_query: string;
   cover_alt: string;
+  cover_credit: string;
+  cover_page_url: string;
   status: string;
   publish_at: number;
   author: string;
   tags: string;
   created_at: number;
   updated_at: number;
+}
+
+export const COVER_CDN_BASE = 'https://cdn.wwebconsole.com';
+
+export function coverObjectKey(slug: string) {
+  return `blog/${slug}.jpg`;
 }
 
 export function publicPost(p: BlogPostRow) {
@@ -37,6 +45,8 @@ export function publicPost(p: BlogPostRow) {
     coverImageUrl: p.cover_image_url || null,
     coverQuery: p.cover_query || null,
     coverAlt: p.cover_alt || p.title,
+    coverCredit: p.cover_credit || null,
+    coverPageUrl: p.cover_page_url || null,
     publishAt: p.publish_at,
     author: p.author || null,
     tags: (p.tags || '').split(',').map((t) => t.trim()).filter(Boolean),
@@ -98,7 +108,35 @@ export async function listAllPosts(env: Env, limit = 200) {
   return (results || []).map((p) => ({ ...publicPost(p), status: p.status }));
 }
 
-/** Resolve a cover image: cached URL, else Pixabay/Unsplash by cover_query, else null. */
+/** Archive a remote image into our R2 CDN (survives source deletion). Returns the CDN URL. */
+export async function archiveCoverToCdn(
+  env: Env,
+  slug: string,
+  sourceUrl: string,
+  credit: string,
+  pageUrl: string,
+  postId: string
+): Promise<string | null> {
+  if (!env.COVERS) return null;
+  try {
+    const res = await fetch(sourceUrl, { signal: AbortSignal.timeout(20000) });
+    if (!res.ok) return null;
+    const bytes = await res.arrayBuffer();
+    if (!bytes.byteLength || bytes.byteLength > 8_000_000) return null;
+    const key = coverObjectKey(slug);
+    await env.COVERS.put(key, bytes, { httpMetadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000, immutable' } });
+    const cdnUrl = `${COVER_CDN_BASE}/${key}`;
+    await env.DB.prepare('UPDATE blog_posts SET cover_image_url = ?, cover_credit = ?, cover_page_url = ?, updated_at = ? WHERE id = ?')
+      .bind(cdnUrl, credit, pageUrl, Date.now(), postId)
+      .run()
+      .catch(() => undefined);
+    return cdnUrl;
+  } catch {
+    return null;
+  }
+}
+
+/** Resolve a cover image: cached URL, else Pixabay/Unsplash by cover_query (archived to our CDN), else null. */
 export async function resolveCoverImage(env: Env, post: BlogPostRow): Promise<string | null> {
   if (post.cover_image_url) return post.cover_image_url;
   const query = post.cover_query || post.title;
@@ -112,11 +150,15 @@ export async function resolveCoverImage(env: Env, post: BlogPostRow): Promise<st
         { signal: AbortSignal.timeout(10000) }
       );
       if (res.ok) {
-        const data = (await res.json()) as { hits?: { largeImageURL?: string; webformatURL?: string }[] };
-        const url = data.hits?.[0]?.largeImageURL || data.hits?.[0]?.webformatURL || null;
+        const data = (await res.json()) as { hits?: { largeImageURL?: string; webformatURL?: string; user?: string; pageURL?: string }[] };
+        const hit = data.hits?.[0];
+        const url = hit?.largeImageURL || hit?.webformatURL || null;
         if (url) {
-          await env.DB.prepare('UPDATE blog_posts SET cover_image_url = ?, updated_at = ? WHERE id = ?')
-            .bind(url, Date.now(), post.id)
+          const credit = hit?.user ? `Photo by ${hit.user} on Pixabay` : '';
+          const archived = await archiveCoverToCdn(env, post.slug, url, credit, hit?.pageURL || '', post.id);
+          if (archived) return archived;
+          await env.DB.prepare('UPDATE blog_posts SET cover_image_url = ?, cover_credit = ?, cover_page_url = ?, updated_at = ? WHERE id = ?')
+            .bind(url, credit, hit?.pageURL || '', Date.now(), post.id)
             .run()
             .catch(() => undefined);
           return url;

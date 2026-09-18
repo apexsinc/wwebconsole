@@ -63,6 +63,7 @@ export interface ConnectionState {
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
+  COVERS: R2Bucket;
   SESSION_SECRET: string;
   CREDENTIALS_KEY: string;
   APP_NAME: string;
