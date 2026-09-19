@@ -148,7 +148,7 @@ export async function hmacSha256Hex(secret: string, message: string): Promise<st
     .join('');
 }
 
-async function hmacSha256Base64(secret: Uint8Array, message: string): Promise<string> {
+async function hmacSha256Base64(secret: Uint8Array<ArrayBuffer>, message: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
   const bytes = new Uint8Array(sig);
@@ -183,10 +183,10 @@ export async function verifyStandardWebhookSignature(opts: {
   const ts = Number(timestamp);
   if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > tolerance) return false;
   let keyB64 = opts.secret.startsWith('whsec_') ? opts.secret.slice('whsec_'.length) : opts.secret;
-  let keyBytes: Uint8Array;
+  let keyBytes: Uint8Array<ArrayBuffer>;
   try {
     const bin = atob(keyB64);
-    keyBytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+    keyBytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0)) as Uint8Array<ArrayBuffer>;
   } catch {
     return false;
   }
