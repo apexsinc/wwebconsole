@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -21,11 +23,22 @@ export function googleErrorMessage(code: string | null): string {
 }
 
 export function GoogleButton({ mode }: { mode: 'login' | 'register' }) {
+  const [redirecting, setRedirecting] = useState(false);
+  const href = `/api/auth/google/start?mode=${mode}`;
   return (
     <a
-      href={`/api/auth/google/start?mode=${mode}`}
-      className="w-full inline-flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-white/5 text-slate-700 dark:text-white text-sm font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all min-h-[44px]"
+      href={href}
+      onClick={() => setRedirecting(true)}
+      aria-disabled={redirecting}
+      className="w-full inline-flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-white/5 text-slate-700 dark:text-white text-sm font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all min-h-[44px] aria-disabled:opacity-70"
     >
+      {redirecting ? (
+        <>
+          <span className="w-5 h-5 rounded-full border-2 border-slate-300 border-t-sky-600 animate-spin" aria-hidden="true" />
+          Redirecting to Google…
+        </>
+      ) : (
+        <>
       <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
         <path
           fill="#4285F4"
@@ -45,6 +58,8 @@ export function GoogleButton({ mode }: { mode: 'login' | 'register' }) {
         />
       </svg>
       Continue with Google
+        </>
+      )}
     </a>
   );
 }
