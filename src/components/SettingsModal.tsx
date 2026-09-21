@@ -12,6 +12,10 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const config = useWeatherStore((state) => state.config);
+  const tileLayout = useWeatherStore((s) => s.tileLayout);
+  const setTileLayout = useWeatherStore((s) => s.setTileLayout);
+  const highContrast = useWeatherStore((s) => s.highContrast);
+  const setHighContrast = useWeatherStore((s) => s.setHighContrast);
 
   const [unitTemp, setUnitTemp] = useState(config.unitTemp ?? 'F');
   const [unitWind, setUnitWind] = useState(config.unitWind ?? 'mph');
@@ -38,7 +42,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   return (
     <Modal
-      title="Console Unit Settings"
+      title="Console Settings"
       icon={<Settings className="w-5 h-5 text-sky-500" />}
       onClose={onClose}
       footer={
@@ -129,6 +133,44 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Display (mirrors the 6313's Customize Display screen) */}
+          <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 flex flex-col gap-4 mt-4">
+            <div className="flex flex-col gap-2">
+              <FieldLabel id="wwc-layout-label">Tile layout</FieldLabel>
+              <div role="group" aria-labelledby="wwc-layout-label" className="grid grid-cols-2 gap-2">
+                {(['dense', 'room'] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setTileLayout(v)}
+                    aria-pressed={tileLayout === v}
+                    className={`px-4 py-3 rounded-xl border text-sm font-bold transition-all min-h-[44px] ${
+                      tileLayout === v
+                        ? 'bg-sky-600 border-sky-600 text-white'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {v === 'dense' ? '3 × 2 tiles' : '2 × 2 big type'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">2 × 2 shows bigger values for reading across the room — Davis's own advice for distance viewing.</p>
+            </div>
+            <label className="flex items-center justify-between gap-3 cursor-pointer min-h-[44px]">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">High contrast display</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={highContrast}
+                aria-label="High contrast display"
+                onClick={() => setHighContrast(!highContrast)}
+                className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${highContrast ? 'bg-sky-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+              >
+                <span className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${highContrast ? 'left-6' : 'left-1'}`} />
+              </button>
+            </label>
           </div>
     </Modal>
   );

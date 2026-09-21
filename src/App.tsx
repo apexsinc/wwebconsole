@@ -6,16 +6,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'motion/react';
 import {
-  Thermometer,
-  Droplet,
-  Cloud,
-  Wind,
-  CloudRain,
-  Sunrise,
-  Sunset,
-  Moon,
   Wifi,
   ShieldAlert,
   CheckCircle2,
@@ -26,12 +17,10 @@ import {
 } from 'lucide-react';
 
 import TabletFrame from './components/TabletFrame.js';
-import Header from './components/Header.js';
-import CompassRose from './components/CompassRose.js';
 import BottomBar from './components/BottomBar.js';
+import ConsoleBoard from './components/ConsoleBoard.js';
 import ConfigNavbar from './components/ConfigNavbar.js';
 import Toaster from './components/Toaster.js';
-import { GlassPanel, WeatherMetric } from './components/WeatherPanel.js';
 // Heavy routes split to keep initial bundle small (was 641KB warning).
 const SettingsModal = lazy(() => import('./components/SettingsModal.js'));
 const PolarCheckoutModal = lazy(() => import('./components/PolarCheckoutModal.js'));
@@ -277,7 +266,6 @@ function UpgradeProModal({
 
 function MainDashboard() {
   const weather = useWeatherStore((state) => state.weather);
-  const config = useWeatherStore((state) => state.config);
   const billing = useWeatherStore((state) => state.billing);
   const user = useWeatherStore((state) => state.user);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -340,35 +328,6 @@ function MainDashboard() {
     (expiresAt && expiresAt > 0 && Date.now() > expiresAt && billing?.subscriptionStatus !== 'active' && billing?.subscriptionStatus !== 'paid')
   );
 
-  const convertTemp = (tempF: number, unit?: 'F' | 'C') => {
-    if (unit === 'C') return ((tempF - 32) * 5) / 9;
-    return tempF;
-  };
-  const getTempUnit = (unit?: 'F' | 'C') => (unit === 'C' ? '°C' : '°F');
-  const convertWind = (speedMph: number, unit?: 'mph' | 'kmh' | 'kts' | 'ms') => {
-    if (unit === 'kmh') return speedMph * 1.60934;
-    if (unit === 'kts') return speedMph * 0.868976;
-    if (unit === 'ms') return speedMph * 0.44704;
-    return speedMph;
-  };
-  const getWindUnit = (unit?: 'mph' | 'kmh' | 'kts' | 'ms') => {
-    if (unit === 'kmh') return 'km/h';
-    if (unit === 'kts') return 'kts';
-    if (unit === 'ms') return 'm/s';
-    return 'mph';
-  };
-  const convertBaro = (baroInHg: number, unit?: 'inHg' | 'hPa' | 'mmHg' | 'mb') => {
-    if (unit === 'hPa' || unit === 'mb') return baroInHg * 33.8639;
-    if (unit === 'mmHg') return baroInHg * 25.4;
-    return baroInHg;
-  };
-  const getBaroUnit = (unit?: 'inHg' | 'hPa' | 'mmHg' | 'mb') => {
-    if (unit === 'hPa') return 'hPa';
-    if (unit === 'mb') return 'mb';
-    if (unit === 'mmHg') return 'mm Hg';
-    return 'in Hg';
-  };
-  const convertRain = (rainInches: number, unit?: 'in' | 'mm') => (unit === 'mm' ? rainInches * 25.4 : rainInches);
   const getRainUnit = (unit?: 'in' | 'mm') => (unit === 'mm' ? 'mm' : 'in');
 
   return (
@@ -486,131 +445,7 @@ function MainDashboard() {
           </div>
         </div>
       ) : (
-        <motion.div
-          key={weather.stationDid || weather.stationName || 'dashboard'}
-          initial={{ opacity: 0.85 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="pt-2 px-2 pb-0 md:pt-3 md:px-3 md:pb-0 grid grid-cols-1 md:grid-cols-[1fr_240px_1fr] lg:grid-cols-[1fr_280px_1fr] gap-3 md:gap-4 items-stretch flex-1 overflow-y-auto md:overflow-hidden min-h-0"
-        >
-          <div className="flex flex-col min-h-0 sm:min-h-[280px] md:min-h-0 relative z-10 h-full gap-2.5 md:gap-4">
-            <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
-              <WeatherMetric
-                title="Outside Temperature"
-                value={convertTemp(weather.temp, config.unitTemp).toFixed(1)}
-                unit={getTempUnit(config.unitTemp)}
-                icon={Thermometer}
-                iconColorClass="text-slate-400"
-                subValue={convertTemp(weather.feels_like, config.unitTemp).toFixed(1)}
-                subUnit={getTempUnit(config.unitTemp)}
-                subLabel="Feels Like"
-              />
-            </GlassPanel>
-            <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
-              <WeatherMetric
-                title="Outside Humidity"
-                value={weather.hum.toFixed(1)}
-                unit="%"
-                icon={Droplet}
-                iconColorClass="text-slate-400"
-                subValue={convertTemp(weather.dew_point, config.unitTemp).toFixed(1)}
-                subUnit={getTempUnit(config.unitTemp)}
-                subLabel="Dew Point"
-              />
-            </GlassPanel>
-            <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
-              <WeatherMetric
-                title="Inside Temperature"
-                value={convertTemp(weather.temp_in, config.unitTemp).toFixed(1)}
-                unit={getTempUnit(config.unitTemp)}
-                icon={Thermometer}
-                iconColorClass="text-slate-400"
-                subValue={weather.hum_in.toFixed(1)}
-                subUnit="%"
-                subLabel="Inside Humidity"
-              />
-            </GlassPanel>
-          </div>
-
-          <div className="flex flex-col justify-between bg-[#0e1930]/75 border border-[#01497c]/30 rounded-2xl pt-2.5 px-2.5 pb-0 md:pt-3.5 md:px-3.5 md:pb-0 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.8)] relative overflow-visible backdrop-blur-md min-h-[380px] md:min-h-0 z-50">
-            <div className="relative z-20 shrink-0">
-              <Header />
-            </div>
-            <div className="relative md:absolute md:top-[55%] md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 pointer-events-none z-0 my-4 md:my-0 flex justify-center shrink-0">
-              <div className="pointer-events-auto">
-                <CompassRose />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-1 border-t border-white/10 pt-1.5 select-none mt-auto z-20 relative shrink-0">
-              <div className="flex flex-col items-center justify-center text-center">
-                <div className="w-8 h-8 rounded-full bg-amber-950/20 border border-amber-500/15 flex items-center justify-center text-amber-500/80">
-                  <Sunrise className="w-4 h-4" />
-                </div>
-                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">Sunrise</span>
-                <span className="text-xs text-white font-mono font-bold mt-0">{weather.sunrise}</span>
-              </div>
-              <div className="flex flex-col items-center justify-center text-center border-x border-gray-800/60">
-                <div className="w-8 h-8 rounded-full bg-rose-950/20 border border-rose-500/15 flex items-center justify-center text-rose-500/80">
-                  <Sunset className="w-4 h-4" />
-                </div>
-                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">Sunset</span>
-                <span className="text-xs text-white font-mono font-bold mt-0">{weather.sunset}</span>
-              </div>
-              <div className="flex flex-col items-center justify-center text-center">
-                <div className="w-8 h-8 rounded-full bg-slate-900/40 border border-slate-700/30 flex items-center justify-center text-sky-200">
-                  <Moon className="w-4 h-4" />
-                </div>
-                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">Moon Phase</span>
-                <span className="text-[10px] text-gray-300 font-sans font-bold mt-0.5 uppercase leading-none text-center px-1">
-                  {weather.moon_phase}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col min-h-[350px] md:min-h-0 relative z-10 h-full gap-2.5 md:gap-4 pb-2 md:pb-0">
-            <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
-              <WeatherMetric
-                title="Current Barometer"
-                value={convertBaro(weather.bar_sea_level, config.unitBaro).toFixed(
-                  config.unitBaro === 'inHg' || config.unitBaro === 'mmHg' ? 3 : 1
-                )}
-                unit={getBaroUnit(config.unitBaro)}
-                icon={Cloud}
-                iconColorClass="text-slate-400"
-                subValue={`${weather.bar_trend >= 0 ? '+' : ''}${convertBaro(weather.bar_trend, config.unitBaro).toFixed(
-                  config.unitBaro === 'inHg' || config.unitBaro === 'mmHg' ? 3 : 1
-                )}`}
-                subUnit={getBaroUnit(config.unitBaro)}
-                subLabel="Barometer Trend"
-              />
-            </GlassPanel>
-            <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
-              <WeatherMetric
-                title="2-Min Avg Wind"
-                value={convertWind(weather.wind_speed_avg_2_min, config.unitWind).toFixed(1)}
-                unit={getWindUnit(config.unitWind)}
-                icon={Wind}
-                iconColorClass="text-slate-400"
-                subValue={convertWind(weather.wind_speed_avg_10_min, config.unitWind).toFixed(1)}
-                subUnit={getWindUnit(config.unitWind)}
-                subLabel="10-Min Avg"
-              />
-            </GlassPanel>
-            <GlassPanel variant="dark" className="flex-1 flex flex-col justify-center">
-              <WeatherMetric
-                title="Current Rain Rate"
-                value={convertRain(weather.rain_rate_last, config.unitRain).toFixed(config.unitRain === 'mm' ? 1 : 2)}
-                unit={`${getRainUnit(config.unitRain)}/hr`}
-                icon={CloudRain}
-                iconColorClass="text-slate-400"
-                subValue={convertRain(weather.rainfall_daily, config.unitRain).toFixed(config.unitRain === 'mm' ? 1 : 2)}
-                subUnit={getRainUnit(config.unitRain)}
-                subLabel="Daily Rain"
-              />
-            </GlassPanel>
-          </div>
-        </motion.div>
+        <ConsoleBoard />
       )}
 
       <BottomBar onOpenSettings={() => setIsSettingsOpen(true)} />

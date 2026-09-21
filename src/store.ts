@@ -18,6 +18,9 @@ interface WeatherStore {
   stationId: string | null;
   authChecked: boolean;
   trialDays: number | null;
+  /** 6313-style display prefs (persisted to localStorage). */
+  tileLayout: 'dense' | 'room';
+  highContrast: boolean;
 
   updateWeather: (data: WeatherData) => void;
   updateConnection: (conn: Partial<ConnectionState>) => void;
@@ -25,6 +28,8 @@ interface WeatherStore {
   setUser: (user: AuthUser | null) => void;
   setBilling: (billing: BillingInfo | null) => void;
   setTrialDays: (v: number | null) => void;
+  setTileLayout: (v: 'dense' | 'room') => void;
+  setHighContrast: (v: boolean) => void;
   setAuthChecked: (v: boolean) => void;
   setStationIndex: (index: number) => void;
   nextStation: () => void;
@@ -88,6 +93,8 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   stationId: null,
   authChecked: false,
   trialDays: null,
+  tileLayout: (typeof localStorage !== 'undefined' && localStorage.getItem('wwc_layout') === 'room' ? 'room' : 'dense') as 'dense' | 'room',
+  highContrast: typeof localStorage !== 'undefined' && localStorage.getItem('wwc_contrast') === 'high',
 
   updateWeather: (data) => set((state) => ({ weather: { ...state.weather, ...data } })),
   updateConnection: (conn) => set((state) => ({ connection: { ...state.connection, ...conn } })),
@@ -95,6 +102,19 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   setUser: (user) => set({ user }),
   setBilling: (billing) => set({ billing }),
   setTrialDays: (trialDays) => set({ trialDays }),
+  setTileLayout: (tileLayout) => {
+    try {
+      localStorage.setItem('wwc_layout', tileLayout);
+    } catch { /* ignore */ }
+    set({ tileLayout });
+  },
+  setHighContrast: (highContrast) => {
+    try {
+      localStorage.setItem('wwc_contrast', highContrast ? 'high' : 'standard');
+      document.documentElement.dataset.contrast = highContrast ? 'high' : 'standard';
+    } catch { /* ignore */ }
+    set({ highContrast });
+  },
   setAuthChecked: (authChecked) => set({ authChecked }),
   setStationIndex: (index) =>
     set((state) => {

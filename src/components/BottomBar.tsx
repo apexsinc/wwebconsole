@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Settings, Volume2, VolumeX, Maximize, Minimize, Play, Pause } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, Volume2, VolumeX, Maximize, Minimize, Play, Pause, Wifi, Bell } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useWeatherStore } from '../store.js';
 import { toast } from './Toaster.js';
@@ -17,6 +17,7 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
   const prevStation = useWeatherStore((state) => state.prevStation);
   const toggleAutoSlide = useWeatherStore((state) => state.toggleAutoSlide);
   const config = useWeatherStore((state) => state.config);
+  const connection = useWeatherStore((state) => state.connection);
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -103,8 +104,7 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
 
   return (
     <footer className="w-full bg-[#030712]/90 border-t border-[#01497c]/30 px-3 md:px-4 py-2 flex items-center justify-between gap-2 text-gray-400 text-xs md:text-sm font-sans select-none relative z-20">
-      
-      {/* Navigation Arrows & Device Slide Controls */}
+      {/* Left cluster: station nav + link status icons (mirrors the 6313 taskbar) */}
       <div className="flex items-center gap-1.5 z-20 shrink-0">
         <button 
           onClick={prevStation}
@@ -137,6 +137,10 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
             </button>
           </div>
         )}
+        <span className="hidden sm:flex items-center gap-1 ml-1 text-slate-500" title={connection.status === 'online' ? 'Station link: online' : `Station link: ${connection.status}`}>
+          <Wifi className={`w-3.5 h-3.5 ${connection.status === 'online' ? 'text-emerald-400' : 'text-amber-400 animate-pulse'}`} aria-hidden="true" />
+          <Bell className="w-3.5 h-3.5" aria-hidden="true" />
+        </span>
       </div>
 
       {/* Ticker / Banner message with Smooth Motion Animations */}
@@ -155,8 +159,11 @@ export default function BottomBar({ onOpenSettings }: BottomBarProps) {
         </AnimatePresence>
       </div>
 
-      {/* Control Utility Buttons */}
+      {/* Right cluster: station tag + control utility buttons */}
       <div className="flex items-center gap-2 shrink-0">
+        <span className="hidden md:block text-[11px] font-mono uppercase tracking-widest text-slate-500 truncate max-w-[180px]" title={weather.stationName || config.stationName || 'Console'}>
+          {weather.stationName || config.stationName || 'Console'}
+        </span>
         {/* Sound Toggle (faithfully replicates the physical console sound beep switch!) */}
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}

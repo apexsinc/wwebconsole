@@ -128,3 +128,187 @@ body {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* ── 6313-style console board (rem-based: TV/big-screen type scaling
+   works by raising the root font-size, the whole board follows) ── */
+.console-board {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0.75rem;
+  padding: 0.75rem 0.75rem 0;
+}
+.console-grid {
+  display: grid;
+  grid-template-columns: 1fr 17.5rem 1fr;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+@media (min-width: 1024px) {
+  .console-grid { grid-template-columns: 1fr 20rem 1fr; }
+}
+@media (max-width: 767px) {
+  .console-grid { grid-template-columns: 1fr; overflow-y: auto; }
+}
+.console-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+.console-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  background: rgba(14, 25, 48, 0.75);
+  border: 1px solid rgba(1, 73, 124, 0.3);
+  border-radius: 1.25rem;
+  padding: 1rem 0.75rem;
+  backdrop-filter: blur(12px);
+  min-height: 0;
+  overflow: hidden;
+}
+.console-tile {
+  background: rgba(22, 42, 79, 0.8);
+  border: 1px solid rgba(1, 73, 124, 0.6);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+.console-tile-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 83, 164, 0.25);
+  border: 1px solid rgba(3, 83, 164, 0.4);
+  color: #7dd3fc;
+}
+.console-tile-icon svg { width: 1.25rem; height: 1.25rem; }
+.console-tile-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.console-tile-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.6rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.console-tile-value-xl {
+  font-size: 4.5rem;
+}
+.console-tile-unit {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-left: 0.35rem;
+  font-family: var(--font-sans);
+}
+.console-tile-value-xl + .console-tile-unit, .console-tile-value-xl .console-tile-unit { font-size: 1.5rem; }
+.console-tile-sub {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+.console-tile-sub strong { color: #e2e8f0; font-variant-numeric: tabular-nums; }
+
+/* Room mode: 2×2 big-type tiles + rose strip */
+.console-board-room { gap: 1rem; }
+.console-room-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.9rem;
+}
+@media (max-width: 767px) {
+  .console-room-grid { grid-template-columns: 1fr; }
+  .console-tile-value-xl { font-size: 3.5rem; }
+}
+.console-room-rose {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0 0.25rem;
+}
+
+/* Weather bubbles */
+.console-bubbles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+.console-bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 4.4rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(3, 83, 164, 0.15);
+  border: 1px solid rgba(3, 83, 164, 0.35);
+  color: #e2e8f0;
+}
+.console-bubble svg { width: 1rem; height: 1rem; color: #7dd3fc; }
+.console-bubble-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.console-bubble-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* High-contrast mode (mirrors the 6313's own Hi-Contrast option) */
+html[data-contrast="high"] .console-tile,
+html[data-contrast="high"] .console-center {
+  background: #000;
+  border-color: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+html[data-contrast="high"] .console-tile-label,
+html[data-contrast="high"] .console-tile-unit,
+html[data-contrast="high"] .console-tile-sub { color: #fff; }
+html[data-contrast="high"] .console-tile-value { color: #fff; }
+html[data-contrast="high"] .console-tile-icon {
+  background: #000;
+  border-color: #fff;
+  color: #fff;
+}
+html[data-contrast="high"] .console-bubble {
+  background: #000;
+  border-color: #fff;
+}
+html[data-contrast="high"] .console-bubble-label,
+html[data-contrast="high"] .console-bubble svg { color: #fff; }
+
+/* Kiosk / big-screen projection */
+.tv-scaled { font-size: clamp(16px, 1.05vw + 0.9vh, 30px); }
+.kiosk, .kiosk * { cursor: none !important; }
+@keyframes kiosk-drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(4px, 3px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kiosk-drift { animation: kiosk-drift 120s ease-in-out infinite alternate; }
+}
