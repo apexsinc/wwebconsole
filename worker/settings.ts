@@ -128,7 +128,7 @@ const SITE_DEFAULTS: Record<string, string> = {
     '## [1.5.2]\n- Branding updated to Weatherlink Web Console\n- Clearer trademark disclaimer in the footer\n- Darker homepage hero for easier reading\n\n## [1.5.1]\n- Homepage showcases the live console with a full-screen product image\n- Clearer product story on Features\n\n## [1.5.0]\n- Prices show in your local currency based on where you visit from\n- Show or hide password on sign-in and account forms\n- Contact form on the website\n\n## [1.4.0]\n- Stronger account protection\n- Public website pages\n- Console at /app\n\n## [1.1.0]\n- Live station dashboard\n- TV share links\n- Account sign-in',
   seo_indexable: '1',
   yearly_price_usd: '39',
-  free_trial_days: '60',
+  free_trial_days: '30',
 };
 
 /** Admin UI groups for Site & SEO editor */
@@ -337,7 +337,7 @@ export async function getPublicAuthConfig(env: Env) {
     turnstileSiteKey: turnstileEnabled ? siteKey : '',
     emailVerificationRequired: resendEnabled,
     yearlyPriceUsd: Number(yearlyPrice) || 39,
-    freeTrialDays: Number(freeDays) || 60,
+    freeTrialDays: Number(freeDays) || 30,
   };
 }
 
@@ -380,7 +380,7 @@ export async function getPublicSiteConfig(
   return {
     ...map,
     yearlyPriceUsd,
-    freeTrialDays: Number(map.free_trial_days) || 60,
+    freeTrialDays: Number(map.free_trial_days) || 30,
     indexable: map.seo_indexable === '1' || map.seo_indexable?.toLowerCase() === 'true',
     features,
     pricing: {

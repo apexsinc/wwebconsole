@@ -119,6 +119,6 @@ export function publicBilling(user: UserRow, station?: StationRow | null) {
 }
 
 export async function freeTrialMs(env: Env): Promise<number> {
-  const days = Number(await getSetting(env, 'free_trial_days')) || 60;
+  const days = Number(await getSetting(env, 'free_trial_days')) || 30;
   return days * DAY_MS;
 }

@@ -66,7 +66,7 @@ export async function submitContact(payload: {
 }
 
 export async function fetchMe() {
-  return api<{ user: AuthUser | null; billing: BillingInfo | null }>('/api/auth/me');
+  return api<{ user: AuthUser | null; billing: BillingInfo | null; trialDays?: number }>('/api/auth/me');
 }
 
 export async function login(email: string, password: string, turnstileToken?: string) {

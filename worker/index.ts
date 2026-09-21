@@ -496,7 +496,8 @@ app.get('/api/auth/me', optionalAuth, async (c) => {
   const user = c.get('user');
   if (!user) return c.json({ user: null, billing: null });
   const station = await getStationForUser(c.env, user.id);
-  return c.json({ user: publicUser(user), billing: publicBilling(user, station) });
+  const trialDays = Number(await getSetting(c.env, 'free_trial_days')) || 30;
+  return c.json({ user: publicUser(user), billing: publicBilling(user, station), trialDays });
 });
 
 // ---------- Account settings ----------

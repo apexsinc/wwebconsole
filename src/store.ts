@@ -17,12 +17,14 @@ interface WeatherStore {
   billing: BillingInfo | null;
   stationId: string | null;
   authChecked: boolean;
+  trialDays: number | null;
 
   updateWeather: (data: WeatherData) => void;
   updateConnection: (conn: Partial<ConnectionState>) => void;
   updateConfig: (cfg: Partial<WLLConfig>) => void;
   setUser: (user: AuthUser | null) => void;
   setBilling: (billing: BillingInfo | null) => void;
+  setTrialDays: (v: number | null) => void;
   setAuthChecked: (v: boolean) => void;
   setStationIndex: (index: number) => void;
   nextStation: () => void;
@@ -85,12 +87,14 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   billing: null,
   stationId: null,
   authChecked: false,
+  trialDays: null,
 
   updateWeather: (data) => set((state) => ({ weather: { ...state.weather, ...data } })),
   updateConnection: (conn) => set((state) => ({ connection: { ...state.connection, ...conn } })),
   updateConfig: (cfg) => set((state) => ({ config: { ...state.config, ...cfg } })),
   setUser: (user) => set({ user }),
   setBilling: (billing) => set({ billing }),
+  setTrialDays: (trialDays) => set({ trialDays }),
   setAuthChecked: (authChecked) => set({ authChecked }),
   setStationIndex: (index) =>
     set((state) => {

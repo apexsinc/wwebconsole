@@ -72,6 +72,15 @@ function formatDaysRemaining(targetTs: number | null | undefined): { text: strin
   return { text: `${days}d remaining`, status: 'active' };
 }
 
+/** Granted trial length for a customer (free_until − signup), defaulting to 30. */
+function trialGrantDays(customer: { freeUntil?: number | null; createdAt?: number | null }): number {
+  if (customer.freeUntil && customer.createdAt) {
+    const days = Math.round((customer.freeUntil - customer.createdAt) / (1000 * 60 * 60 * 24));
+    if (days > 0 && days <= 365) return days;
+  }
+  return 30;
+}
+
 export default function AdminPage() {
   const { theme, toggleTheme } = useTheme();
   const user = useWeatherStore((s) => s.user);
@@ -367,7 +376,7 @@ export default function AdminPage() {
           <KpiCard
             title="Active Free Trials"
             value={overview.activeTrials}
-            sub="60-Day Trial Active"
+            sub="Free Trial Active"
           />
           <KpiCard
             title="Expired / Locked"
@@ -907,7 +916,7 @@ function UserStationsModal({
                     ? 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/25'
                     : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/25'
                 }`}>
-                  {isPro ? 'Pro Subscription' : customer.billing?.accessOk ? '60-Day Free Trial' : 'Access Expired'}
+                  {isPro ? 'Pro Subscription' : customer.billing?.accessOk ? `${trialGrantDays(customer)}-Day Free Trial` : 'Access Expired'}
                 </span>
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                   {isPro

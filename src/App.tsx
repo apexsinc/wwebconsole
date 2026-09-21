@@ -152,6 +152,7 @@ function UpgradeProModal({
   const isPhilippines = useIsPhilippines();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const trialDays = useWeatherStore((s) => s.trialDays) ?? 30;
 
   if (!isOpen) return null;
 
@@ -190,14 +191,14 @@ function UpgradeProModal({
         </div>
 
         <span className="px-3.5 py-1 bg-amber-50 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 font-mono text-xs font-bold rounded-full uppercase tracking-wider mb-3">
-          60-Days Free Trial Expired
+          {trialDays}-Days Free Trial Expired
         </span>
 
         <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
           Upgrade to Console Pro
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-300 mt-2 leading-relaxed font-medium">
-          Your 60-days free trial has ended. Upgrade to Pro for continuous, unlimited access to your live weather console.
+          Your {trialDays}-days free trial has ended. Upgrade to Pro for continuous, unlimited access to your live weather console.
         </p>
 
         <div className="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 rounded-2xl p-5 my-6 flex flex-col items-center justify-center gap-1 shadow-inner">
@@ -626,6 +627,7 @@ function ProtectedConsole() {
   const authChecked = useWeatherStore((s) => s.authChecked);
   const setUser = useWeatherStore((s) => s.setUser);
   const setBilling = useWeatherStore((s) => s.setBilling);
+  const setTrialDays = useWeatherStore((s) => s.setTrialDays);
   const setAuthChecked = useWeatherStore((s) => s.setAuthChecked);
 
   useEffect(() => {
@@ -636,6 +638,7 @@ function ProtectedConsole() {
         if (!cancelled) {
           setUser(me.user);
           setBilling(me.billing);
+          setTrialDays(me.trialDays ?? null);
         }
       } catch {
         if (!cancelled) setUser(null);
@@ -646,7 +649,7 @@ function ProtectedConsole() {
     return () => {
       cancelled = true;
     };
-  }, [setUser, setBilling, setAuthChecked]);
+  }, [setUser, setBilling, setTrialDays, setAuthChecked]);
 
   if (!authChecked) {
     return <RouteFallback label="Checking your session…" />;
