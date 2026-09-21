@@ -71,12 +71,22 @@ describe('sql injection regression (bound params pattern)', () => {
 });
 
 describe('session cookie parse', () => {
-  it('accepts legacy unsigned UUID and rejects bad HMAC', async () => {
+  it('accepts full-HMAC cookies, rejects legacy unsigned/truncated/forged ones', async () => {
     const sid = '11111111-1111-4111-8111-111111111111';
-    assert.equal(await parseSessionCookieValue(undefined, sid), sid);
+    // Legacy unsigned UUIDs are rejected even without a secret configured.
+    assert.equal(await parseSessionCookieValue(undefined, sid), null);
+    assert.equal(await parseSessionCookieValue('secret', sid), null);
     assert.equal(await parseSessionCookieValue('secret', 'not-a-uuid'), null);
-    assert.equal(await parseSessionCookieValue('secret', `${sid}.deadbeefdeadbeefdeadbeefdeadbeef`), null);
-    const sig = (await hmacSha256Hex('secret', sid)).slice(0, 32);
+    // Truncated (128-bit) signatures are rejected.
+    const short = (await hmacSha256Hex('secret', sid)).slice(0, 32);
+    assert.equal(await parseSessionCookieValue('secret', `${sid}.${short}`), null);
+    // Forged signature rejected.
+    assert.equal(await parseSessionCookieValue('secret', `${sid}.${'d'.repeat(64)}`), null);
+    // Proper round-trip accepted.
+    const sig = await hmacSha256Hex('secret', sid);
+    assert.equal(sig.length, 64);
     assert.equal(await parseSessionCookieValue('secret', `${sid}.${sig}`), sid);
+    // Wrong secret rejected.
+    assert.equal(await parseSessionCookieValue('other', `${sid}.${sig}`), null);
   });
 });

@@ -3,6 +3,7 @@ import type { Context, Next } from 'hono';
 import { freeTrialMs } from './billing';
 import { hashPassword, newId, parseSessionCookieValue, signSessionCookieValue, verifyPassword, generateOtpCode } from './crypto';
 import { isEnabled } from './settings';
+import { MAX_SESSIONS_PER_USER, insertSession, pruneSessionsToCap } from './sessionStore.ts';
 import type { Env, UserRow } from './types';
 
 const SESSION_COOKIE = 'wwc_session';
@@ -47,15 +48,14 @@ export async function ensureAdminRole(env: Env, user: UserRow): Promise<UserRow>
 }
 
 export async function createSession(c: Context<{ Bindings: Env; Variables: AppVars }>, userId: string) {
-  // Rotate: drop prior sessions for this user (login / password change)
-  await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
-
+  // Multi-device: keep other sessions. Only prune past the per-user cap
+  // (oldest first). Password changes / suspends still revoke everything
+  // via destroyAllSessionsForUser.
   const id = newId();
   const now = Date.now();
   const expires = now + SESSION_DAYS * 24 * 60 * 60 * 1000;
-  await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)')
-    .bind(id, userId, expires, now)
-    .run();
+  await insertSession(c.env.DB, id, userId, expires, now);
+  await pruneSessionsToCap(c.env.DB, userId, MAX_SESSIONS_PER_USER);
   const isHttps = new URL(c.req.url).protocol === 'https:';
   const host = new URL(c.req.url).hostname;
   const domain = host.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;

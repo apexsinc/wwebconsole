@@ -104,3 +104,59 @@ describe('localizeYearlyPrice determinism', () => {
     assert.equal(us.currency, 'USD');
   });
 });
+
+describe('sessionStore cap', () => {
+  function fakeDb() {
+    const rows: { id: string; user_id: string; created_at: number }[] = [];
+    const db = {
+      rows,
+      prepare(sql: string) {
+        return {
+          bind: (...args: unknown[]) => ({
+            all: async () => {
+              if (sql.startsWith('SELECT id FROM sessions')) {
+                return { results: rows.filter((r) => r.user_id === args[0]).sort((a, b) => a.created_at - b.created_at).map((r) => ({ id: r.id })) };
+              }
+              return { results: [] };
+            },
+            run: async () => {
+              if (sql.startsWith('INSERT INTO sessions')) {
+                rows.push({ id: args[0] as string, user_id: args[1] as string, created_at: args[3] as number });
+              } else if (sql.startsWith('DELETE FROM sessions WHERE id IN')) {
+                const gone = new Set(args as string[]);
+                for (let i = rows.length - 1; i >= 0; i--) {
+                  if (gone.has(rows[i]!.id)) rows.splice(i, 1);
+                }
+              }
+              return {};
+            },
+            first: async () => null,
+          }),
+        };
+      },
+    };
+    return db;
+  }
+
+  it('keeps newest 10, prunes oldest', async () => {
+    const { insertSession, pruneSessionsToCap } = await import('../sessionStore.ts');
+    const db = fakeDb();
+    for (let i = 0; i < 12; i++) await insertSession(db as any, `s${i}`, 'u1', 999, i);
+    assert.equal(await pruneSessionsToCap(db as any, 'u1', 10), 2);
+    assert.deepEqual(
+      db.rows.map((r) => r.id),
+      ['s2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11']
+    );
+    assert.equal(await pruneSessionsToCap(db as any, 'u1', 10), 0);
+  });
+
+  it('does not touch other users', async () => {
+    const { insertSession, pruneSessionsToCap } = await import('../sessionStore.ts');
+    const db = fakeDb();
+    for (let i = 0; i < 11; i++) await insertSession(db as any, `a${i}`, 'u1', 999, i);
+    await insertSession(db as any, 'b0', 'u2', 999, 0);
+    await pruneSessionsToCap(db as any, 'u1', 10);
+    assert.ok(db.rows.some((r) => r.id === 'b0'));
+    assert.equal(db.rows.filter((r) => r.user_id === 'u1').length, 10);
+  });
+});

@@ -184,3 +184,16 @@ Closed remaining Low/Partial items in code:
 | Strip dist secrets | `vite.config.ts` |
 | Docs / Dependabot / tests | `SECURITY.md`, `docs/security/`, `.github/dependabot.yml`, `worker/__tests__/` |
 | WAF helper script | `scripts/setup-waf-rate-limits.sh` |
+
+---
+
+## Addendum — 2026-09-18 auth-core session hardening
+
+Supersedes the session rows above (M5/L1/L4 claims were aspirational or stale):
+
+- `SESSION_SECRET` and `CREDENTIALS_KEY` are now **independent values** (previously identical). `CREDENTIALS_KEY` value preserved — existing encrypted station credentials keep decrypting.
+- Session cookies use the **full 256-bit HMAC** (64 hex chars, constant-time compare). Truncated 32-char signatures are rejected.
+- **Legacy unsigned session UUIDs are rejected.** No rollout acceptance remains.
+- **Multi-device sessions**: login no longer destroys other sessions; capped at 10/user (oldest pruned). Password change and suspend/unsuspend still revoke all sessions.
+- Correction: PBKDF2 is **100k iterations** (Workers Web Crypto cap), not 310k — tests assert `pbkdf2$100000$`.
+- Rolling this out invalidates every existing session once (users sign in again).

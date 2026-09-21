@@ -212,31 +212,26 @@ export async function verifyStandardWebhookSignature(opts: {
     });
 }
 
+/** Sign a session id with the full 256-bit HMAC (64 hex chars). No truncation. */
 export async function signSessionCookieValue(secret: string | undefined, sessionId: string): Promise<string> {
   if (!secret) return sessionId;
-  const sig = (await hmacSha256Hex(secret, sessionId)).slice(0, 32);
+  const sig = await hmacSha256Hex(secret, sessionId);
   return `${sessionId}.${sig}`;
 }
 
-/** Verify HMAC-signed cookie; accept legacy unsigned UUIDs during rollout. */
+/** Verify HMAC-signed cookie. Unsigned/legacy cookies are rejected. */
 export async function parseSessionCookieValue(
   secret: string | undefined,
   raw: string | undefined
 ): Promise<string | null> {
   if (!raw) return null;
   const parts = raw.split('.');
-  if (parts.length === 1) {
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) {
-      return raw;
-    }
-    return null;
-  }
   if (parts.length !== 2) return null;
   const [sessionId, sig] = parts;
   if (!sessionId || !sig || !secret) return null;
-  const expected = (await hmacSha256Hex(secret, sessionId)).slice(0, 32);
-  if (sig.length !== expected.length) return null;
-  let diff = 0;
-  for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expected.charCodeAt(i);
-  return diff === 0 ? sessionId : null;
+  // UUID session ids only; full-length 64-hex signatures only.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) return null;
+  const expected = await hmacSha256Hex(secret, sessionId);
+  if (sig.length !== expected.length || sig.length !== 64) return null;
+  return timingSafeEqualHex(sig.toLowerCase(), expected) ? sessionId : null;
 }
