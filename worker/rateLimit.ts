@@ -53,6 +53,11 @@ export const RATE_LIMITS = {
   authOtp: { limit: 8, windowMs: 15 * 60 * 1000 },
   authForgot: { limit: 5, windowMs: 60 * 60 * 1000 },
   accountSensitive: { limit: 10, windowMs: 15 * 60 * 1000 },
+  // OAuth browser flow gets its own buckets: full-page navigations can't
+  // render JSON errors, and each login burns 2 hits (start + callback).
+  // Kept separate so OAuth retries never eat the password-login budget.
+  oauthStart: { limit: 30, windowMs: 15 * 60 * 1000 },
+  oauthCallback: { limit: 30, windowMs: 15 * 60 * 1000 },
   shareCreate: { limit: 20, windowMs: 60 * 60 * 1000 },
   publicTv: { limit: 60, windowMs: 60 * 1000 },
   adminWrite: { limit: 60, windowMs: 60 * 1000 },

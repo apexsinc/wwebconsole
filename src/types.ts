@@ -17,6 +17,8 @@ export interface WeatherData {
   wind_speed_avg_2_min: number;
   wind_speed_avg_10_min: number;
   wind_dir_10_min: number;
+  /** Max gust over the trailing 10 minutes (0 when the station never reports it). */
+  wind_gust_10_min: number;
   rain_rate_last: number;
   rainfall_daily: number;
   high_rain_rate_today: number;
@@ -47,6 +49,9 @@ export interface WLLConfig {
   hasApiToken?: boolean;
   hasApiSecret?: boolean;
   stationName?: string;
+  /** Owner's display prefs (from server; TV applies these over local defaults). */
+  tileLayout?: 'dense' | 'room';
+  highContrast?: boolean;
   wlPlan?: string;
   subscriptionStatus?: string;
   subscriptionExpiresAt?: number | null;

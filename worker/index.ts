@@ -43,16 +43,21 @@ import {
   getSetting,
   injectSeoIntoHtml,
   isEnabled,
+  isKnownIndexableRoute,
+  isNoIndexPath,
   listSettingsForAdmin,
+  seoForNoIndexPath,
   seoPageFromPath,
   setSetting,
   SITE_SETTING_GROUPS,
 } from './settings';
 import {
+  buildBlogRss,
   fetchAndStoreCover,
   getBlogSeo,
   getPublishedPost,
   listAllPosts,
+  listPublishedPostMeta,
   listPublishedPosts,
   listPublishedSlugs,
   listRelatedPosts,
@@ -72,7 +77,7 @@ import {
   WRITABLE_SETTING_KEYS,
 } from './security';
 import { verifyTurnstile } from './turnstile';
-import { isAdminHostname } from './hosts.ts';
+import { adminBaseUrl, isAdminHostname } from './hosts.ts';
 import {
   buildGoogleAuthUrl,
   exchangeGoogleCode,
@@ -229,14 +234,23 @@ app.get('/api/public/blog/cover/:slug', async (c) => {
 });
 
 app.get('/robots.txt', async (c) => {
-  const body = await buildRobotsTxt(c.env);
+  const hostname = new URL(c.req.url).hostname;
+  const body = await buildRobotsTxt(c.env, hostname);
   return c.text(body, 200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
 });
 
 app.get('/sitemap.xml', async (c) => {
-  const body = await buildSitemapXml(c.env, await listPublishedSlugs(c.env));
+  const body = await buildSitemapXml(c.env, await listPublishedPostMeta(c.env));
   return c.text(body, 200, {
     'Content-Type': 'application/xml; charset=utf-8',
+    'Cache-Control': 'public, max-age=300',
+  });
+});
+
+app.get('/blog.xml', async (c) => {
+  const body = await buildBlogRss(c.env);
+  return c.text(body, 200, {
+    'Content-Type': 'application/rss+xml; charset=utf-8',
     'Cache-Control': 'public, max-age=300',
   });
 });
@@ -430,36 +444,57 @@ function googleClientId(c: { env: Env }) {
   return c.env.GOOGLE_CLIENT_ID || '';
 }
 
+/** Public API base for OAuth endpoints: the api subdomain (falls back to APP_URL in local dev). */
+function apiBaseUrl(env: Env): string {
+  return (env.API_URL || env.APP_URL || 'https://wwebconsole.com').replace(/\/+$/, '');
+}
+
 app.get('/api/auth/google/start', async (c) => {
-  const limited = enforceRateLimit(c, 'authLogin');
-  if (limited) return limited;
+  const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
+  // Full-page navigation: redirect (never JSON) so the browser always lands somewhere useful.
+  const limited = enforceRateLimit(c, 'oauthStart');
+  if (limited) return c.redirect(`${appUrl}/login?error=google_rate_limited`, 302);
   const clientId = googleClientId(c);
-  if (!clientId) return c.json({ error: 'Google sign-in is not configured yet.' }, 501);
+  if (!clientId) return c.redirect(`${appUrl}/login?error=google_not_configured`, 302);
   const q = z
     .object({ mode: z.enum(['login', 'register']).default('login') })
     .safeParse({ mode: c.req.query('mode') || undefined });
   const mode = q.success ? q.data.mode : 'login';
-  const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
+  // Entry portal is sealed into signed state: the callback always runs on the
+  // api host, so it cannot tell where the flow started. Allowlisted to 'admin'
+  // (parsed separately so a bad value can't clobber a valid mode).
+  const qe = z
+    .object({ entry: z.enum(['admin']).optional() })
+    .safeParse({ entry: c.req.query('entry') || undefined });
+  const adminEntry = qe.success ? qe.data.entry === 'admin' : false;
   const state = await signOAuthState(c.env.SESSION_SECRET, hmacSha256Hex, {
     nonce: randomSlug(24),
     mode,
     next: '/app',
     exp: Date.now() + 10 * 60 * 1000,
+    adminEntry,
   });
+  // Share the state cookie across apex + www + api: Google returns to the
+  // api-subdomain callback URI, so a host-only cookie would be missing there.
+  const reqHost = new URL(c.req.url).hostname;
+  const stateDomain = reqHost.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
   setCookie(c, OAUTH_STATE_COOKIE, state, {
     path: '/',
     httpOnly: true,
     secure: !isDevEnvironment(c.env, c.req.url),
     sameSite: 'Lax',
     maxAge: 600,
+    ...(stateDomain ? { domain: stateDomain } : {}),
   });
-  return c.redirect(buildGoogleAuthUrl({ clientId, redirectUri: googleRedirectUri(appUrl), state }), 302);
+  // OAuth endpoints live on the api subdomain; page redirects stay on APP_URL.
+  return c.redirect(buildGoogleAuthUrl({ clientId, redirectUri: googleRedirectUri(apiBaseUrl(c.env)), state }), 302);
 });
 
 app.get('/api/auth/google/callback', async (c) => {
   const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
+  // Pre-verification failures don't know the entry page yet: fail closed to main login.
   const fail = (code: string) => c.redirect(`${appUrl}/login?error=${code}`, 302);
-  const limited = enforceRateLimit(c, 'authLogin');
+  const limited = enforceRateLimit(c, 'oauthCallback');
   if (limited) return fail('google_rate_limited');
 
   const clientId = googleClientId(c);
@@ -473,22 +508,35 @@ app.get('/api/auth/google/callback', async (c) => {
   // Double-submit CSRF check: query state must equal the signed HttpOnly cookie.
   if (!cookieState || returnedState !== cookieState) return fail('google_failed');
   const verified = await verifyOAuthState(c.env.SESSION_SECRET, hmacSha256Hex, returnedState);
-  deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
+  // Clear with the same domain the cookie was set with, or it lingers.
+  const cbHost = new URL(c.req.url).hostname;
+  const cbDomain = cbHost.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
+  deleteCookie(c, OAUTH_STATE_COOKIE, cbDomain ? { path: '/', domain: cbDomain } : { path: '/' });
   if (!verified) return fail('google_failed');
 
+  // Entry-aware routing (from sealed state, never user input): admin-portal
+  // flows land back on the admin host; register flows keep their page so the
+  // error context isn't lost. The admin host has no /register route.
+  const entryBase = verified.adminEntry ? adminBaseUrl(appUrl) : appUrl;
+  const entryPage = verified.adminEntry ? 'login' : verified.mode;
+  const failAs = (errorCode: string) => c.redirect(`${entryBase}/${entryPage}?error=${errorCode}`, 302);
+
   try {
-    const { idToken } = await exchangeGoogleCode(clientId, clientSecret, code, googleRedirectUri(appUrl));
+    const { idToken } = await exchangeGoogleCode(clientId, clientSecret, code, googleRedirectUri(apiBaseUrl(c.env)));
     const profile = await verifyGoogleIdToken(idToken, clientId);
-    const onAdminHost = isAdminHostname(new URL(c.req.url).hostname);
-    const outcome = await findOrCreateGoogleUser(c.env, profile, { allowCreate: !onAdminHost });
+    // The callback always runs on the api host, so the entry portal comes from
+    // sealed state: on the admin portal only existing users may sign in.
+    const outcome = await findOrCreateGoogleUser(c.env, profile, { allowCreate: !verified.adminEntry });
     if (outcome.kind === 'blocked') {
-      return c.redirect(`${appUrl}/login?error=${onAdminHost ? 'google_admin_only' : 'google_blocked'}`, 302);
+      return failAs(verified.adminEntry ? 'google_admin_only' : 'google_blocked');
     }
     await createSession(c, outcome.user.id);
+    // Mirror password login: admins return to the admin portal, everyone else to the console.
+    if (verified.adminEntry && outcome.user.role === 'admin') return c.redirect(`${entryBase}/`, 302);
     return c.redirect(`${appUrl}${verified.next}`, 302);
   } catch (err: any) {
     console.error('Google OAuth callback failed:', err?.message || err);
-    return fail('google_failed');
+    return failAs('google_failed');
   }
 });
 
@@ -642,6 +690,8 @@ app.patch('/api/station', requireAuth, async (c) => {
       unitWind: z.enum(['mph', 'kmh', 'kts', 'ms']).optional(),
       unitBaro: z.enum(['inHg', 'hPa', 'mmHg', 'mb']).optional(),
       unitRain: z.enum(['in', 'mm']).optional(),
+      tileLayout: z.enum(['dense', 'room']).optional(),
+      highContrast: z.boolean().optional(),
       cloudPassword: z.string().max(200).optional(),
       cloudApiToken: z.string().max(200).optional(),
       cloudApiSecret: z.string().max(200).optional(),
@@ -701,6 +751,8 @@ app.patch('/api/station', requireAuth, async (c) => {
       unit_wind = COALESCE(?, unit_wind),
       unit_baro = COALESCE(?, unit_baro),
       unit_rain = COALESCE(?, unit_rain),
+      tile_layout = COALESCE(?, tile_layout),
+      contrast = COALESCE(?, contrast),
       updated_at = ?
      WHERE id = ?`
   )
@@ -720,6 +772,8 @@ app.patch('/api/station', requireAuth, async (c) => {
       d.unitWind ?? null,
       d.unitBaro ?? null,
       d.unitRain ?? null,
+      d.tileLayout ?? null,
+      d.highContrast === undefined ? null : (d.highContrast ? 'high' : 'standard'),
       now,
       station.id
     )
@@ -1041,22 +1095,25 @@ app.get('/api/public/tv/:slug', async (c) => {
 
   // Public endpoint serves cached weather only — never triggers WeatherLink refresh (abuse amplification)
   const weather = parseStoredWeather(station);
+  const hasData = Boolean(weather && weather.ts > 0);
   return c.json(
     {
       weather,
       connection: {
-        status: weather ? 'online' : 'offline',
+        status: hasData ? 'online' : 'offline',
         lastUdpReceived: null,
         lastHttpReceived: station.last_http_at,
         errorMessage: null,
       },
       config: {
-        unitTemp: station.unit_temp,
-        unitWind: station.unit_wind,
-        unitBaro: station.unit_baro,
-        unitRain: station.unit_rain,
+        unitTemp: station.unit_temp || 'C',
+        unitWind: station.unit_wind || 'kmh',
+        unitBaro: station.unit_baro || 'hPa',
+        unitRain: station.unit_rain || 'mm',
         stationName: station.name || station.cloud_station_name,
         cloudStationName: station.cloud_station_name,
+        tileLayout: station.tile_layout === 'room' ? 'room' : 'dense',
+        highContrast: station.contrast === 'high',
       },
       label: link.label,
     },
@@ -1446,40 +1503,174 @@ app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith('/api/') || url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml') {
+    const isGet = request.method === 'GET' || request.method === 'HEAD';
+    // Canonical host: www → apex (301, preserves path + query).
+    // Search Console "Page with redirect" for www.* URLs is this rule working
+    // as intended — the www variant is never indexed, only the apex is.
+    if (url.hostname === 'www.wwebconsole.com') {
+      url.hostname = 'wwebconsole.com';
+      return Response.redirect(url.toString(), 301);
+    }
+    // Canonical path: strip trailing slash (GET/HEAD only so POSTs keep
+    // their method; query strings preserved). "/features/" → "/features" shows
+    // as "Page with redirect" in Search Console — expected, not an error.
+    if (isGet && url.pathname.length > 1 && url.pathname.endsWith('/')) {
+      url.pathname = url.pathname.replace(/\/+$/, '');
+      return Response.redirect(url.toString(), 301);
+    }
+    // Singular alias: /blog → /blogs (301, not a 200 duplicate / soft-404).
+    if (isGet && url.pathname.toLowerCase() === '/blog') {
+      url.pathname = '/blogs';
+      return Response.redirect(url.toString(), 301);
+    }
+    if (url.pathname.startsWith('/api/') || url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml' || url.pathname === '/blog.xml') {
       return app.fetch(request, env, ctx);
+    }
+
+    // api.* host is API-only: never serve the SPA shell here, so a routing
+    // mistake surfaces as JSON instead of silently landing on the homepage.
+    if (url.hostname === 'api.wwebconsole.com' || url.hostname === 'api.localhost') {
+      if (url.pathname === '/') {
+        return Response.json(
+          { ok: true, service: 'wwebconsole-api', docs: 'https://wwebconsole.com' },
+          { headers: { 'Cache-Control': 'no-store' } }
+        );
+      }
+      return Response.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } });
     }
 
     const assetRes = await env.ASSETS.fetch(request);
     const accept = request.headers.get('Accept') || '';
+    // Skip SEO work for hashed static assets (never HTML navigations).
+    const isAssetPath =
+      url.pathname.startsWith('/assets/') || /\.[a-z0-9]{2,5}$/i.test(url.pathname);
+    const onAdminHost = isAdminHostname(url.hostname);
     const isHtmlNav =
+      !isAssetPath &&
       request.method === 'GET' &&
       (accept.includes('text/html') ||
         url.pathname === '/' ||
         seoPageFromPath(url.pathname) ||
         url.pathname === '/blogs' ||
-        url.pathname.startsWith('/post/'));
+        url.pathname.startsWith('/post/') ||
+        isNoIndexPath(url.pathname) ||
+        onAdminHost);
 
     if (isHtmlNav && assetRes.ok) {
-      const seo = (await getSeoForPath(env, url.pathname)) || (await getBlogSeo(env, url.pathname));
+      let seo = (await getSeoForPath(env, url.pathname)) || (await getBlogSeo(env, url.pathname));
+      let status = assetRes.status;
+      if (!seo && isNoIndexPath(url.pathname)) {
+        // Private/auth pages: noindex + SELF canonical + X-Robots-Tag.
+        // Previously these served the homepage shell (canonical → "/",
+        // indexable), so Google reported every one as "Alternate page with
+        // proper canonical tag". Self-canonical + noindex fixes the whole class.
+        const site = await getPublicSiteConfig(env).catch(() => null);
+        seo = seoForNoIndexPath(url.pathname, {
+          siteName: site?.site_name || 'Weatherlink Web Console',
+          base: site?.site_canonical_base || 'https://wwebconsole.com',
+        });
+      } else if (onAdminHost && !seo) {
+        seo = seoForNoIndexPath(url.pathname, { siteName: 'Weatherlink Web Console' });
+      }
+      if (url.pathname.startsWith('/post/') && !seo) {
+        // Unknown post slug: true 404 status + noindex shell (no soft-404).
+        const clean = url.pathname.replace(/\/+$/, '') || '/post/unknown';
+        seo = {
+          title: 'Post not found — WWebConsole Blog',
+          description: 'This post does not exist or is no longer published.',
+          keywords: '',
+          ogImage: '',
+          canonical: `https://wwebconsole.com${clean}`,
+          twitter: '',
+          indexable: false,
+          siteName: 'WWebConsole',
+        };
+        status = 404;
+      }
+      if (!seo && !isKnownIndexableRoute(url.pathname)) {
+        // Unknown typo URL (e.g. /featues): real 404 + noindex, never a 200
+        // soft-404 of the homepage. Soft-404s pollute "Alternate page" reports.
+        const clean = url.pathname.replace(/\/+$/, '') || '/unknown';
+        seo = {
+          title: 'Page not found — Weatherlink Web Console',
+          description: 'This page does not exist. Find station guides, features, and pricing instead.',
+          keywords: '',
+          ogImage: '',
+          canonical: `https://wwebconsole.com${clean}`,
+          twitter: '',
+          indexable: false,
+          siteName: 'Weatherlink Web Console',
+        };
+        status = 404;
+      }
       if (seo) {
         const html = await assetRes.text();
         const injected = injectSeoIntoHtml(html, seo);
-        return withSpaSecurityHeaders(
+        const res = withSpaSecurityHeaders(
           new Response(injected, {
-            status: assetRes.status,
+            status,
             headers: {
               'Content-Type': 'text/html; charset=utf-8',
               'Cache-Control': 'public, max-age=60',
             },
           })
         );
+        // Belt-and-braces: crawlers honor the header even if they ignore the
+        // meta tag (and it covers the admin host + private routes uniformly).
+        if (!seo.indexable || onAdminHost) {
+          res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+        }
+        return res;
+      }
+      // Admin host with no matched SEO: still never index the shell.
+      if (onAdminHost) {
+        const res = withSpaSecurityHeaders(assetRes);
+        res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+        return res;
       }
       return withSpaSecurityHeaders(assetRes);
     }
 
     if (assetRes.headers.get('Content-Type')?.includes('text/html')) {
-      return withSpaSecurityHeaders(assetRes);
+      // Fallback for navigations without `Accept: text/html` (curl, some bots):
+      // never serve a 200 soft-404 or an indexable private shell.
+      const needsNoIndex = onAdminHost || isNoIndexPath(url.pathname);
+      const isUnknown =
+        !isAssetPath &&
+        !isKnownIndexableRoute(url.pathname) &&
+        !isNoIndexPath(url.pathname) &&
+        !url.pathname.startsWith('/post/');
+      if ((needsNoIndex || isUnknown) && request.method === 'GET' && assetRes.ok) {
+        const site = await getPublicSiteConfig(env).catch(() => null);
+        const base = site?.site_canonical_base || 'https://wwebconsole.com';
+        const seo = needsNoIndex
+          ? seoForNoIndexPath(url.pathname, { siteName: site?.site_name, base })
+          : {
+              title: 'Page not found — Weatherlink Web Console',
+              description: 'This page does not exist. Find station guides, features, and pricing instead.',
+              keywords: '',
+              ogImage: '',
+              canonical: `${base.replace(/\/+$/, '')}${url.pathname.replace(/\/+$/, '') || '/unknown'}`,
+              twitter: '',
+              indexable: false as const,
+              siteName: site?.site_name || 'Weatherlink Web Console',
+            };
+        const html = await assetRes.text();
+        const res = withSpaSecurityHeaders(
+          new Response(injectSeoIntoHtml(html, seo), {
+            status: needsNoIndex ? assetRes.status : 404,
+            headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=60' },
+          })
+        );
+        res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+        return res;
+      }
+      const res = withSpaSecurityHeaders(assetRes);
+      // Any HTML shell served for a private route or on the admin host is unlisted.
+      if (needsNoIndex) {
+        res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+      }
+      return res;
     }
 
     return assetRes;

@@ -37,6 +37,16 @@ export function FieldLabel({ className = '', ...rest }: LabelHTMLAttributes<HTML
   );
 }
 
+/** Non-control group heading (use with aria-labelledby on a group). */
+export function FieldGroupLabel({ className = '', ...rest }: React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span
+      {...rest}
+      className={`block text-[11px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-300 ${className}`}
+    />
+  );
+}
+
 const fieldBase =
   'w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 min-h-[44px] ' +
   'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white ' +

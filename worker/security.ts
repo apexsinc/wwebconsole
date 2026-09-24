@@ -59,8 +59,8 @@ export const SPA_CONTENT_SECURITY_POLICY = [
   "img-src 'self' data: https:",
   "font-src 'self' https://fonts.gstatic.com data:",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.jsdelivr.net",
-  "connect-src 'self' https://challenges.cloudflare.com https://api.polar.sh https://sandbox-api.polar.sh",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com",
+  "connect-src 'self' https://api.wwebconsole.com https://challenges.cloudflare.com https://api.polar.sh https://sandbox-api.polar.sh https://cloudflareinsights.com",
   "frame-src https://challenges.cloudflare.com https://polar.sh https://sandbox.polar.sh",
   "worker-src 'self' blob:",
 ].join('; ');

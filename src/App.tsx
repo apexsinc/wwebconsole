@@ -4,7 +4,7 @@
 */
 
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Wifi,
@@ -41,18 +41,19 @@ function RouteFallback({ label = 'Loading…' }: { label?: string }) {
 import { useWeatherStore } from './store.js';
 import { fetchMe, useWeatherQuery, createCheckoutSession, verifyCheckout } from './services/api.js';
 import { LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage } from './pages/AuthPages.js';
-import { MarketingLayout } from './components/MarketingLayout.js';
+import { MarketingLayout, applyDocumentSeo } from './components/MarketingLayout.js';
 import {
   AboutPage,
   ChangelogPage,
   ContactPage,
   FeaturesPage,
   HomePage,
+  NotFoundPage,
   PricingPage,
   PrivacyPage,
   TermsPage,
 } from './pages/MarketingPages.js';
-import { applyTheme, getStoredTheme } from './hooks/useTheme.js';
+import { applyTheme, getStoredTheme, useTheme } from './hooks/useTheme.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -143,6 +144,14 @@ function UpgradeProModal({
   const [checkoutError, setCheckoutError] = useState('');
   const trialDays = useWeatherStore((s) => s.trialDays) ?? 30;
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const t = window.setTimeout(() => {
+      document.getElementById('wwc-upgrade-title')?.focus();
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleUpgrade = async () => {
@@ -173,9 +182,14 @@ function UpgradeProModal({
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 select-none cursor-default">
-      <div className="max-w-lg w-full bg-white border border-amber-400/40 rounded-3xl p-6 md:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.25)] flex flex-col items-center text-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wwc-upgrade-title"
+        className="max-w-lg w-full bg-white border border-amber-400/40 rounded-3xl p-6 md:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.25)] flex flex-col items-center text-center"
+      >
 
-        <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-4 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-4 shadow-[0_0_20px_rgba(245,158,11,0.15)]" aria-hidden="true">
           <ShieldAlert className="w-8 h-8" />
         </div>
 
@@ -183,7 +197,7 @@ function UpgradeProModal({
           {trialDays}-Days Free Trial Expired
         </span>
 
-        <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+        <h2 id="wwc-upgrade-title" tabIndex={-1} className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight outline-none">
           Upgrade to Console Pro
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-300 mt-2 leading-relaxed font-medium">
@@ -206,7 +220,7 @@ function UpgradeProModal({
             </span>
           )}
           {!isPhilippines && (
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono font-semibold mt-0.5">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-semibold mt-0.5">
               Philippine users: approx. ₱{PHP_PRICE.toLocaleString()} PHP / year
             </span>
           )}
@@ -253,7 +267,7 @@ function UpgradeProModal({
           </button>
           <a
             href="mailto:support@apexs.ph?subject=Console%20Pro%20Account%20Subscription%20Upgrade"
-            className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors py-1"
+            className="text-xs text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 transition-colors py-1"
           >
             Need invoice, PO, or bank transfer? Contact support
           </a>
@@ -268,6 +282,9 @@ function MainDashboard() {
   const weather = useWeatherStore((state) => state.weather);
   const billing = useWeatherStore((state) => state.billing);
   const user = useWeatherStore((state) => state.user);
+  const config = useWeatherStore((state) => state.config);
+  // Console follows station daylight unless the viewer pinned a theme.
+  useTheme({ sunrise: weather.sunrise, sunset: weather.sunset, timeZone: config.timezone });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeCheckout, setActiveCheckout] = useState<{ url: string; id: string } | null>(null);
   const [checkoutBanner, setCheckoutBanner] = useState<{ type: 'success' | 'error' | 'loading'; message: string } | null>(null);
@@ -364,16 +381,17 @@ function MainDashboard() {
           }`}
         >
           <div className="flex items-center gap-2.5">
-            {checkoutBanner.type === 'loading' && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
-            {checkoutBanner.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
-            {checkoutBanner.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+            {checkoutBanner.type === 'loading' && <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden="true" />}
+            {checkoutBanner.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />}
+            {checkoutBanner.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" aria-hidden="true" />}
             <span>{checkoutBanner.message}</span>
           </div>
           <button
             onClick={() => setCheckoutBanner(null)}
-            className="p-1 hover:bg-white/10 rounded-md transition-colors"
+            aria-label="Dismiss notification"
+            className="p-2 hover:bg-white/10 rounded-md transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -486,6 +504,16 @@ function ProtectedConsole() {
     };
   }, [setUser, setBilling, setTrialDays, setAuthChecked]);
 
+  // Authenticated console is unlisted (robots.txt also disallows /app).
+  useEffect(() => {
+    applyDocumentSeo({
+      title: 'Weather console — Weatherlink Web Console',
+      description: 'Live WeatherLink station console.',
+      path: '/app',
+      indexable: false,
+    });
+  }, []);
+
   if (!authChecked) {
     return <RouteFallback label="Checking your session…" />;
   }
@@ -512,11 +540,58 @@ function ProtectedConsole() {
         </div>
       )}
       <div className="flex-1 flex flex-col justify-center">
-        <TabletFrame>
-          <MainDashboard />
-        </TabletFrame>
+        <main id="main-content" aria-label="Weather console" className="flex-1 flex flex-col justify-center min-h-0">
+          <TabletFrame>
+            <MainDashboard />
+          </TabletFrame>
+        </main>
       </div>
     </div>
+  );
+}
+
+function RouteAnnouncer() {
+  const location = useLocation();
+  const [message, setMessage] = useState('');
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/': 'Home',
+      '/features': 'Features',
+      '/pricing': 'Pricing',
+      '/blogs': 'Blog',
+      '/about': 'About',
+      '/contact': 'Contact',
+      '/privacy': 'Privacy Policy',
+      '/terms': 'Terms of Service',
+      '/changelog': 'Changelog',
+      '/login': 'Sign in',
+      '/register': 'Create account',
+      '/verify': 'Verify email',
+      '/forgot-password': 'Forgot password',
+      '/reset-password': 'Reset password',
+      '/account': 'Account',
+      '/app': 'Weather console',
+    };
+    const base = `/${location.pathname.split('/')[1] || ''}`;
+    let title = titles[location.pathname] || titles[base];
+    if (!title) {
+      if (base === '/tv') title = 'TV display';
+      else if (base === '/post') title = 'Blog post';
+      else if (base === '/app') title = 'Weather console';
+      else title = 'Page';
+    }
+    document.title = `${title} — Weatherlink Web Console`;
+    setMessage(`Navigated to ${title}`);
+    const main = document.querySelector('main h1, main [data-page-title]');
+    if (main instanceof HTMLElement) {
+      main.setAttribute('tabindex', '-1');
+      main.focus({ preventScroll: true });
+    }
+  }, [location.pathname]);
+  return (
+    <span className="sr-only" role="status" aria-live="polite">
+      {message}
+    </span>
   );
 }
 
@@ -564,8 +639,8 @@ function HostAwareRoutes() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/changelog" element={<ChangelogPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </Suspense>
   );
@@ -575,6 +650,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <RouteAnnouncer />
         <HostAwareRoutes />
         <Toaster />
       </BrowserRouter>

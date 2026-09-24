@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -6,6 +5,7 @@
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
+  --font-digit: "Barlow Semi Condensed", "Space Grotesk", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
@@ -19,6 +19,30 @@
   --wwc-muted: #64748b;
   --wwc-accent: #0284c7;
   --wwc-nav: #0f172a;
+
+  /* 6313 console — daylight (console-device.webp): light blue-grey cards */
+  --con-card: linear-gradient(180deg, #e4eaf6 0%, #c4d0e5 100%);
+  --con-card-border: rgba(15, 23, 42, 0.14);
+  --con-card-shadow: 0 8px 24px -12px rgba(15, 23, 42, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  --con-text: #17233c;
+  --con-muted: #46536c;
+  --con-unit: #17233c;
+  --con-rule: rgba(15, 23, 42, 0.16);
+  --con-glyph: rgba(23, 35, 60, 0.7);
+  --con-station: #2b3852;
+  --con-station-border: transparent;
+  --con-station-text: #ffffff;
+  --con-station-sub: #46536c;
+  --con-bubble-bg: rgba(255, 255, 255, 0.8);
+  --con-bubble-border: rgba(15, 23, 42, 0.14);
+  --con-bubble-text: #24304a;
+  --con-bubble-sub: #47546f;
+  --con-disc: #f4f6fa;
+  --con-disc-num: #3d4f6f;
+  --con-disc-sub: #4b5b76;
+  --con-ring: linear-gradient(180deg, #ffffff 0%, #e6ebf3 100%);
+  --con-ring-shadow: inset 0 0 0 0.45rem rgba(148, 163, 184, 0.4), 0 8px 24px -12px rgba(15, 23, 42, 0.35);
+  --con-screen: linear-gradient(180deg, #eef1f6 0%, #dbe1ea 100%);
 }
 
 .dark {
@@ -30,6 +54,30 @@
   --wwc-muted: #94a3b8;
   --wwc-accent: #38bdf8;
   --wwc-nav: #0a0d14;
+
+  /* 6313 console — dark mode (console-gallery.webp): dark slate cards */
+  --con-card: linear-gradient(180deg, rgba(58, 69, 82, 0.92) 0%, rgba(38, 45, 54, 0.92) 100%);
+  --con-card-border: rgba(255, 255, 255, 0.12);
+  --con-card-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --con-text: #ffffff;
+  --con-muted: #cbd5e1;
+  --con-unit: #ffffff;
+  --con-rule: rgba(255, 255, 255, 0.14);
+  --con-glyph: rgba(241, 245, 249, 0.75);
+  --con-station: #2b3542;
+  --con-station-border: transparent;
+  --con-station-text: #ffffff;
+  --con-station-sub: #cbd5e1;
+  --con-bubble-bg: rgba(38, 45, 54, 0.9);
+  --con-bubble-border: rgba(255, 255, 255, 0.16);
+  --con-bubble-text: #e2e8f0;
+  --con-bubble-sub: #94a3b8;
+  --con-disc: #333c46;
+  --con-disc-num: #ffffff;
+  --con-disc-sub: #94a3b8;
+  --con-ring: #ffffff;
+  --con-ring-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.55);
+  --con-screen: linear-gradient(180deg, #0b0e13 0%, #05070b 100%);
 }
 
 body {
@@ -39,9 +87,26 @@ body {
   overflow-x: clip;
 }
 
+/* Visible keyboard focus everywhere (WCAG 2.4.7). Component-level
+   focus rings pair with this; never remove outlines without replacement. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--wwc-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gated countdown: spinners, pulses, entrances, and Ambient loops. */
+  .animate-spin,
+  .animate-pulse,
+  .animate-pulse-soft {
+    animation: none !important;
+  }
+}
+
 @layer utilities {
   .screen-bg {
-    background: linear-gradient(135deg, #103073 0%, #03378b 100%);
+    background: var(--con-screen);
   }
 
   :fullscreen #config-navbar {
@@ -129,6 +194,15 @@ body {
   to { opacity: 1; transform: scale(1); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  /* Entrance utilities render their final state with no motion. */
+  [class*="fadeIn"],
+  [class*="slideInUp"],
+  [class*="scaleIn"] {
+    animation: none !important;
+  }
+}
+
 /* ── 6313-style console board (rem-based: TV/big-screen type scaling
    works by raising the root font-size, the whole board follows) ── */
 .console-board {
@@ -137,7 +211,7 @@ body {
   flex: 1;
   min-height: 0;
   gap: 0.75rem;
-  padding: 0.75rem 0.75rem 0;
+  padding: 0.75rem 0.75rem 0.5rem;
 }
 .console-grid {
   display: grid;
@@ -147,7 +221,7 @@ body {
   min-height: 0;
 }
 @media (min-width: 1024px) {
-  .console-grid { grid-template-columns: 1fr 20rem 1fr; }
+  .console-grid { grid-template-columns: 1fr 22rem 1fr; }
 }
 @media (max-width: 767px) {
   .console-grid { grid-template-columns: 1fr; overflow-y: auto; }
@@ -162,69 +236,198 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.9rem;
-  background: rgba(14, 25, 48, 0.75);
-  border: 1px solid rgba(1, 73, 124, 0.3);
-  border-radius: 1.25rem;
-  padding: 1rem 0.75rem;
-  backdrop-filter: blur(12px);
+  justify-content: flex-start;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  padding: 0;
   min-height: 0;
-  overflow: hidden;
+  position: relative;
 }
-.console-tile {
-  background: rgba(22, 42, 79, 0.8);
-  border: 1px solid rgba(1, 73, 124, 0.6);
-  border-radius: 1.25rem;
-  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  color: #f1f5f9;
+/* On wide screens the center column paints above the side cards so the
+   corner medallions straddle cleanly. */
+@media (min-width: 1024px) {
+  .console-center {
+    z-index: 5;
+  }
 }
-.console-tile-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
+
+/* Rose zoom: grows the rendered rose to touch the four tile corners
+   without changing layout footprint (transforms never overflow or scroll).
+   Uniform 1.15x on wide screens (measured corner distances); small screens
+   keep 1:1 since every pixel is budgeted there. */
+@media (min-width: 1024px) {
+  .compass-rose-zoom { transform: scale(1.17); }
+}
+/* 6313 station header: transparent text block, no panel — the center
+   column reads as open screen from top to bottom (both themes). */
+.console-station {
+  gap: 0.2rem;
+  padding: 0.45rem 1rem 0.4rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+.console-station-icon {
+  width: 1.5rem;
+  height: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(3, 83, 164, 0.25);
-  border: 1px solid rgba(3, 83, 164, 0.4);
-  color: #7dd3fc;
+  color: var(--con-text);
 }
-.console-tile-icon svg { width: 1.25rem; height: 1.25rem; }
-.console-tile-label {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #94a3b8;
-}
-.console-tile-value {
-  font-family: var(--font-display);
+.console-station-icon svg { width: 1.1rem; height: 1.1rem; }
+.console-station-name {
+  font-family: var(--font-sans);
   font-weight: 700;
-  font-size: 2.6rem;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  color: #fff;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--con-text);
+  line-height: 1.1;
+}
+.console-station-time {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--con-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.console-station-weekday {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--con-muted);
+  line-height: 1.1;
+}
+.console-station-sep { color: var(--con-muted); font-weight: 400; margin: 0 0.25rem; }
+.console-station-time.console-station-stale { color: #fbbf24; }
+.console-station-stale-tag { font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; }
+.console-tile {
+  background: var(--con-card);
+  border: 1px solid var(--con-card-border);
+  border-radius: 0.65rem;
+  box-shadow: var(--con-card-shadow);
+  color: var(--con-text);
+  position: relative;
+  padding: 0.55rem 1rem 0.7rem;
+}
+.console-tile-single { padding: 1.2rem; }
+/* Hairline divider with centered icon at card top (6313) */
+.console-tile-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.console-tile-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--con-rule);
+}
+.console-tile-glyph {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--con-glyph);
+  flex-shrink: 0;
+}
+/* Two equal readings side by side, each centered over its caption (6313) */
+.console-tile-half {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.console-tile-half + .console-tile-half {
+  padding-left: 1rem;
+  margin-left: 0.25rem;
+}
+.console-tile-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--con-text);
+  margin-top: 0.15rem;
+  white-space: normal;
+}
+.console-tile-value {
+  font-family: var(--font-digit);
+  font-weight: 600;
+  font-size: 3rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--con-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
 }
 .console-tile-value-xl {
   font-size: 4.5rem;
 }
-.console-tile-unit {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #94a3b8;
-  margin-left: 0.35rem;
-  font-family: var(--font-sans);
+/* Superscript unit at the top-right of the digits (6313): single small
+   unit raised, or two stacked lines (in/Hg, mi/hr). */
+/* Alarm glyph + unit column at the top-right of the digits (6313):
+   tiny alarm bell over the superscript unit, hairline between stacked lines. */
+.console-tile-ucol {
+  display: inline-flex;
+  vertical-align: top;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-left: 0.3rem;
+  margin-top: 0.3rem;
+  align-self: flex-start;
+  line-height: 1.1;
 }
-.console-tile-value-xl + .console-tile-unit, .console-tile-value-xl .console-tile-unit { font-size: 1.5rem; }
+.console-tile-alarm {
+  width: 0.72rem;
+  height: 0.72rem;
+  color: var(--con-glyph);
+  opacity: 0.85;
+  margin-bottom: 0.15rem;
+}
+.console-tile-unit-stack span + span {
+  border-top: 1px solid var(--con-rule);
+  padding-top: 1px;
+  margin-top: 1px;
+  width: 100%;
+}
+.console-tile-unit {
+  display: inline-flex;
+  vertical-align: top;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--con-unit);
+  font-family: var(--font-sans);
+  line-height: 1.1;
+  white-space: normal;
+}
+.console-tile-unit-stack {
+  display: inline-flex;
+  vertical-align: top;
+  flex-direction: column;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--con-unit);
+  font-family: var(--font-sans);
+  line-height: 1.15;
+  text-align: left;
+  white-space: normal;
+}
+.console-tile-value-xl + .console-tile-unit, .console-tile-value-xl .console-tile-unit,
+.console-tile-value-xl .console-tile-unit-stack { font-size: 1.25rem; }
 .console-tile-sub {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--con-bubble-sub);
   margin-top: 0.15rem;
 }
-.console-tile-sub strong { color: #e2e8f0; font-variant-numeric: tabular-nums; }
+.console-tile-sub strong { color: var(--con-text); font-variant-numeric: tabular-nums; }
 
 /* Room mode: 2×2 big-type tiles + rose strip */
 .console-board-room { gap: 1rem; }
@@ -243,7 +446,68 @@ body {
   padding: 0.5rem 0 0.25rem;
 }
 
-/* Weather bubbles */
+/* Rose wrapper: centers the compass in leftover column space (station
+   pinned top, badges pinned bottom) so resizing never drifts it. */
+.compass-rose-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+/* 6313 wind rose sizing: rem-based (TV root scaling), stepped by width,
+   compressed for short landscape screens (phones turned sideways, short
+   windows) so the board never clips vertically. */
+.compass-rose-box {
+  width: 13.75rem;
+  height: 13.75rem;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .compass-rose-box { width: 17rem; height: 17rem; }
+}
+@media (min-width: 1024px) {
+  .compass-rose-box { width: 25rem; height: 25rem; }
+}
+.compass-rose-point {
+  font-size: 0.55rem;
+  letter-spacing: 0.02em;
+}
+@media (min-width: 1024px) {
+  .compass-rose-point { font-size: 0.65rem; }
+}
+.compass-rose-disc {
+  inset: 7.5%;
+  background: var(--con-disc);
+}
+.compass-rose-abbrev { font-size: 0.85rem; }
+.compass-rose-speed { font-size: 3.4rem; font-family: var(--font-digit); font-weight: 700; letter-spacing: -0.03em; }
+.compass-rose-unit { font-size: 0.72rem; margin-top: 0.15rem; font-family: var(--font-digit); font-weight: 600; }
+@media (min-width: 1024px) {
+  .compass-rose-abbrev { font-size: 1.3rem; }
+  .compass-rose-speed { font-size: 5.9rem; }
+  .compass-rose-unit { font-size: 1rem; }
+}
+
+/* Corner medallions: badges ride the tile edges at row mid-height on wide
+   screens (like the 6313's straddling medallions); hidden below that.
+   Narrow screens keep the wrapping in-flow row. */
+.corner-badge { position: absolute; display: none; z-index: 6; top: 50%; }
+.corner-badge .console-bubble-value { white-space: nowrap; }
+.corner-right { right: 0; transform: translate(50%, -50%); }
+.corner-left { left: 0; transform: translate(-50%, -50%); }
+@media (min-width: 1024px) {
+  .corner-badge { display: flex; }
+  .corner-badge .console-bubble-value { font-size: 0.62rem; }
+  /* Clear digit space where medallions straddle and the rose overlaps
+     (inner halves on all rows). */
+  .console-grid > .console-col:first-child .console-tile .console-tile-half:last-child { padding-right: 2.2rem; }
+  .console-grid > .console-col:last-child .console-tile .console-tile-half:first-child { padding-left: 2.2rem; }
+}
+
+/* Supplementary badges: circular medallions straddling the rose (6313) */
 .console-bubbles {
   display: flex;
   flex-wrap: wrap;
@@ -255,27 +519,117 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
-  min-width: 4.4rem;
-  padding: 0.5rem 0.4rem;
+  justify-content: center;
+  gap: 0.05rem;
+  width: 4.6rem;
+  height: 4.6rem;
   border-radius: 999px;
-  background: rgba(3, 83, 164, 0.15);
-  border: 1px solid rgba(3, 83, 164, 0.35);
-  color: #e2e8f0;
+  background: var(--con-bubble-bg);
+  border: 2px solid var(--con-bubble-border);
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  color: var(--con-bubble-text);
+  text-align: center;
+  padding: 0.25rem;
+  overflow: hidden;
+  flex-shrink: 0;
 }
-.console-bubble svg { width: 1rem; height: 1rem; color: #7dd3fc; }
+.console-bubble svg { width: 1rem; height: 1rem; }
+.console-bubble-icon-only svg { width: 1.7rem; height: 1.7rem; }
+/* Screen-reader plumbing: visual wrapper vanishes so flex layout is unchanged. */
+.console-bubble-visual { display: contents; }
+.console-bubble-tone-teal { background: #0b7a72; border-color: rgba(255, 255, 255, 0.8); }
+.console-bubble-tone-green { background: #166b45; border-color: rgba(255, 255, 255, 0.8); }
+.console-bubble-tone-sky { background: #3a4656; border-color: rgba(255, 255, 255, 0.8); }
+.console-bubble-tone-amber { background: #7a5a0e; border-color: rgba(255, 255, 255, 0.8); }
+.console-bubble-tone-orange { background: #8f4c10; border-color: rgba(255, 255, 255, 0.8); }
+.console-bubble-tone-indigo { background: #2b333d; border-color: rgba(255, 255, 255, 0.8); }
+.console-bubble-tone-teal svg, .console-bubble-tone-sky svg,
+.console-bubble-tone-green svg,
+.console-bubble-tone-amber svg, .console-bubble-tone-orange svg,
+.console-bubble-tone-indigo svg { color: #fff; }
+.console-bubble-tone-teal .console-bubble-label, .console-bubble-tone-sky .console-bubble-label,
+.console-bubble-tone-green .console-bubble-label,
+.console-bubble-tone-amber .console-bubble-label, .console-bubble-tone-orange .console-bubble-label,
+.console-bubble-tone-indigo .console-bubble-label { color: rgba(255, 255, 255, 0.85); }
+.console-bubble-tone-teal .console-bubble-value, .console-bubble-tone-sky .console-bubble-value,
+.console-bubble-tone-green .console-bubble-value,
+.console-bubble-tone-amber .console-bubble-value, .console-bubble-tone-orange .console-bubble-value,
+.console-bubble-tone-indigo .console-bubble-value { color: #fff; }
+
+/* Medallion proportion on wide screens. Placed after the
+   base definition so it wins at equal specificity. */
+@media (min-width: 1024px) {
+  .console-bubble { width: 4rem; height: 4rem; }
+}
 .console-bubble-label {
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--con-bubble-sub);
 }
 .console-bubble-value {
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Sun arc: thin arc with sun at apex, sunrise/sunset times beneath (6313) */
+.console-sunarc {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--con-glyph);
+  min-width: 0;
+}
+.console-sunarc-track {
+  position: relative;
+  width: 7.5rem;
+}
+.console-sunarc-arc {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 120 / 62;
+  overflow: visible;
+  display: block;
+}
+.console-sunarc-sun {
+  position: absolute;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: #fbbf24;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.7));
+}
+.console-sunarc-times {
+  display: flex;
+  justify-content: space-between;
+  width: 9.5rem;
+  max-width: 100%;
+  margin-top: 0.45rem;
+}
+.console-sunarc-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--con-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.console-sunarc-time svg { width: 0.85rem; height: 0.85rem; color: var(--con-glyph); }
+
+/* Wide screens: corner medallions live on the tiles, so in-flow copies
+   hide and only the sun arc row remains (centered). */
+@media (min-width: 1024px) {
+  .console-bubbles > .desktop-hidden { display: none; }
 }
 
 /* High-contrast mode (mirrors the 6313's own Hi-Contrast option) */
@@ -286,15 +640,26 @@ html[data-contrast="high"] .console-center {
   box-shadow: none;
   backdrop-filter: none;
 }
+html[data-contrast="high"] .console-center,
+html[data-contrast="high"] .console-station { background: transparent; border: none; }
 html[data-contrast="high"] .console-tile-label,
 html[data-contrast="high"] .console-tile-unit,
-html[data-contrast="high"] .console-tile-sub { color: #fff; }
+html[data-contrast="high"] .console-tile-unit-stack,
+html[data-contrast="high"] .console-tile-sub,
+html[data-contrast="high"] .console-tile-sub strong,
+html[data-contrast="high"] .console-bubble-value,
+html[data-contrast="high"] .console-station-sub { color: #fff; }
 html[data-contrast="high"] .console-tile-value { color: #fff; }
-html[data-contrast="high"] .console-tile-icon {
-  background: #000;
-  border-color: #fff;
-  color: #fff;
-}
+html[data-contrast="high"] .console-tile-rule { background: #fff; }
+html[data-contrast="high"] .console-tile-glyph { color: #fff; }
+html[data-contrast="high"] .console-tile-alarm { color: #fff; }
+html[data-contrast="high"] .console-sunarc,
+html[data-contrast="high"] .console-sunarc-time { color: #fff; }
+html[data-contrast="high"] .console-sunarc-sun { color: #fff; }
+html[data-contrast="high"] .console-station-name,
+html[data-contrast="high"] .console-station-time,
+html[data-contrast="high"] .console-station-weekday,
+html[data-contrast="high"] .console-station-icon { color: #fff; }
 html[data-contrast="high"] .console-bubble {
   background: #000;
   border-color: #fff;
@@ -302,13 +667,95 @@ html[data-contrast="high"] .console-bubble {
 html[data-contrast="high"] .console-bubble-label,
 html[data-contrast="high"] .console-bubble svg { color: #fff; }
 
-/* Kiosk / big-screen projection */
+/* Visible keyboard focus on console controls (touch + remote feel) */
+.console-board button:focus-visible,
+footer button:focus-visible {
+  outline: 2px solid var(--wwc-accent);
+  outline-offset: 2px;
+}
+
+/* ── Responsive matrix: portrait + landscape, small + big ── */
+/* Narrow portrait phones: pairs stay side-by-side, type steps down. */
+@media (max-width: 480px) {
+  .console-tile-value { font-size: 1.9rem; }
+  .console-tile-value-xl { font-size: 3rem; }
+  .console-tile-half + .console-tile-half { padding-left: 0.6rem; }
+  .console-tile { padding: 0.45rem 0.6rem 0.6rem; }
+  .console-bubble { width: 4rem; height: 4rem; }
+}
+/* Short landscape (phones turned sideways, short windows, landscape
+   tablets with little height): compress vertically + scroll instead of clip. */
+@media (max-height: 540px) {
+  .console-board { gap: 0.4rem; padding: 0.4rem 0.4rem 0; overflow-y: auto; }
+  .console-grid { gap: 0.4rem; flex: none; }
+  .console-col { gap: 0.4rem; }
+  .console-center { gap: 0.35rem; }
+  .compass-rose-box { width: 10rem; height: 10rem; }
+  .compass-rose-speed { font-size: 2.6rem; }
+  .compass-rose-abbrev { font-size: 0.72rem; }
+  .compass-rose-unit { font-size: 0.6rem; }
+  .console-tile-value { font-size: 1.8rem; }
+  .console-tile-value-xl { font-size: 2.8rem; }
+  .console-tile { padding: 0.4rem 0.6rem 0.5rem; }
+  .console-tile-top { margin-bottom: 0.15rem; }
+  .console-station { padding: 0.3rem 0.75rem; }
+  .console-station-name { font-size: 0.9rem; }
+  .console-station-weekday { display: none; }
+  .console-bubble { width: 3.6rem; height: 3.6rem; }
+  .console-bubble-label { font-size: 0.52rem; }
+  .console-bubble-value { font-size: 0.68rem; }
+}
+/* Portrait tablets / large portrait phones: single column with scroll. */
+@media (orientation: portrait) and (min-width: 768px) and (max-width: 1023px) {
+  .console-grid { grid-template-columns: 1fr; overflow-y: auto; }
+}
+
+/* Kiosk / big-screen projection
+   NOTE: rem units follow the ROOT (html) font-size, not .tv-scaled.
+   TvPage drives documentElement.fontSize from the viewport; this container
+   size is only a fallback for no-JS / first paint. */
 .tv-scaled { font-size: clamp(16px, 1.05vw + 0.9vh, 30px); }
+/* TV wall display: tighter center column so station + rose + badges
+   always fit 100dvh with no clipping behind the taskbar. */
+.tv-scaled .console-grid { grid-template-columns: 1fr 15rem 1fr; }
+.tv-scaled .compass-rose-box { width: 18rem; height: 18rem; }
+.tv-scaled .console-tile-value { font-size: 2.1rem; }
+.tv-scaled .console-bubble { width: 4rem; height: 4rem; }
+.tv-scaled .console-bubbles { gap: 0.45rem; }
+.tv-scaled .console-board, .tv-scaled .console-grid { gap: 0.5rem; }
+.tv-scaled .console-center { gap: 0.4rem; }
+.tv-scaled .console-station { padding: 0.35rem 0.75rem 0.3rem; }
+.tv-scaled .console-station-name { font-size: 0.95rem; }
+.tv-scaled .console-sunarc-track { width: 6.5rem; }
+.tv-scaled .console-sunarc-times { margin-top: 0.4rem; }
+
+/* Portrait wall signage (e.g. 1080×1920): single column that scrolls —
+   orbit badges would hang off the viewport edges, so fall back to in-flow.
+   Placed after the landscape TV rules so it wins at equal specificity. */
+@media (orientation: portrait) {
+  .tv-scaled { overflow-y: auto; }
+  .tv-scaled .console-board { overflow: visible; }
+  .tv-scaled .console-grid { grid-template-columns: 1fr; flex: none; }
+  .tv-scaled .corner-badge { display: none; }
+  .tv-scaled .console-bubbles > .desktop-hidden { display: flex; }
+  .tv-scaled .console-bubbles { flex-wrap: wrap; }
+  .tv-scaled .console-bubbles > .console-sunarc { flex: 1 1 100%; order: 0; }
+}
+
+/* Small / portrait TVs: let the board scroll instead of clipping tiles. */
+@media (max-width: 767px) {
+  .tv-scaled { overflow-y: auto; }
+}
 .kiosk, .kiosk * { cursor: none !important; }
+/* OLED burn-in protection: slow large drift of the whole board. Offsets are
+   big enough to move static pixels (~12px) but slow enough to ignore. */
 @keyframes kiosk-drift {
-  from { transform: translate(0, 0); }
-  to { transform: translate(4px, 3px); }
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(12px, 8px); }
+  50% { transform: translate(-10px, 12px); }
+  75% { transform: translate(8px, -10px); }
+  100% { transform: translate(0, 0); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .kiosk-drift { animation: kiosk-drift 120s ease-in-out infinite alternate; }
+  .kiosk-drift { animation: kiosk-drift 300s ease-in-out infinite; }
 }

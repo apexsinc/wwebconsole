@@ -276,14 +276,14 @@ export default function AdminPage() {
             value={draft[key] ?? ''}
             onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
             rows={key.endsWith('_body') || key === 'home_features_json' ? 8 : 3}
-            className="w-full bg-white dark:bg-[#070a11] border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
+            className="w-full bg-white dark:bg-[#070a11] border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 transition-all"
             placeholder={isSecret ? 'secret value' : ''}
           />
         ) : (
           <input
             value={draft[key] ?? ''}
             onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-            className="w-full bg-white dark:bg-[#070a11] border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
+            className="w-full bg-white dark:bg-[#070a11] border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 transition-all"
             placeholder={isSecret ? 'secret value' : ''}
           />
         )}

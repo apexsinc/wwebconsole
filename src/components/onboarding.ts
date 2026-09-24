@@ -34,6 +34,7 @@ export function demoWeatherPayload(now = Date.now()) {
       wind_speed_avg_2_min: 5.4,
       wind_speed_avg_10_min: 4.8,
       wind_dir_10_min: 220,
+      wind_gust_10_min: 7.8,
       rain_rate_last: 0,
       rainfall_daily: 0.02,
       high_rain_rate_today: 0.12,

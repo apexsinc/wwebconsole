@@ -28,21 +28,21 @@ export default function TabletFrame({ children }: TabletFrameProps) {
         ? 'max-w-full h-screen max-h-screen p-0' 
         : 'max-w-[1200px] xl:max-w-[1400px] h-auto min-h-[calc(100dvh-80px)] md:h-[calc(100vh-80px)] md:max-h-[calc(100vh-80px)] px-2 sm:px-4 py-2'
     }`}>
-      {/* Outer Tablet Bezel (Black rim, White inner bezel) */}
-      <div className={`relative w-full shadow-[0_20px_50px_-15px_rgba(0,0,0,0.15)] flex flex-col ${
+      {/* Outer console bezel (black rim like the 6313 hardware) */}
+      <div className={`relative w-full shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] flex flex-col ${
         isFullscreen
           ? 'bg-transparent rounded-none p-0 border-0 h-full'
-          : 'bg-white rounded-2xl md:rounded-[2.2rem] p-2 sm:p-3 md:p-4 border-2 md:border-[5px] border-black'
+          : 'bg-[#0b0d12] rounded-2xl md:rounded-[2.2rem] p-2 sm:p-3 md:p-4 border-2 md:border-[5px] border-black'
       }`}>
 
         {/* Reflection Glare */}
         {!isFullscreen && (
-          <div className="absolute inset-0 rounded-[1.5rem] md:rounded-[2.2rem] bg-gradient-to-tr from-transparent via-black/5 to-transparent pointer-events-none" />
+          <div aria-hidden="true" className="absolute inset-0 rounded-[1.5rem] md:rounded-[2.2rem] bg-gradient-to-tr from-transparent via-black/5 to-transparent pointer-events-none" />
         )}
 
         {/* Top Camera Notch & Light Sensor */}
         {!isFullscreen && (
-          <div className="absolute top-1.5 md:top-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-none z-20">
+          <div aria-hidden="true" className="absolute top-1.5 md:top-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-none z-20">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-[#0d0f14] shadow-inner border border-black/10" />
             <div className="w-1 h-1 rounded-full bg-[#1c4587]/30 animate-pulse-soft" />
           </div>
@@ -52,7 +52,7 @@ export default function TabletFrame({ children }: TabletFrameProps) {
         <div className={`relative w-full tablet-screen-shell screen-bg overflow-y-auto md:overflow-hidden flex flex-col justify-between ${
           isFullscreen
             ? 'rounded-none border-0 h-full max-h-full flex-1'
-            : 'rounded-xl md:rounded-[1.5rem] border border-white/10 h-auto min-h-[calc(100dvh-170px)] md:h-[calc(100vh-170px)] md:max-h-[calc(100vh-170px)]'
+            : 'rounded-xl md:rounded-[1.5rem] border border-white/10 h-auto min-h-[calc(100dvh-170px)] md:h-[calc(100vh-162px)] md:max-h-[calc(100vh-162px)]'
         }`}>
 
           {/* Main Weather Console Content */}
@@ -61,37 +61,38 @@ export default function TabletFrame({ children }: TabletFrameProps) {
           </div>
 
           {/* Ambient Grid Overlays */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent pointer-events-none" />
+          <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent pointer-events-none" />
         </div>
 
-        {/* Bottom Bezel "DAVIS" Logo and Status light */}
+        {/* Bottom Bezel brand plate and Status light */}
         {!isFullscreen && (
           <div className="relative mt-1.5 md:mt-3 flex items-center justify-between px-4 md:px-6 pointer-events-none shrink-0">
           {/* Status Indicator */}
-          <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${status === 'online'
+          <div className="flex items-center gap-2" role="status" aria-live="polite">
+            <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${status === 'online'
                 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
                 : status === 'connecting'
                   ? 'bg-amber-500 animate-pulse'
                   : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'
               }`} />
-            <span className="text-[10px] text-black font-mono font-bold tracking-wider uppercase hidden md:inline">
+            <span className="sr-only">Console link: {status}</span>
+            <span aria-hidden="true" className="text-[10px] text-slate-400 font-mono font-bold tracking-wider uppercase hidden md:inline">
               CONSOLE LINK: {status}
             </span>
           </div>
 
           {/* APEXS Brand Logo */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
-            <span className="text-black font-sans font-black tracking-[0.25em] text-sm md:text-base select-none">
+            <span className="text-slate-200 font-sans font-black tracking-[0.25em] text-sm md:text-base select-none">
               APEXS
             </span>
-            <span className="text-[8px] text-black font-sans tracking-[0.2em] font-bold uppercase -mt-0.5 select-none">
+            <span className="text-[8px] text-slate-400 font-sans tracking-[0.2em] font-bold uppercase -mt-0.5 select-none">
               INCORPORATED
             </span>
           </div>
 
           {/* Model Info */}
-          <div className="text-[9px] text-black font-mono font-bold text-right hidden md:block">
+          <div className="text-[9px] text-slate-400 font-mono font-bold text-right hidden md:block">
             WEATHERLINK WEB CONSOLE
           </div>
           </div>

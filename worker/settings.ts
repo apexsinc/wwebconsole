@@ -435,13 +435,25 @@ export async function getSeoForPath(env: Env, pathname: string) {
   };
 }
 
-export async function buildRobotsTxt(env: Env): Promise<string> {
+export async function buildRobotsTxt(env: Env, hostname = ''): Promise<string> {
+  const h = (hostname || '').toLowerCase();
+  // API and admin hosts are never indexed: block everything.
+  // Marketing sitemap lives on the apex only.
+  if (h.startsWith('api.') || h.startsWith('admin.')) {
+    return `User-agent: *\nDisallow: /\n`;
+  }
   const site = await getPublicSiteConfig(env);
   const base = (site.site_canonical_base || 'https://wwebconsole.com').replace(/\/+$/, '');
   const extra = await getSetting(env, 'robots_extra');
   if (!site.indexable) {
     return `User-agent: *\nDisallow: /\n`;
   }
+  // Private app surfaces stay disallowed (require auth or are unlisted share
+  // links). Auth screens (/login, /register, ...) are intentionally ALLOWED so
+  // crawlers can see the server-rendered `noindex` + self canonical instead of
+  // reporting "Blocked by robots.txt". Blocking + noindex is contradictory:
+  // a blocked URL's noindex is never seen, so Google can only report it as
+  // blocked (or index its URL without content).
   return [
     'User-agent: *',
     'Allow: /',
@@ -449,6 +461,7 @@ export async function buildRobotsTxt(env: Env): Promise<string> {
     'Disallow: /account',
     'Disallow: /admin',
     'Disallow: /api/',
+    'Disallow: /tv/',
     '',
     `Sitemap: ${base}/sitemap.xml`,
     extra ? `\n${extra.trim()}` : '',
@@ -458,25 +471,157 @@ export async function buildRobotsTxt(env: Env): Promise<string> {
     .trim() + '\n';
 }
 
-export async function buildSitemapXml(env: Env, blogSlugs: string[] = []): Promise<string> {
+/** Paths that must never be indexed (auth, private app, unlisted share links). */
+export const NOINDEX_PREFIXES = [
+  '/app',
+  '/account',
+  '/admin',
+  '/login',
+  '/register',
+  '/verify',
+  '/forgot-password',
+  '/reset-password',
+  '/tv',
+];
+
+const NOINDEX_TITLES: Record<string, string> = {
+  '/app': 'Weather console',
+  '/account': 'Account',
+  '/admin': 'Admin',
+  '/login': 'Sign in',
+  '/register': 'Create account',
+  '/verify': 'Verify email',
+  '/forgot-password': 'Forgot password',
+  '/reset-password': 'Reset password',
+  '/tv': 'TV display',
+};
+
+/** True for /login, /app, /app/..., /tv/:slug, /admin/... etc. */
+export function isNoIndexPath(pathname: string): boolean {
+  const clean = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
+  if (clean === '/404') return true;
+  for (const prefix of NOINDEX_PREFIXES) {
+    if (clean === prefix || clean.startsWith(`${prefix}/`)) return true;
+  }
+  return false;
+}
+
+/** Server-side SEO descriptor for non-indexable routes: noindex + SELF canonical.
+ *  Never point these at "/" — that is what produces "Alternate page with proper
+ *  canonical tag" in Search Console (every private page looking like a duplicate
+ *  of the homepage). */
+export function seoForNoIndexPath(
+  pathname: string,
+  opts: { siteName?: string; base?: string } = {}
+) {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  const base = (opts.base || 'https://wwebconsole.com').replace(/\/+$/, '');
+  const root = clean.split('/')[1] || '';
+  const label = NOINDEX_TITLES[`/${root}`] || NOINDEX_TITLES[clean] || 'Page';
+  const siteName = opts.siteName || 'Weatherlink Web Console';
+  return {
+    title: `${label} — ${siteName}`,
+    description: `${label} on ${siteName}.`,
+    keywords: '',
+    ogImage: '',
+    canonical: `${base}${clean === '/' ? '/' : clean}`,
+    twitter: '',
+    indexable: false as const,
+    siteName,
+  };
+}
+
+/** True when the path is a known indexable marketing/blog route. Anything else
+ *  (unknown slug, typo URL) should be a real 404 + noindex, never a 200 soft-404. */
+export function isKnownIndexableRoute(pathname: string): boolean {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  if (seoPageFromPath(clean)) return true;
+  if (clean === '/blogs') return true;
+  if (/^\/post\/[a-z0-9-]+$/i.test(clean)) return true;
+  return false;
+}
+
+export async function buildSitemapXml(
+  env: Env,
+  posts: { slug: string; updated_at: number; publish_at: number; cover_image_url: string | null }[] = []
+): Promise<string> {
   const site = await getPublicSiteConfig(env);
   const base = (site.site_canonical_base || 'https://wwebconsole.com').replace(/\/+$/, '');
   if (!site.indexable) {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`;
   }
-  const paths = ['/', '/features', '/pricing', '/about', '/contact', '/privacy', '/terms', '/changelog', '/blogs',
-    ...blogSlugs.map((s) => `/post/${s}`)];
-  const urls = paths
-    .map((p) => {
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Freshness for static marketing URLs: bump when Site & SEO copy is edited.
+  // Falls back to omitting <lastmod> (valid per spec) rather than lying.
+  const fmtDate = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  let staticLastmod = '';
+  try {
+    const row = await env.DB.prepare('SELECT MAX(updated_at) AS m FROM app_settings').first<{ m: number }>();
+    if (row?.m) staticLastmod = `\n    <lastmod>${fmtDate(row.m)}</lastmod>`;
+  } catch {
+    staticLastmod = '';
+  }
+  const staticPaths: { p: string; changefreq: string; priority: string }[] = [
+    { p: '/', changefreq: 'daily', priority: '1.0' },
+    { p: '/features', changefreq: 'weekly', priority: '0.8' },
+    { p: '/pricing', changefreq: 'weekly', priority: '0.8' },
+    { p: '/about', changefreq: 'monthly', priority: '0.5' },
+    { p: '/contact', changefreq: 'monthly', priority: '0.5' },
+    { p: '/privacy', changefreq: 'monthly', priority: '0.3' },
+    { p: '/terms', changefreq: 'monthly', priority: '0.3' },
+    { p: '/changelog', changefreq: 'weekly', priority: '0.6' },
+    { p: '/blogs', changefreq: 'daily', priority: '0.8' },
+  ];
+  const staticUrls = staticPaths
+    .map(({ p, changefreq, priority }) => {
       const loc = p === '/' ? `${base}/` : `${base}${p}`;
-      return `  <url>\n    <loc>${loc}</loc>\n    <changefreq>weekly</changefreq>\n  </url>`;
+      return `  <url>\n    <loc>${loc}</loc>${staticLastmod}\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
     })
     .join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
+  const postUrls = posts
+    .map((post) => {
+      const lastmod = fmtDate(Math.max(post.updated_at || 0, post.publish_at || 0) || Date.now());
+      const image = post.cover_image_url
+        ? `\n    <image:image xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n      <image:loc>${esc(post.cover_image_url)}</image:loc>\n    </image:image>`
+        : '';
+      return `  <url>\n    <loc>${base}/post/${post.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>${image}\n  </url>`;
+    })
+    .join('\n');
+  const urls = [staticUrls, postUrls].filter(Boolean).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls}\n</urlset>`;
+}
+
+/** Organization + WebSite structured data (every indexed page). */
+function orgJsonLd(seo: { siteName: string; canonical: string }): string {
+  const base = seo.canonical.replace(/\/[^/]*$/, '') || 'https://wwebconsole.com';
+  const origin = /^https?:\/\/[^/]+/.exec(seo.canonical)?.[0] || base;
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${origin}/#organization`,
+        name: seo.siteName,
+        url: `${origin}/`,
+        logo: `${origin}/apexs-logo.png`,
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${origin}/#website`,
+        url: `${origin}/`,
+        name: seo.siteName,
+        publisher: { '@id': `${origin}/#organization` },
+      },
+    ],
+  });
 }
 
 /** Inject title/meta into SPA HTML for crawlers on marketing routes. */
-export function injectSeoIntoHtml(html: string, seo: Awaited<ReturnType<typeof getSeoForPath>>): string {
+export function injectSeoIntoHtml(
+  html: string,
+  seo: Awaited<ReturnType<typeof getSeoForPath>> & { jsonLd?: string | null }
+): string {
   if (!seo) return html;
   const robots = seo.indexable ? 'index,follow' : 'noindex,nofollow';
   const escape = (s: string) =>
@@ -493,11 +638,15 @@ export function injectSeoIntoHtml(html: string, seo: Awaited<ReturnType<typeof g
     `<meta property="og:description" content="${escape(seo.description)}" />`,
     `<meta property="og:url" content="${escape(seo.canonical)}" />`,
     seo.ogImage ? `<meta property="og:image" content="${escape(seo.ogImage)}" />` : '',
+    seo.ogImage ? `<meta property="og:image:alt" content="${escape(seo.title)}" />` : '',
+    `<meta property="og:locale" content="en_US" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escape(seo.title)}" />`,
     `<meta name="twitter:description" content="${escape(seo.description)}" />`,
     seo.twitter ? `<meta name="twitter:site" content="${escape(seo.twitter)}" />` : '',
     seo.ogImage ? `<meta name="twitter:image" content="${escape(seo.ogImage)}" />` : '',
+    `<script type="application/ld+json">${orgJsonLd(seo)}</script>`,
+    seo.jsonLd ? `<script type="application/ld+json">${seo.jsonLd}</script>` : '',
   ]
     .filter(Boolean)
     .join('\n    ');

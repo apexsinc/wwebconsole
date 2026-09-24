@@ -27,7 +27,7 @@ export function PasswordInput({ className = '', wrapperClassName = '', ...props 
         aria-pressed={visible}
         className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
       >
-        {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        {visible ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
       </button>
     </div>
   );

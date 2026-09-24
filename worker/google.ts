@@ -41,11 +41,26 @@ export function buildGoogleAuthUrl(opts: {
   return `${GOOGLE_AUTH_URL}?${q.toString()}`;
 }
 
+/** Extract the `nonce` claim from a Google ID token WITHOUT verifying it.
+ *  Signature/audience checks still happen server-side via verifyGoogleIdToken;
+ *  this pure helper only binds the token to our pre-issued nonce cookie. */
+export function googleJwtNonce(credential: string): string | null {
+  try {
+    const parts = credential.split('.');
+    if (parts.length !== 3) return null;
+    const json = atob(parts[1]!.replace(/-/g, '+').replace(/_/g, '/'));
+    const p = JSON.parse(json) as { nonce?: unknown };
+    return typeof p.nonce === 'string' && p.nonce ? p.nonce : null;
+  } catch {
+    return null;
+  }
+}
+
 /** CSRF state: base64url(json).sig where sig = HMAC(secret, json). */
 export async function signOAuthState(
   secret: string | undefined,
   sign: (secret: string, msg: string) => Promise<string>,
-  payload: { nonce: string; mode: 'login' | 'register'; next: string; exp: number }
+  payload: { nonce: string; mode: 'login' | 'register'; next: string; exp: number; adminEntry?: boolean }
 ): Promise<string> {
   const json = JSON.stringify(payload);
   const b64 = btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -57,7 +72,7 @@ export async function verifyOAuthState(
   secret: string | undefined,
   sign: (secret: string, msg: string) => Promise<string>,
   state: string
-): Promise<{ nonce: string; mode: 'login' | 'register'; next: string } | null> {
+): Promise<{ nonce: string; mode: 'login' | 'register'; next: string; adminEntry: boolean } | null> {
   const parts = state.split('.');
   if (parts.length !== 2) return null;
   const [b64, sig] = parts;
@@ -65,12 +80,13 @@ export async function verifyOAuthState(
   if (sig !== expected || sig === undefined) return null;
   try {
     const json = atob(b64!.replace(/-/g, '+').replace(/_/g, '/'));
-    const p = JSON.parse(json) as { nonce?: string; mode?: string; next?: string; exp?: number };
+    const p = JSON.parse(json) as { nonce?: string; mode?: string; next?: string; exp?: number; adminEntry?: boolean };
     if (typeof p.nonce !== 'string' || (p.mode !== 'login' && p.mode !== 'register')) return null;
     if (typeof p.exp !== 'number' || Date.now() > p.exp) return null;
     // Path-only redirect target (no open redirect).
     const next = typeof p.next === 'string' && p.next.startsWith('/') && !p.next.startsWith('//') ? p.next : '/app';
-    return { nonce: p.nonce, mode: p.mode, next };
+    // Sealed at /start from an allowlisted query param; absent on older states.
+    return { nonce: p.nonce, mode: p.mode, next, adminEntry: p.adminEntry === true };
   } catch {
     return null;
   }

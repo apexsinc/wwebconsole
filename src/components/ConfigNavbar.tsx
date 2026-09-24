@@ -75,7 +75,13 @@ function useCountdown(targetTimestamp: number | null | undefined) {
 
 export default function ConfigNavbar() {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const weather = useWeatherStore((state) => state.weather);
+  const stationTimezone = useWeatherStore((state) => state.config.timezone);
+  const { theme, mode, cycleTheme } = useTheme({
+    sunrise: weather.sunrise,
+    sunset: weather.sunset,
+    timeZone: stationTimezone,
+  });
   const config = useWeatherStore((state) => state.config);
   const connection = useWeatherStore((state) => state.connection);
   const user = useWeatherStore((state) => state.user);
@@ -161,6 +167,24 @@ export default function ConfigNavbar() {
     setDid(config.cloudDid ?? '');
     setStationId(config.cloudStationId ?? '');
   }, [config]);
+
+  // Escape closes the settings dialog and returns focus to its trigger.
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.activeElement;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    const t = window.setTimeout(() => {
+      document.querySelector<HTMLElement>('[role="dialog"] button')?.focus();
+    }, 30);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.clearTimeout(t);
+      if (prev instanceof HTMLElement) prev.focus();
+    };
+  }, [isOpen]);
 
   const handleSave = () => {
     setConfigError('');
@@ -251,7 +275,7 @@ export default function ConfigNavbar() {
 
   /* ─── shared input className ─── */
   const inputCls =
-    'bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-500 text-sm focus:outline-none transition-all w-full';
+    'bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-400 text-sm focus:outline-none transition-all w-full';
   const monoInputCls = inputCls + ' font-mono';
   const labelCls = 'text-xs text-slate-200 uppercase tracking-wider font-bold';
 
@@ -280,6 +304,7 @@ export default function ConfigNavbar() {
         <div className="flex sm:hidden items-center gap-2 w-full order-3">
           {countdown && (
             <div
+              role="timer" aria-live="off"
               className={`flex items-center gap-1.5 text-[11px] font-mono border px-3 py-1.5 rounded-full font-bold uppercase tracking-wider ${
                 countdown.expired
                   ? 'bg-rose-950/50 border-rose-500/40 text-rose-400'
@@ -311,6 +336,7 @@ export default function ConfigNavbar() {
 
           {countdown && (
             <div
+              role="timer" aria-live="off"
               className={`pointer-events-auto flex items-center gap-1.5 text-[10px] md:text-xs font-mono border px-3 py-1 rounded-full font-bold uppercase tracking-wider transition-all ${
                 countdown.expired
                   ? 'bg-rose-950/50 border-rose-500/40 text-rose-400'
@@ -342,11 +368,18 @@ export default function ConfigNavbar() {
             </a>
           )}
           <button
-            onClick={toggleTheme}
+            onClick={cycleTheme}
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white rounded-lg"
-            title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+            title={
+              mode === 'auto'
+                ? `Auto theme (now ${theme}) — switch to light`
+                : mode === 'light'
+                  ? 'Light theme — switch to dark'
+                  : 'Dark theme — switch to auto'
+            }
           >
             {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-300" /> : <Moon className="w-3.5 h-3.5 text-sky-300" />}
+            {mode === 'auto' && <span className="text-[10px] text-slate-400 font-mono">AUTO</span>}
           </button>
           <button
             onClick={() => navigate('/account')}
@@ -377,32 +410,43 @@ export default function ConfigNavbar() {
           </button>
           <button
             onClick={handleLogout}
+            aria-label="Sign out"
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-gray-950 hover:bg-gray-900 border border-gray-800 text-gray-300 rounded-lg"
             title="Sign out"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </nav>
 
       {isOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl bg-slate-800/50 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.7)] overflow-hidden">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wwc-config-title"
+            className="w-full max-w-3xl bg-slate-800/50 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.7)] overflow-hidden"
+          >
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
               <div className="flex items-center gap-2">
-                <Network className="w-5 h-5 text-sky-400" />
-                <h2 className="text-white font-sans font-bold text-lg tracking-tight">Console Settings</h2>
+                <Network className="w-5 h-5 text-sky-400" aria-hidden="true" />
+                <h2 id="wwc-config-title" className="text-white font-sans font-bold text-lg tracking-tight">Console Settings</h2>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60">
-                <X className="w-5 h-5" />
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close console settings"
+                className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800/60 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              >
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
             {/* Tabs */}
-            <div className="px-6 pt-4 flex gap-2">
+            <div className="px-6 pt-4 flex gap-2" role="group" aria-label="Settings sections">
               <button
                 onClick={() => setTab('link')}
-                className={`px-4 py-2 text-sm font-bold rounded-lg border transition-all ${
+                aria-pressed={tab === 'link'}
+                className={`px-4 py-2 text-sm font-bold rounded-lg border transition-all min-h-[44px] ${
                   tab === 'link'
                     ? 'bg-sky-500/10 border-sky-500 text-sky-400'
                     : 'border-white/10 text-slate-300 hover:text-white hover:border-white/20'
@@ -412,7 +456,8 @@ export default function ConfigNavbar() {
               </button>
               <button
                 onClick={() => setTab('tv')}
-                className={`px-4 py-2 text-sm font-bold rounded-lg border transition-all ${
+                aria-pressed={tab === 'tv'}
+                className={`px-4 py-2 text-sm font-bold rounded-lg border transition-all min-h-[44px] ${
                   tab === 'tv'
                     ? 'bg-sky-500/10 border-sky-500 text-sky-400'
                     : 'border-white/10 text-slate-300 hover:text-white hover:border-white/20'
@@ -426,9 +471,11 @@ export default function ConfigNavbar() {
             {tab === 'link' ? (
               <>
                 <div className="p-6 flex flex-col gap-5 max-h-[60vh] overflow-y-auto relative">
-                  {/* Fake inputs to absorb aggressive browser autofill */}
-                  <input type="text" name="dummy-email" className="absolute top-[-9999px] opacity-0" tabIndex={-1} aria-hidden="true" />
-                  <input type="password" name="dummy-password" className="absolute top-[-9999px] opacity-0" tabIndex={-1} aria-hidden="true" />
+                  {/* Fake inputs to absorb aggressive browser autofill (kept out of the a11y tree) */}
+                  <div aria-hidden="true">
+                    <input type="text" name="dummy-email" className="absolute top-[-9999px] opacity-0" tabIndex={-1} autoComplete="off" />
+                    <input type="password" name="dummy-password" className="absolute top-[-9999px] opacity-0" tabIndex={-1} autoComplete="new-password" />
+                  </div>
 
                   {/* Info banner */}
                   <p className="text-sm text-amber-300/90 bg-amber-950/30 border border-amber-500/30 rounded-lg px-4 py-3 leading-relaxed">
@@ -436,7 +483,7 @@ export default function ConfigNavbar() {
                   </p>
 
                   {configError && (
-                    <div className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-4 py-3 text-rose-300 text-sm font-semibold">
+                    <div role="alert" className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-4 py-3 text-rose-300 text-sm font-semibold">
                       {configError}
                     </div>
                   )}
@@ -445,9 +492,10 @@ export default function ConfigNavbar() {
                   <div className="bg-slate-900/60 border border-white/15 rounded-xl p-4 flex flex-col gap-4">
 
                     {/* API version toggle */}
-                    <div className="flex bg-slate-950/70 border border-white/10 rounded-lg p-1">
+                    <div className="flex bg-slate-950/70 border border-white/10 rounded-lg p-1" role="group" aria-label="WeatherLink API version">
                       <button
                         type="button"
+                        aria-pressed={apiVersion === 'v1'}
                         onClick={() => { setApiVersion('v1'); setApiSecret(''); }}
                         className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${
                           apiVersion === 'v1'
@@ -459,6 +507,7 @@ export default function ConfigNavbar() {
                       </button>
                       <button
                         type="button"
+                        aria-pressed={apiVersion === 'v2'}
                         onClick={() => setApiVersion('v2')}
                         className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all ${
                           apiVersion === 'v2'
@@ -688,24 +737,27 @@ export default function ConfigNavbar() {
                 </p>
 
                 {shareError && (
-                  <div className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-4 py-3 text-rose-300 text-sm font-semibold">
+                  <div role="alert" className="bg-rose-500/15 border border-rose-500/30 rounded-lg px-4 py-3 text-rose-300 text-sm font-semibold">
                     {shareError}
                   </div>
                 )}
 
                 <div className="flex gap-2">
+                  <label htmlFor="wwc-share-label" className="sr-only">Link label</label>
                   <input
+                    id="wwc-share-label"
                     value={shareLabel}
                     onChange={(e) => setShareLabel(e.target.value)}
                     placeholder="Label, e.g. Lobby TV"
-                    className="flex-1 bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-500 text-sm focus:outline-none transition-all"
+                    autoComplete="off"
+                    className="flex-1 bg-slate-800/80 border border-slate-600/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20 rounded-lg px-3 py-2.5 text-white placeholder:text-slate-400 text-sm focus:outline-none transition-all"
                   />
                   <button
                     onClick={handleCreateShare}
                     disabled={shareBusy}
                     className="px-4 py-2.5 text-sm font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-all"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4" aria-hidden="true" />
                     Create
                   </button>
                 </div>
@@ -723,24 +775,27 @@ export default function ConfigNavbar() {
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => window.open(link.url, '_blank')}
-                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-sky-400 transition-colors"
+                          aria-label={`Preview ${link.label} TV link (opens in new tab)`}
+                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-sky-400 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
                           title="Preview"
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-4 h-4" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => handleCopy(link.url)}
-                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-white transition-colors"
+                          aria-label={`Copy ${link.label} TV link`}
+                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-white transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
                           title="Copy"
                         >
-                          <Copy className="w-4 h-4" />
+                          <Copy className="w-4 h-4" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => handleDeleteShare(link.id)}
-                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-rose-400 transition-colors"
+                          aria-label={`Delete ${link.label} TV link`}
+                          className="p-2 rounded-lg hover:bg-slate-800/60 text-slate-300 hover:text-rose-400 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
                           title="Delete"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -748,7 +803,7 @@ export default function ConfigNavbar() {
                   {!shareQuery.data?.links?.length && (
                     <p className="text-xs text-slate-400 text-center py-6">No TV links yet. Create one to broadcast.</p>
                   )}
-                  {copied && <p className="text-xs text-emerald-400 text-center">Copied to clipboard ✓</p>}
+                  {copied && <p role="status" className="text-xs text-emerald-400 text-center">Copied to clipboard ✓</p>}
                 </div>
 
                 <div className="pt-4 flex justify-end">

@@ -55,8 +55,17 @@ export function applyDocumentSeo(opts: {
   setMeta('property', 'og:title', opts.title);
   setMeta('property', 'og:description', opts.description);
   setMeta('property', 'og:type', 'website');
+  setMeta('property', 'og:locale', 'en_US');
   if (opts.siteName) setMeta('property', 'og:site_name', opts.siteName);
+  const ogImageEl = document.head.querySelector('meta[property="og:image"]') as HTMLMetaElement | null;
   if (opts.ogImage) setMeta('property', 'og:image', opts.ogImage);
+  else if (ogImageEl) ogImageEl.remove();
+  setMeta('name', 'twitter:card', 'summary_large_image');
+  setMeta('name', 'twitter:title', opts.title);
+  setMeta('name', 'twitter:description', opts.description);
+  const twImageEl = document.head.querySelector('meta[name="twitter:image"]') as HTMLMetaElement | null;
+  if (opts.ogImage) setMeta('name', 'twitter:image', opts.ogImage);
+  else if (twImageEl) twImageEl.remove();
   const base = (opts.canonicalBase || 'https://wwebconsole.com').replace(/\/+$/, '');
   const path = opts.path || '/';
   const canonical = path === '/' ? `${base}/` : `${base}${path}`;
@@ -79,6 +88,20 @@ export function MarketingLayout() {
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
+
+  // Escape closes the mobile menu and returns focus to its trigger.
+  useEffect(() => {
+    if (!open) return;
+    const menuButton = document.querySelector<HTMLElement>('[aria-label="Close menu"], [aria-label="Open menu"]');
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        menuButton?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open ]);
 
   const name = site?.site_name || 'Weatherlink Web Console';
   const isHome = location.pathname === '/';
@@ -103,7 +126,7 @@ export function MarketingLayout() {
             </div>
             {name}
           </Link>
-          <nav className="hidden md:flex items-center gap-2">
+          <nav aria-label="Primary" className="hidden md:flex items-center gap-2">
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
@@ -123,10 +146,10 @@ export function MarketingLayout() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 rounded-md text-white/70 hover:bg-white/10 transition-colors hidden sm:block"
-              aria-label="Toggle theme"
+              className="p-2 rounded-md text-white/70 hover:bg-white/10 transition-colors hidden sm:flex min-w-[36px] min-h-[36px] items-center justify-center"
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? <Sun className="w-4 h-4" aria-hidden="true" /> : <Moon className="w-4 h-4" aria-hidden="true" />}
             </button>
             <Link
               to="/login"
@@ -217,9 +240,9 @@ export function MarketingLayout() {
           </div>
         </div>
         <div className="border-t border-[var(--wwc-border)] px-4 py-3">
-          <p className="max-w-5xl mx-auto text-center text-[10px] leading-relaxed text-[var(--wwc-muted)]/70">
+          <p className="max-w-5xl mx-auto text-center text-[11px] leading-relaxed text-[var(--wwc-muted)]">
             © {new Date().getFullYear()} {site?.site_company_name || name}
-            <span className="mx-1.5 opacity-40">·</span>
+            <span className="mx-1.5 opacity-40" aria-hidden="true">·</span>
             {trademarkNote}
           </p>
         </div>

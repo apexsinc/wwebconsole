@@ -3,7 +3,7 @@ import { Save, Settings } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
 import { useConfigMutation } from '../services/api.js';
 import Modal from './ui/Modal.js';
-import { Button, Select, FieldLabel } from './ui/controls.js';
+import { Button, Select, FieldLabel, FieldGroupLabel } from './ui/controls.js';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -28,7 +28,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleSave = () => {
     configMutation.mutate(
-      { unitTemp, unitWind, unitBaro, unitRain },
+      { unitTemp, unitWind, unitBaro, unitRain, tileLayout, highContrast },
       {
         onSuccess: () => {
           onClose();
@@ -77,7 +77,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <option value="F">Fahrenheit (°F)</option>
                     <option value="C">Celsius (°C)</option>
                   </Select>
-                  <span className={chevron}>▾</span>
+                  <span className={chevron} aria-hidden="true">▾</span>
                 </div>
               </div>
 
@@ -95,7 +95,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <option value="kts">Knots (kts)</option>
                     <option value="ms">Meters / Second (m/s)</option>
                   </Select>
-                  <span className={chevron}>▾</span>
+                  <span className={chevron} aria-hidden="true">▾</span>
                 </div>
               </div>
 
@@ -113,7 +113,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <option value="mb">Millibars (mb)</option>
                     <option value="mmHg">Millimeters of Mercury (mmHg)</option>
                   </Select>
-                  <span className={chevron}>▾</span>
+                  <span className={chevron} aria-hidden="true">▾</span>
                 </div>
               </div>
 
@@ -129,7 +129,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <option value="in">Inches (in)</option>
                     <option value="mm">Millimeters (mm)</option>
                   </Select>
-                  <span className={chevron}>▾</span>
+                  <span className={chevron} aria-hidden="true">▾</span>
                 </div>
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           {/* Display (mirrors the 6313's Customize Display screen) */}
           <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 flex flex-col gap-4 mt-4">
             <div className="flex flex-col gap-2">
-              <FieldLabel id="wwc-layout-label">Tile layout</FieldLabel>
+              <FieldGroupLabel id="wwc-layout-label">Tile layout</FieldGroupLabel>
               <div role="group" aria-labelledby="wwc-layout-label" className="grid grid-cols-2 gap-2">
                 {(['dense', 'room'] as const).map((v) => (
                   <button
@@ -158,19 +158,19 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">2 × 2 shows bigger values for reading across the room — Davis's own advice for distance viewing.</p>
             </div>
-            <label className="flex items-center justify-between gap-3 cursor-pointer min-h-[44px]">
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">High contrast display</span>
+            <div className="flex items-center justify-between gap-3 min-h-[44px]">
+              <span id="wwc-contrast-label" className="text-sm font-semibold text-slate-700 dark:text-slate-200">High contrast display</span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={highContrast}
-                aria-label="High contrast display"
+                aria-labelledby="wwc-contrast-label"
                 onClick={() => setHighContrast(!highContrast)}
                 className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${highContrast ? 'bg-sky-600' : 'bg-slate-300 dark:bg-slate-700'}`}
               >
-                <span className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${highContrast ? 'left-6' : 'left-1'}`} />
+                <span aria-hidden="true" className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${highContrast ? 'left-6' : 'left-1'}`} />
               </button>
-            </label>
+            </div>
           </div>
     </Modal>
   );

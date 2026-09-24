@@ -37,16 +37,27 @@ export default function PolarCheckoutModal({
     loadPolarEmbed().catch((err) => setVerifyError(err?.message || 'Failed to load checkout.'));
   }, [isOpen, checkoutUrl]);
 
-  // Handle ESC key to close
+  // Handle ESC key to close (always available — verification continues
+  // in the background and the banner reports the outcome).
+  // Focus moves into the dialog on open and returns on close.
   useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.activeElement;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !verifying) {
-        onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, verifying, onClose]);
+    const t = window.setTimeout(() => {
+      document
+        .querySelector<HTMLElement>('[role="dialog"] button[aria-label="Close checkout"]')
+        ?.focus();
+    }, 60);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.clearTimeout(t);
+      if (prev instanceof HTMLElement) prev.focus();
+    };
+  }, [isOpen, onClose]);
 
   // Listen for message events from Polar checkout iframe
   useEffect(() => {
@@ -104,7 +115,12 @@ export default function PolarCheckoutModal({
     : `${checkoutUrl}?theme=light`;
 
   return (
-    <div className="fixed inset-0 z-[250] bg-white w-screen h-screen flex flex-col animate-in fade-in duration-150">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Web Console Pro Checkout"
+      className="fixed inset-0 z-[250] bg-white w-screen h-screen flex flex-col"
+    >
       {/* Completely Clean Minimalist Top Header */}
       <div className="h-14 px-6 bg-white border-b border-slate-200/80 flex items-center justify-between shrink-0 shadow-xs">
         <h3 className="text-sm sm:text-base font-semibold text-slate-800 tracking-tight">
@@ -115,11 +131,11 @@ export default function PolarCheckoutModal({
           <button
             onClick={onClose}
             disabled={verifying}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+            className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Close checkout"
             title="Close checkout"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -133,11 +149,11 @@ export default function PolarCheckoutModal({
       )}
 
       {verifyError && (
-        <div className="p-3 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3 shrink-0">
+        <div role="alert" className="p-3 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3 shrink-0">
           <span>{verifyError}</span>
           <button
             onClick={handleCheckoutSuccess}
-            className="px-3 py-1 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg transition-colors cursor-pointer shrink-0"
+            className="px-4 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg transition-colors cursor-pointer shrink-0 min-h-[36px]"
           >
             Recheck Status
           </button>

@@ -18,6 +18,7 @@ export function emptyWeather(): WeatherData {
     wind_speed_avg_2_min: 0,
     wind_speed_avg_10_min: 0,
     wind_dir_10_min: 0,
+    wind_gust_10_min: 0,
     rain_rate_last: 0,
     rainfall_daily: 0,
     high_rain_rate_today: 0,
@@ -48,6 +49,8 @@ export function toPublicConfig(row: StationRow, creds: StationCredentials): Publ
     hasApiToken: Boolean(creds.apiToken),
     hasApiSecret: Boolean(creds.apiSecret),
     stationName: row.name,
+    tileLayout: (row.tile_layout === 'room' ? 'room' : 'dense') as PublicConfig['tileLayout'],
+    highContrast: row.contrast === 'high',
     wlPlan: row.wl_plan || 'unknown',
     subscriptionStatus: row.subscription_status || 'trial',
     subscriptionExpiresAt: row.subscription_expires_at ?? null,
@@ -304,6 +307,7 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
         if (cond.wind_speed_avg_last_2_min !== undefined) itemWeather.wind_speed_avg_2_min = Number(cond.wind_speed_avg_last_2_min);
         if (cond.wind_speed_avg_last_10_min !== undefined) itemWeather.wind_speed_avg_10_min = Number(cond.wind_speed_avg_last_10_min);
         if (cond.wind_dir_scalar_avg_last_10_min !== undefined) itemWeather.wind_dir_10_min = Number(cond.wind_dir_scalar_avg_last_10_min);
+        if (cond.wind_speed_hi_last_10_min !== undefined) itemWeather.wind_gust_10_min = Number(cond.wind_speed_hi_last_10_min);
         if (cond.rain_rate_last_in !== undefined) itemWeather.rain_rate_last = Number(cond.rain_rate_last_in);
         else if (cond.rain_rate_last !== undefined) itemWeather.rain_rate_last = Number(cond.rain_rate_last);
         if (cond.rainfall_day_in !== undefined) itemWeather.rainfall_daily = Number(cond.rainfall_day_in);
@@ -451,6 +455,12 @@ async function fetchV1(row: StationRow, creds: StationCredentials, weather: Weat
         : data.wind_ten_min_ave_mph !== undefined
         ? Number(data.wind_ten_min_ave_mph)
         : itemWeather.wind_speed_avg_10_min;
+    itemWeather.wind_gust_10_min =
+      davis.wind_ten_min_gust_mph !== undefined
+        ? Number(davis.wind_ten_min_gust_mph)
+        : data.wind_ten_min_gust_mph !== undefined
+        ? Number(data.wind_ten_min_gust_mph)
+        : itemWeather.wind_gust_10_min;
     itemWeather.wind_speed_avg_2_min = itemWeather.wind_speed_last;
 
     itemWeather.rain_rate_last =

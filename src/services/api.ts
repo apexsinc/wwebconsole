@@ -8,8 +8,11 @@ import { useEffect } from 'react';
 import { useWeatherStore } from '../store.js';
 import { ApiError, AuthUser, BillingInfo, ShareLink, WLLConfig } from '../types.js';
 
+/** Absolute API base in production (api subdomain), same-origin in dev. */
+export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '') || '';
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     ...init,
@@ -272,6 +275,14 @@ export function useWeatherQuery(enabled = true) {
   useEffect(() => {
     if (query.data) {
       setAll(query.data);
+      const st = useWeatherStore.getState();
+      const layout = query.data.config?.tileLayout;
+      if ((layout === 'dense' || layout === 'room') && st.tileLayout !== layout) {
+        st.setTileLayout(layout);
+      }
+      if (typeof query.data.config?.highContrast === 'boolean' && st.highContrast !== query.data.config.highContrast) {
+        st.setHighContrast(query.data.config.highContrast);
+      }
       if (query.data.billing) {
         useWeatherStore.getState().setBilling(query.data.billing);
       }

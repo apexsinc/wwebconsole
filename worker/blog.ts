@@ -223,36 +223,115 @@ export async function fetchAndStoreCover(env: Env, id: string): Promise<string |
   return resolveCoverImage(env, row);
 }
 
-/** Published slugs for sitemap.xml. */
-export async function listPublishedSlugs(env: Env, limit = 500): Promise<string[]> {
+/** RSS 2.0 feed for /blog.xml (latest 50 published posts). */
+export async function buildBlogRss(env: Env): Promise<string> {
+  const { posts } = await listPublishedPosts(env, 50, 0);
+  // Single source of truth for the canonical origin (Admin → Site & SEO).
+  // A hardcoded origin here would split canonicals if the domain ever changes.
+  let base = 'https://wwebconsole.com';
+  try {
+    const row = await env.DB.prepare('SELECT value FROM app_settings WHERE key = ?')
+      .bind('site_canonical_base')
+      .first<{ value: string }>();
+    if (row?.value) base = row.value.replace(/\/+$/, '');
+  } catch {
+    /* default stands */
+  }
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const items = posts
+    .map((p) => {
+      const pubDate = new Date(p.publishAt || Date.now()).toUTCString();
+      return `    <item>\n      <title>${esc(p.title)}</title>\n      <link>${base}/post/${p.slug}</link>\n      <guid isPermaLink="true">${base}/post/${p.slug}</guid>\n      <pubDate>${pubDate}</pubDate>\n      <description>${esc(p.excerpt || p.title)}</description>\n    </item>`;
+    })
+    .join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>WWebConsole Blog</title>\n    <link>${base}/blogs</link>\n    <description>Station setup guides, weather reading tips, and product updates.</description>\n    <language>en</language>\n${items}\n  </channel>\n</rss>`;
+}
+
+/** Published post metadata for sitemap.xml (slugs + freshness + covers). */
+export async function listPublishedPostMeta(
+  env: Env,
+  limit = 500
+): Promise<{ slug: string; updated_at: number; publish_at: number; cover_image_url: string | null }[]> {
   const { results } = await env.DB.prepare(
-    `SELECT slug FROM blog_posts WHERE status = 'published' AND publish_at <= ? ORDER BY publish_at DESC LIMIT ?`
+    `SELECT slug, updated_at, publish_at, cover_image_url FROM blog_posts WHERE status = 'published' AND publish_at <= ? ORDER BY publish_at DESC LIMIT ?`
   )
     .bind(Date.now(), limit)
-    .all<{ slug: string }>();
-  return (results || []).map((r) => r.slug);
+    .all<{ slug: string; updated_at: number; publish_at: number; cover_image_url: string | null }>();
+  return results || [];
+}
+
+/** Published slugs for sitemap.xml. */
+export async function listPublishedSlugs(env: Env, limit = 500): Promise<string[]> {
+  return (await listPublishedPostMeta(env, limit)).map((r) => r.slug);
 }
 
 /** SEO descriptor for /blogs and /post/:slug (same shape as getSeoForPath). */
 export async function getBlogSeo(env: Env, pathname: string) {
   const clean = pathname.replace(/\/+$/, '') || '/';
+  // Respect the global seo_indexable kill-switch + canonical base + site name
+  // (Admin → Site & SEO). Hardcoding these would split canonicals on rename.
+  let indexable = true;
+  let base = 'https://wwebconsole.com';
+  const siteName = 'WWebConsole';
+  try {
+    const { results } = await env.DB.prepare(
+      'SELECT key, value FROM app_settings WHERE key IN (?, ?)'
+    )
+      .bind('seo_indexable', 'site_canonical_base')
+      .all<{ key: string; value: string }>();
+    const map = new Map((results || []).map((r) => [r.key, r.value]));
+    const v = map.get('seo_indexable') ?? '1';
+    indexable = v === '1' || v.toLowerCase() === 'true';
+    if (map.get('site_canonical_base')) base = map.get('site_canonical_base')!.replace(/\/+$/, '');
+  } catch {
+    /* defaults stand */
+  }
   if (clean === '/blogs') {
     return {
       title: 'Blog — Weatherlink Web Console',
       description: 'Station setup guides, weather reading tips, and product updates.',
       keywords: 'weather station blog, WeatherLink guides, weather console tips',
       ogImage: '',
-      canonical: 'https://wwebconsole.com/blogs',
+      canonical: `${base}/blogs`,
       twitter: '',
-      indexable: true,
-      siteName: 'WWebConsole',
+      indexable,
+      siteName,
     };
   }
   const m = clean.match(/^\/post\/([a-z0-9-]+)$/i);
   if (!m) return null;
   const post = await getPublishedPost(env, m[1]!);
   if (!post) return null;
-  const base = 'https://wwebconsole.com';
+  const isoDate = new Date(post.publishAt || Date.now()).toISOString();
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        headline: post.title,
+        description: post.excerpt || post.title,
+        image: post.coverImageUrl || undefined,
+        datePublished: isoDate,
+        dateModified: isoDate,
+        author: { '@type': 'Person', name: post.author || siteName },
+        publisher: {
+          '@type': 'Organization',
+          name: siteName,
+          logo: `${base}/apexs-logo.png`,
+        },
+        mainEntityOfPage: `${base}/post/${post.slug}`,
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${base}/` },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${base}/blogs` },
+          { '@type': 'ListItem', position: 3, name: post.title, item: `${base}/post/${post.slug}` },
+        ],
+      },
+    ],
+  });
   return {
     title: `${post.title} — WWebConsole Blog`,
     description: post.excerpt || post.title,
@@ -260,7 +339,8 @@ export async function getBlogSeo(env: Env, pathname: string) {
     ogImage: post.coverImageUrl || '',
     canonical: `${base}/post/${post.slug}`,
     twitter: '',
-    indexable: true,
-    siteName: 'WWebConsole',
+    indexable,
+    siteName,
+    jsonLd,
   };
 }

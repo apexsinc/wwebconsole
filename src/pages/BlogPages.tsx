@@ -9,7 +9,13 @@ import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useSpring } from 'motion/react';
 import { CalendarDays, Tag, ArrowLeft, ArrowRight } from 'lucide-react';
 import { MarkdownLite, usePageSeo } from './MarketingPages.js';
-import type { PublicSiteConfig } from '../services/api.js';
+import { API_BASE, type PublicSiteConfig } from '../services/api.js';
+import { applyDocumentSeo } from '../components/MarketingLayout.js';
+
+export function readingMinutes(body: string): number {
+  const words = (body || '').trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
 
 export type BlogPost = {
   id: string;
@@ -38,7 +44,7 @@ function formatDate(ms: number) {
 }
 
 function Cover({ post, large }: { post: BlogPost; large?: boolean }) {
-  const src = post.coverImageUrl || `/api/public/blog/cover/${encodeURIComponent(post.slug)}`;
+  const src = post.coverImageUrl || `${API_BASE}/api/public/blog/cover/${encodeURIComponent(post.slug)}`;
   const [failed, setFailed] = useState(false);
   if (failed || (!post.coverImageUrl && !post.coverQuery)) {
     return (
@@ -55,18 +61,18 @@ function Cover({ post, large }: { post: BlogPost; large?: boolean }) {
   return (
     <img
       src={src}
-      alt={post.coverAlt}
+      alt={post.coverAlt || post.title}
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
-      className={`w-full ${large ? 'h-64 sm:h-96' : 'h-44'} object-cover rounded-2xl border border-slate-200 dark:border-white/10`}
+      className={`w-full ${large ? 'h-64 sm:h-96' : 'h-44 aspect-video'} object-cover rounded-2xl border border-slate-200 dark:border-white/10`}
     />
   );
 }
 
 export function BlogListPage() {
   const { site } = useOutletContext<Ctx>();
-  usePageSeo(site, 'seo_home_title', 'seo_home_description', '/blogs', 'Blog — Weatherlink Web Console', 'Station guides and product updates.');
+  usePageSeo(site, 'seo_blog_title', 'seo_blog_description', '/blogs', 'Blog — Weatherlink Web Console', 'Station setup guides, weather reading tips, and product updates.');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -76,7 +82,7 @@ export function BlogListPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/public/blog?limit=${LIMIT}&offset=${offset}`)
+    fetch(`${API_BASE}/api/public/blog?limit=${LIMIT}&offset=${offset}`)
       .then((r) => r.json() as Promise<{ posts?: BlogPost[]; total?: number }>)
       .then((d) => {
         if (cancelled) return;
@@ -104,7 +110,7 @@ export function BlogListPage() {
           </p>
         </div>
       </div>
-      <main id="main-content" className="max-w-5xl mx-auto px-4 py-12">
+      <div className="max-w-5xl mx-auto px-4 py-12" data-blog-main>
         {loading && posts.length === 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" aria-label="Loading posts">
             {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -136,8 +142,8 @@ export function BlogListPage() {
                     {p.excerpt && (
                       <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 line-clamp-2">{p.excerpt}</p>
                     )}
-                    <p className="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5" />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 flex items-center gap-1.5">
+                      <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
                       {formatDate(p.publishAt)}
                       {p.author && <span className="ml-1">· {p.author}</span>}
                     </p>
@@ -148,31 +154,33 @@ export function BlogListPage() {
             <div className="mt-10 flex items-center justify-center gap-3">
               <button
                 disabled={offset === 0}
+                aria-label="Show newer posts"
                 onClick={() => {
                   setOffset(Math.max(0, offset - LIMIT));
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  window.scrollTo({ top: 0, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
                 }}
                 className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-bold disabled:opacity-40 min-h-[44px]"
               >
-                <ArrowLeft className="w-4 h-4" /> Newer
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Newer
               </button>
-              <span className="text-sm text-slate-500 font-medium">
+              <span className="text-sm text-slate-500 font-medium" role="status">
                 {offset + 1}–{Math.min(offset + LIMIT, total)} of {total}
               </span>
               <button
                 disabled={offset + LIMIT >= total}
+                aria-label="Show older posts"
                 onClick={() => {
                   setOffset(offset + LIMIT);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  window.scrollTo({ top: 0, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
                 }}
                 className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-bold disabled:opacity-40 min-h-[44px]"
               >
-                Older <ArrowRight className="w-4 h-4" />
+                Older <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 }
@@ -186,10 +194,39 @@ export function BlogPostPage() {
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 25 });
-  usePageSeo(site, 'seo_home_title', 'seo_home_description', `/post/${slug || ''}`, post?.title || 'Post', post?.excerpt || '');
+
+  // Single SEO writer (title/meta/canonical/OG + noindex when missing).
+  useEffect(() => {
+    if (!site && !post && !missing) return;
+    const base = (site?.site_canonical_base || 'https://wwebconsole.com').replace(/\/+$/, '');
+    if (missing || (!post && slug)) {
+      if (missing) {
+        applyDocumentSeo({
+          title: 'Post not found — WWebConsole Blog',
+          description: 'This post does not exist or is no longer published.',
+          canonicalBase: base,
+          path: `/post/${slug || ''}`,
+          indexable: false,
+          siteName: site?.site_name,
+        });
+      }
+      return;
+    }
+    if (post) {
+      applyDocumentSeo({
+        title: `${post.title} — WWebConsole Blog`,
+        description: post.excerpt || post.title,
+        canonicalBase: base,
+        path: `/post/${post.slug}`,
+        ogImage: post.coverImageUrl || site?.site_og_image,
+        keywords: post.tags.join(', '),
+        indexable: site?.indexable,
+        siteName: site?.site_name,
+      });
+    }
+  }, [site, post, missing, slug]);
 
   useEffect(() => {
-    document.title = post ? `${post.title} — WWebConsole Blog` : 'Post — WWebConsole Blog';
     // JSON-LD Article schema for SEO.
     const id = 'wwc-blog-jsonld';
     document.getElementById(id)?.remove();
@@ -203,7 +240,13 @@ export function BlogPostPage() {
         headline: post.title,
         description: post.excerpt,
         datePublished: new Date(post.publishAt).toISOString(),
-        author: { '@type': 'Organization', name: post.author || 'WWebConsole' },
+        dateModified: new Date(post.publishAt).toISOString(),
+        author: { '@type': 'Person', name: post.author || 'WWebConsole' },
+        publisher: {
+          '@type': 'Organization',
+          name: 'WWebConsole',
+          logo: 'https://wwebconsole.com/apexs-logo.png',
+        },
         image: post.coverImageUrl || undefined,
         mainEntityOfPage: `https://wwebconsole.com/post/${post.slug}`,
       });
@@ -219,7 +262,7 @@ export function BlogPostPage() {
     setPost(null);
     setRelated([]);
     setMissing(false);
-    fetch(`/api/public/blog/${encodeURIComponent(slug || '')}`)
+    fetch(`${API_BASE}/api/public/blog/${encodeURIComponent(slug || '')}`)
       .then((r) => {
         if (r.status === 404) {
           if (!cancelled) setMissing(true);
@@ -230,7 +273,7 @@ export function BlogPostPage() {
       .then((d) => {
         if (!cancelled && d?.post) {
           setPost(d.post);
-          fetch(`/api/public/blog/${encodeURIComponent(slug || '')}/related`)
+          fetch(`${API_BASE}/api/public/blog/${encodeURIComponent(slug || '')}/related`)
             .then((r) => r.json() as Promise<{ posts?: BlogPost[] }>)
             .then((rel) => {
               if (!cancelled) setRelated(rel.posts || []);
@@ -253,7 +296,7 @@ export function BlogPostPage() {
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-slate-900 dark:text-white">Post not found</h1>
         <p className="text-slate-500 mt-3">It may be scheduled for a future date or removed.</p>
         <Link to="/blogs" className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-xl bg-sky-600 text-white text-sm font-bold min-h-[44px]">
-          <ArrowLeft className="w-4 h-4" /> All posts
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> All posts
         </Link>
       </div>
     );
@@ -279,20 +322,22 @@ export function BlogPostPage() {
           className="fixed top-0 left-0 right-0 h-1 origin-left bg-gradient-to-r from-sky-600 to-sky-400 z-[100]"
         />
       )}
-      <main id="main-content" className="max-w-3xl mx-auto px-4 py-12">
+      <div className="max-w-3xl mx-auto px-4 py-12">
         <Link to="/blogs" className="inline-flex items-center gap-1.5 text-sm font-bold text-sky-700 dark:text-sky-300 min-h-[44px]">
-          <ArrowLeft className="w-4 h-4" /> All posts
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> All posts
         </Link>
         <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight mt-4">
           {post.title}
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-3 flex items-center gap-2 flex-wrap">
-          <CalendarDays className="w-4 h-4" />
+          <CalendarDays className="w-4 h-4" aria-hidden="true" />
           {formatDate(post.publishAt)}
+          <span aria-hidden="true">·</span>
+          <span>{readingMinutes(post.body)} min read</span>
           {post.author && <span>· {post.author}</span>}
           {post.tags.length > 0 && (
             <span className="inline-flex items-center gap-1.5 ml-1">
-              <Tag className="w-3.5 h-3.5" />
+              <Tag className="w-3.5 h-3.5" aria-hidden="true" />
               {post.tags.join(', ')}
             </span>
           )}
@@ -300,9 +345,15 @@ export function BlogPostPage() {
         <div className="mt-6">
           <Cover post={post} large />
           {post.coverCredit && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-right">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-right">
               {post.coverPageUrl ? (
-                <a href={post.coverPageUrl} target="_blank" rel="noreferrer noopener" className="hover:underline">
+                <a
+                  href={post.coverPageUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="hover:underline"
+                  aria-label={`${post.coverCredit} (opens in new tab)`}
+                >
                   {post.coverCredit}
                 </a>
               ) : (
@@ -350,7 +401,7 @@ export function BlogPostPage() {
             </div>
           </motion.section>
         )}
-      </main>
+      </div>
     </article>
   );
 }

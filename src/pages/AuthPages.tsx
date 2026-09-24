@@ -13,6 +13,7 @@ import {
 import { useWeatherStore } from '../store.js';
 import { PasswordInput } from '../components/PasswordInput.js';
 import { GoogleButton, OAuthDivider, googleErrorMessage } from '../components/GoogleButton.js';
+import { applyDocumentSeo } from '../components/MarketingLayout.js';
 
 function isAdminHost() {
   if (typeof window === 'undefined') return false;
@@ -253,24 +254,31 @@ export function LoginPage() {
     <AuthShell title="Sign in" subtitle={isAdminHost() ? 'Admin sign in' : 'Open your WeatherLink console'}>
       <GoogleButton mode="login" />
       <OAuthDivider />
-      <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
+      <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate={false}>
+        {error && <p role="alert" id="wwc-login-error" className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
+        <label htmlFor="wwc-login-email" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
         <input
+          id="wwc-login-email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'wwc-login-error' : undefined}
+          className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
         />
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
+        <label htmlFor="wwc-login-password" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
         <PasswordInput
+          id="wwc-login-password"
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
-          className="w-full bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'wwc-login-error' : undefined}
+          className="w-full bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
         />
         <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
@@ -286,7 +294,7 @@ export function LoginPage() {
           </Link>
           {!isAdminHost() && (
             <>
-              <span className="mx-2 opacity-50">&middot;</span>
+              <span className="mx-2 opacity-50" aria-hidden="true">&middot;</span>
               <Link to="/register" className="text-[#073075] dark:text-sky-400 hover:underline font-bold">
                 Create account
               </Link>
@@ -313,6 +321,13 @@ export function RegisterPage() {
 
   useEffect(() => {
     fetchAuthConfig().then(setAuthCfg).catch(() => undefined);
+    // Google OAuth callback failures can land here as ?error=google_*.
+    const params = new URLSearchParams(window.location.search);
+    const msg = googleErrorMessage(params.get('error'));
+    if (msg) {
+      setError(msg);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   const passwordsMatch = confirmPassword === '' || password === confirmPassword;
@@ -365,58 +380,67 @@ export function RegisterPage() {
       <OAuthDivider />
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {error && (
-          <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3">
-            <svg className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <div role="alert" id="wwc-register-error" className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3">
+            <svg aria-hidden="true" className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
             <p className="text-rose-700 dark:text-rose-400 text-xs font-semibold leading-relaxed">{error}</p>
           </div>
         )}
         {info && (
-          <div className="flex items-start gap-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/20 rounded-xl px-4 py-3">
-            <svg className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <div role="status" className="flex items-start gap-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/20 rounded-xl px-4 py-3">
+            <svg aria-hidden="true" className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <p className="text-emerald-700 dark:text-emerald-400 text-xs font-semibold leading-relaxed">{info}</p>
           </div>
         )}
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Name</label>
+        <label htmlFor="wwc-register-name" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Name</label>
         <input
+          id="wwc-register-name"
           type="text"
+          autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your full name"
-          className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+          className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
         />
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Email</label>
+        <label htmlFor="wwc-register-email" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Email</label>
         <input
+          id="wwc-register-email"
           type="email"
           required
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'wwc-register-error' : undefined}
+          className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
         />
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
+        <label htmlFor="wwc-register-password" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Password</label>
         <PasswordInput
+          id="wwc-register-password"
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
           placeholder="Min. 8 characters"
-          className="w-full bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+          aria-describedby="wwc-register-match"
+          className="w-full bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
         />
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Confirm Password</label>
+        <label htmlFor="wwc-register-confirm" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Confirm Password</label>
         <PasswordInput
+          id="wwc-register-confirm"
           required
           minLength={8}
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           autoComplete="new-password"
           placeholder="Re-enter your password"
-          className={`w-full bg-slate-50 dark:bg-[#05080f] border rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-4 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 ${
+          aria-describedby="wwc-register-match"
+          className={`w-full bg-slate-50 dark:bg-[#05080f] border rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-4 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400 ${
             !passwordsMatch
               ? 'border-rose-400 dark:border-rose-500 focus:border-rose-400 focus:ring-rose-400/10'
               : confirmPassword && password === confirmPassword
@@ -424,9 +448,10 @@ export function RegisterPage() {
               : 'border-slate-200 dark:border-gray-800 focus:border-[#073075] dark:focus:border-[#073075] focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20'
           }`}
         />
+        <div id="wwc-register-match" aria-live="polite">
         {confirmPassword && !passwordsMatch && (
           <p className="text-rose-500 dark:text-rose-400 text-xs font-semibold -mt-1 flex items-center gap-1">
-            <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg aria-hidden="true" className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
             Passwords don't match
@@ -434,12 +459,13 @@ export function RegisterPage() {
         )}
         {confirmPassword && password === confirmPassword && (
           <p className="text-emerald-500 dark:text-emerald-400 text-xs font-semibold -mt-1 flex items-center gap-1">
-            <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg aria-hidden="true" className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             Passwords match
           </p>
         )}
+        </div>
         <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
           type="submit"
@@ -515,22 +541,31 @@ export function VerifyEmailPage() {
   return (
     <AuthShell title="Verify email" subtitle="Enter the 6-digit code we sent to your email">
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
-        {info && <p className="text-emerald-400 text-xs bg-emerald-950/40 border border-emerald-500/20 rounded-lg px-3 py-2">{info}</p>}
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
+        {error && <p role="alert" id="wwc-verify-error" className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
+        {info && <p role="status" className="text-emerald-400 text-xs bg-emerald-950/40 border border-emerald-500/20 rounded-lg px-3 py-2">{info}</p>}
+        <label htmlFor="wwc-verify-email" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
         <input
+          id="wwc-verify-email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'wwc-verify-error' : undefined}
+          className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
         />
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
+        <label htmlFor="wwc-verify-code" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
         <input
+          id="wwc-verify-code"
           type="text"
           required
+          autoComplete="one-time-code"
+          inputMode="numeric"
           value={code}
           onChange={(e) => setCode(e.target.value)}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'wwc-verify-error' : undefined}
           className="bg-slate-50 dark:bg-[#0a0d14] border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white tracking-[0.3em] font-mono outline-none focus:border-sky-500/50"
         />
         <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
@@ -586,19 +621,23 @@ export function ForgotPasswordPage() {
         <div className="text-sm text-gray-300 space-y-3">
           <p>If that email exists, a reset code was sent.</p>
           <Link to={`/reset-password?email=${encodeURIComponent(email)}`} className="text-[#073075] dark:text-sky-400 hover:underline font-bold mt-2 inline-block">
-            Enter reset code →
+            Enter reset code <span aria-hidden="true">→</span>
           </Link>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
-          {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
-          <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
+          {error && <p role="alert" id="wwc-forgot-error" className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
+          <label htmlFor="wwc-forgot-email" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
           <input
+            id="wwc-forgot-email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'wwc-forgot-error' : undefined}
+            className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
           />
           <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
           <button
@@ -654,19 +693,22 @@ export function ResetPasswordPage() {
   return (
     <AuthShell title="Reset password" subtitle="Enter the OTP from your email">
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        {error && <p className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
-        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600" />
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
-        <input type="text" required value={code} onChange={(e) => setCode(e.target.value)} className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white font-mono outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600" />
-        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">New password</label>
+        {error && <p role="alert" id="wwc-reset-error" className="text-rose-400 text-xs bg-rose-950/40 border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>}
+        <label htmlFor="wwc-reset-email" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</label>
+        <input id="wwc-reset-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? 'wwc-reset-error' : undefined} className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400" />
+        <label htmlFor="wwc-reset-code" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Code</label>
+        <input id="wwc-reset-code" type="text" required autoComplete="one-time-code" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? 'wwc-reset-error' : undefined} className="bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white font-mono outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400" />
+        <label htmlFor="wwc-reset-password" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">New password</label>
         <PasswordInput
+          id="wwc-reset-password"
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
-          className="w-full bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'wwc-reset-error' : undefined}
+          className="w-full bg-slate-50 dark:bg-[#05080f] border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-[#073075] dark:focus:border-[#073075] focus:ring-4 focus:ring-[#073075]/10 dark:focus:ring-[#073075]/20 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
         />
         <TurnstileField enabled={authCfg.turnstileEnabled} turnstile={turnstile} />
         <button
@@ -690,13 +732,28 @@ function AuthShell({
   subtitle: string;
   children: React.ReactNode;
 }) {
+  // Auth screens are unlisted: noindex + self canonical.
+  useEffect(() => {
+    applyDocumentSeo({
+      title: `${title} — Weatherlink Web Console`,
+      description: subtitle,
+      path: window.location.pathname,
+      indexable: false,
+    });
+  }, [title, subtitle]);
   const admin = isAdminHost();
   const brandHref = admin ? '/' : 'https://wwebconsole.com/';
   const privacyHref = admin ? 'https://wwebconsole.com/privacy' : '/privacy';
   const termsHref = admin ? 'https://wwebconsole.com/terms' : '/terms';
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-gradient-to-br from-[#073075] to-[#041a45]">
+    <main id="main-content" aria-label={title} className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-gradient-to-br from-[#073075] to-[#041a45]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[400] focus:bg-white focus:text-slate-900 focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold"
+      >
+        Skip to sign-in form
+      </a>
       {/* Background ambient glows covering the entire screen */}
       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-sky-400/20 via-transparent to-transparent pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-[#0a0d14]/60 via-transparent to-transparent pointer-events-none" />
@@ -757,11 +814,11 @@ function AuthShell({
 
           <div className="md:hidden flex items-center justify-center gap-5 text-xs text-sky-200/60 mt-10 animate-[fadeIn_1s_ease-out] font-medium">
             <a href={privacyHref} className="hover:text-white transition-colors">Privacy Policy</a>
-            <span>&middot;</span>
+            <span aria-hidden="true">&middot;</span>
             <a href={termsHref} className="hover:text-white transition-colors">Terms of Service</a>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

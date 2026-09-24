@@ -1,18 +1,23 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * 6313-style station cell: compact centered block (home icon, station name,
+ * time | date) that sits at the top of the center column, mirroring the
+ * hardware's top-middle cell overlapped by the wind rose.
  */
 
 import { useEffect, useState } from 'react';
-import { Home, CloudRain, ShieldCheck, Activity } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { format } from 'date-fns';
 import { useWeatherStore } from '../store.js';
 
 export default function Header() {
-  const { ts, stationName, stationDid } = useWeatherStore((state) => state.weather);
+  const { stationName } = useWeatherStore((state) => state.weather);
   const config = useWeatherStore((state) => state.config);
   const connection = useWeatherStore((state) => state.connection);
-  
+  const resolvedName = stationName || config.stationName || 'Connecting…';
+
   // Real-time ticking system clock synced with the WLL system
   const [systemTime, setSystemTime] = useState(new Date());
 
@@ -25,35 +30,36 @@ export default function Header() {
 
   // Use the exact time we polled the API (or received UDP), falling back to the ticking system clock if offline
   const lastUpdateMs = connection.lastHttpReceived || connection.lastUdpReceived || 0;
-  
+
   const displayDate = lastUpdateMs === 0
-    ? systemTime 
+    ? systemTime
     : new Date(lastUpdateMs);
 
   const formattedTime = format(displayDate, 'h:mm a');
-  const formattedDate = format(displayDate, 'MM/dd/yy EEEE');
+  const formattedDate = format(displayDate, 'M/d/yy');
+  const weekday = format(displayDate, 'EEEE');
+  // Wall displays run unattended: flag data older than 30 min right on the clock.
+  const stale = lastUpdateMs > 0 && Date.now() - lastUpdateMs > 30 * 60 * 1000;
 
   return (
-    <header className="flex flex-col items-center justify-center text-center gap-2 w-full border-b border-gray-850 pb-2">
-      {/* Centered Home Icon */}
-      <div className="w-8 h-8 rounded-lg bg-sky-950/30 border border-sky-500/20 flex items-center justify-center text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.1)]" aria-hidden="true">
-        <Home className="w-4.5 h-4.5" />
+    <section aria-label="Station information" className="console-station flex flex-col items-center justify-center text-center w-full">
+      <div className="console-station-icon" aria-hidden="true">
+        <Home />
       </div>
-
-      {/* Station Name */}
-      <h1 className="text-white font-sans font-bold text-base md:text-lg tracking-tight leading-none mt-0.5">
-        {stationName || 'Connecting…'}
-      </h1>
-
-      {/* Time & Date Display */}
-      <div className="flex flex-col items-center mt-1 text-center">
-        <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">
-          Last Updated
-        </span>
-        <div className="text-xs md:text-sm font-sans font-semibold text-gray-300 tracking-tight leading-none">
-          {formattedTime} <span className="text-gray-500 font-normal mx-1">|</span> {formattedDate}
-        </div>
+      <p className="console-station-name" data-page-title>{resolvedName}</p>
+      <div
+        className={`console-station-time${stale ? ' console-station-stale' : ''}`}
+        title={stale ? 'Station data is stale — check the station link' : undefined}
+      >
+        {formattedTime} <span className="console-station-sep" aria-hidden="true">|</span> {formattedDate}
+        {stale && (
+          <span className="console-station-stale-tag" role="status">
+            <span aria-hidden="true"> · stale</span>
+            <span className="sr-only">Station data is stale</span>
+          </span>
+        )}
       </div>
-    </header>
+      <div className="console-station-weekday">{weekday}</div>
+    </section>
   );
 }

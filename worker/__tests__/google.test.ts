@@ -5,6 +5,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { hmacSha256Hex, verifyStandardWebhookSignature } from '../crypto.ts';
 import { isAllowedCoverHost } from '../blog.ts';
+import { adminBaseUrl } from '../hosts.ts';
 import {
   buildGoogleAuthUrl,
   googleRedirectUri,
@@ -17,6 +18,12 @@ describe('googleRedirectUri', () => {
     assert.equal(
       googleRedirectUri('https://wwebconsole.com/'),
       'https://wwebconsole.com/api/auth/google/callback'
+    );
+  });
+  it('builds the api-subdomain callback URI', () => {
+    assert.equal(
+      googleRedirectUri('https://api.wwebconsole.com'),
+      'https://api.wwebconsole.com/api/auth/google/callback'
     );
   });
 });
@@ -48,6 +55,8 @@ describe('oauth state round-trip', () => {
     assert.equal(v?.nonce, 'n1');
     assert.equal(v?.mode, 'register');
     assert.equal(v?.next, '/app');
+    // States sealed before adminEntry existed default to main-portal entry.
+    assert.equal(v?.adminEntry, false);
 
     // Tampered payload
     const [b64, sig] = good.split('.');
@@ -70,6 +79,35 @@ describe('oauth state round-trip', () => {
       exp: Date.now() - 1000,
     });
     assert.equal(await verifyOAuthState('secret', hmacSha256Hex, old), null);
+  });
+
+  it('round-trips the sealed admin-entry flag', async () => {
+    const admin = await signOAuthState('secret', hmacSha256Hex, {
+      nonce: 'a1',
+      mode: 'login',
+      next: '/app',
+      exp: Date.now() + 600_000,
+      adminEntry: true,
+    });
+    assert.equal((await verifyOAuthState('secret', hmacSha256Hex, admin))?.adminEntry, true);
+    const main = await signOAuthState('secret', hmacSha256Hex, {
+      nonce: 'a2',
+      mode: 'login',
+      next: '/app',
+      exp: Date.now() + 600_000,
+      adminEntry: false,
+    });
+    assert.equal((await verifyOAuthState('secret', hmacSha256Hex, main))?.adminEntry, false);
+  });
+});
+
+describe('adminBaseUrl', () => {
+  it('maps the apex app URL to the admin portal, never user input', () => {
+    assert.equal(adminBaseUrl('https://wwebconsole.com'), 'https://admin.wwebconsole.com');
+    assert.equal(adminBaseUrl('https://www.wwebconsole.com'), 'https://admin.wwebconsole.com');
+    assert.equal(adminBaseUrl('http://localhost:5173'), 'http://admin.localhost:5173');
+    // Unknown environments fall back to the app URL itself (no open redirect).
+    assert.equal(adminBaseUrl('https://preview.example.workers.dev'), 'https://preview.example.workers.dev');
   });
 });
 

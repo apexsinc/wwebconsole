@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE } from '../services/api.js';
 
 /**
  * @license
@@ -22,14 +23,28 @@ export function googleErrorMessage(code: string | null): string {
   return GOOGLE_ERROR_COPY[code] || '';
 }
 
+/** Admin portal host check (mirrors AuthPages): entry must be flagged for the worker. */
+function isAdminEntryHost() {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host === 'admin.wwebconsole.com' || host.startsWith('admin.') || host === 'admin.localhost';
+}
+
 export function GoogleButton({ mode }: { mode: 'login' | 'register' }) {
   const [redirecting, setRedirecting] = useState(false);
-  const href = `/api/auth/google/start?mode=${mode}`;
+  // The OAuth callback always runs on the api host, so the entry portal is
+  // passed explicitly and sealed into signed state (worker allowlists it).
+  const entry = isAdminEntryHost() ? '&entry=admin' : '';
+  const href = `${API_BASE}/api/auth/google/start?mode=${mode}${entry}`;
   return (
     <a
-      href={href}
-      onClick={() => setRedirecting(true)}
+      href={redirecting ? undefined : href}
+      onClick={(e) => {
+        if (redirecting) e.preventDefault();
+        else setRedirecting(true);
+      }}
       aria-disabled={redirecting}
+      aria-live="polite"
       className="w-full inline-flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-white/5 text-slate-700 dark:text-white text-sm font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all min-h-[44px] aria-disabled:opacity-70"
     >
       {redirecting ? (
@@ -68,7 +83,7 @@ export function OAuthDivider() {
   return (
     <div className="flex items-center gap-3 my-1" aria-hidden="true">
       <span className="flex-1 h-px bg-slate-200 dark:bg-gray-800" />
-      <span className="text-[11px] uppercase tracking-widest text-gray-400 font-bold">or</span>
+      <span className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold">or</span>
       <span className="flex-1 h-px bg-slate-200 dark:bg-gray-800" />
     </div>
   );

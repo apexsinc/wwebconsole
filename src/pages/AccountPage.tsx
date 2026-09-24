@@ -12,6 +12,7 @@ import {
 } from '../services/api.js';
 import ConfigNavbar from '../components/ConfigNavbar.js';
 import { PasswordInput } from '../components/PasswordInput.js';
+import { applyDocumentSeo } from '../components/MarketingLayout.js';
 
 export default function AccountPage() {
   const user = useWeatherStore((s) => s.user);
@@ -29,6 +30,16 @@ export default function AccountPage() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Account pages are unlisted (robots.txt also disallows /account).
+  useEffect(() => {
+    applyDocumentSeo({
+      title: 'Account — Weatherlink Web Console',
+      description: 'Manage your Weatherlink Web Console account.',
+      path: '/account',
+      indexable: false,
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +62,7 @@ export default function AccountPage() {
     return (
       <div className="min-h-screen bg-[#0a0d14] flex flex-col items-center justify-center gap-3" role="status" aria-live="polite">
         <span className="w-8 h-8 rounded-full border-2 border-slate-700 border-t-sky-500 animate-spin" aria-hidden="true" />
-        <p className="text-sm font-medium text-slate-400">Loading console account details…</p>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading console account details…</p>
       </div>
     );
   }

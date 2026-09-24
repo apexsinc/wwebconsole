@@ -40,6 +40,10 @@ keys = [
     "POLAR_ACCESS_TOKEN",
     "POLAR_PRODUCT_ID",
     "POLAR_WEBHOOK_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "UNSPLASH_ACCESS_KEY",
+    "PIXABAY_API_KEY",
 ]
 # Prefer LOCAL_APP_URL for local APP_URL
 app_url = vals.get("LOCAL_APP_URL") or vals.get("APP_URL") or "http://localhost:5173"

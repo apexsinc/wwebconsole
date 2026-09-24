@@ -6,7 +6,7 @@ import { fetchAuthConfig, submitContact } from '../services/api.js';
 import { applyDocumentSeo } from '../components/MarketingLayout.js';
 
 const HERO_IMG = '/marketing/console-gallery.webp';
-const DEVICE_IMG = '/marketing/console-device.png';
+const DEVICE_IMG = '/marketing/console-device.webp';
 
 declare global {
   interface Window {
@@ -182,14 +182,14 @@ export function HomePage() {
         {/* Deep, complex gradient base */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#073075]/60 via-[#041a45] to-[#020b18]" />
         
-        {/* Animated ambient mesh orbs */}
+        {/* Animated ambient mesh orbs (static when reduced motion is set) */}
         <motion.div 
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+          animate={reduceMotion ? undefined : { scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
           className="absolute -top-40 -left-40 w-[800px] h-[800px] bg-sky-500/20 blur-[120px] rounded-full pointer-events-none" 
         />
         <motion.div 
-          animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.3, 0.1] }}
+          animate={reduceMotion ? undefined : { scale: [1, 1.3, 1], opacity: [0.1, 0.3, 0.1] }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 1 }}
           className="absolute top-20 -right-20 w-[600px] h-[600px] bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none" 
         />
@@ -291,7 +291,7 @@ export function HomePage() {
         <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 grid md:grid-cols-2 gap-10 md:gap-14 items-center relative z-10">
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -303,20 +303,20 @@ export function HomePage() {
               lobbies, and wall displays.
             </p>
             <Link to="/features" className="inline-flex mt-8 text-sm font-bold text-[#073075] hover:text-[#0a3f99] group transition-colors">
-              Explore features <span className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
+              Explore features <span aria-hidden="true" className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
             </Link>
           </motion.div>
           <motion.div
             className="relative"
             initial={reduceMotion ? false : { opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
           >
             {/* Ambient glow behind the device card */}
             <div className="absolute -inset-4 bg-[#073075]/5 rounded-[3rem] blur-2xl pointer-events-none" />
             <motion.div 
-              whileHover={{ y: -8, scale: 1.01 }}
+              whileHover={reduceMotion ? undefined : { y: -8, scale: 1.01 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
               className="bg-white/80 backdrop-blur-xl p-3 sm:p-4 rounded-3xl shadow-[0_20px_60px_rgba(7,48,117,0.08)] ring-1 ring-gray-200/50 border border-white relative z-10"
             >
@@ -339,7 +339,7 @@ export function HomePage() {
         <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 relative z-10">
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-40px' }}
             transition={{ duration: 0.5 }}
           >
@@ -354,9 +354,9 @@ export function HomePage() {
               <motion.div
                 key={f.title}
                 initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
-                whileHover={{ y: -4, scale: 1.01 }}
+                whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
                 transition={{ duration: 0.4, delay: reduceMotion ? 0 : i * 0.06 }}
                 className="bg-white/80 backdrop-blur-lg p-8 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100 hover:shadow-[0_20px_40px_rgba(7,48,117,0.06)] hover:ring-sky-100 transition-all cursor-default"
               >
@@ -375,7 +375,7 @@ export function HomePage() {
       <section className="px-4 py-16 sm:py-24 bg-slate-50 relative overflow-hidden">
         <motion.div 
           initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-5xl mx-auto bg-gradient-to-br from-[#073075] to-[#041a45] rounded-[2.5rem] p-10 sm:p-14 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 shadow-[0_20px_60px_rgba(7,48,117,0.2)] relative overflow-hidden ring-1 ring-black/5"
@@ -505,7 +505,7 @@ export function PricingPage() {
             </p>
             <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-6 leading-relaxed font-medium transition-colors">{site?.pricing_basic_blurb || ''}</p>
             <Link to="/register" className="inline-flex mt-8 text-base font-bold text-[#073075] dark:text-sky-400 hover:underline">
-              Start free →
+              Start free <span aria-hidden="true">→</span>
             </Link>
           </div>
           <div className="bg-gradient-to-br from-[#073075] to-[#041a45] rounded-3xl p-10 sm:p-12 shadow-[0_20px_50px_rgba(7,48,117,0.2)] dark:shadow-none ring-1 ring-black/5 dark:ring-white/10 relative overflow-hidden">
@@ -518,7 +518,7 @@ export function PricingPage() {
             {price.note ? <p className="text-xs text-sky-200/60 mt-3 font-semibold uppercase tracking-wider relative z-10">{price.note}</p> : null}
             <p className="text-base sm:text-lg text-sky-100/90 mt-6 leading-relaxed font-medium relative z-10">{site?.pricing_pro_blurb || ''}</p>
             <Link to="/contact" className="inline-flex mt-8 text-base font-bold text-white hover:text-sky-200 transition-colors relative z-10">
-              Ask about activation →
+              Ask about activation <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
@@ -570,6 +570,12 @@ export function ContactPage() {
   useEffect(() => {
     fetchAuthConfig().then(setAuthCfg).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (sent) {
+      document.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+    }
+  }, [sent]);
 
   useEffect(() => {
     if (!authCfg.turnstileEnabled || !authCfg.turnstileSiteKey) return;
@@ -669,11 +675,11 @@ export function ContactPage() {
 
       <div className="max-w-2xl mx-auto px-4 py-16 relative z-10">
         {sent ? (
-          <div className="rounded-3xl bg-white dark:bg-slate-900 shadow-[0_10px_40px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 p-10 sm:p-14 text-center transition-colors">
+          <div role="status" className="rounded-3xl bg-white dark:bg-slate-900 shadow-[0_10px_40px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 p-10 sm:p-14 text-center transition-colors">
             <div className="w-16 h-16 bg-green-50 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-green-100 dark:ring-green-500/30">
               <div className="w-4 h-4 bg-green-500 rounded-full" />
             </div>
-            <p className="font-[family-name:var(--font-display)] font-black text-[#020b18] dark:text-white text-3xl transition-colors">Message received</p>
+            <h2 tabIndex={-1} data-autofocus className="font-[family-name:var(--font-display)] font-black text-[#020b18] dark:text-white text-3xl transition-colors outline-none">Message received</h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 mt-4 font-medium leading-relaxed transition-colors">
               Thanks — we will get back to you at <span className="text-[#020b18] dark:text-white font-bold">{email}</span>. You can also reach us at{' '}
               <a href={`mailto:${supportEmail}`} className="text-[#073075] dark:text-sky-400 hover:underline font-bold">
@@ -684,31 +690,36 @@ export function ContactPage() {
         ) : (
           <form onSubmit={onSubmit} className="relative bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-3xl shadow-[0_10px_40px_rgba(7,48,117,0.06)] dark:shadow-none ring-1 ring-[#073075]/10 dark:ring-white/10 space-y-6 transition-colors">
             {error && (
-              <div className="bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 rounded-xl px-5 py-4">
+              <div role="alert" className="bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 rounded-xl px-5 py-4">
                 <p className="text-rose-700 dark:text-rose-300 text-sm font-bold">{error}</p>
               </div>
             )}
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Name</label>
+              <label htmlFor="wwc-contact-name" className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Name</label>
               <input
+                id="wwc-contact-name"
+                autoComplete="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mt-2 w-full bg-slate-50/50 dark:bg-slate-800 border border-[#073075]/10 dark:border-white/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] dark:focus:border-sky-500 focus:ring-2 focus:ring-[#073075]/20 dark:focus:ring-sky-500/20 transition-all text-[#020b18] dark:text-white font-medium"
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Email</label>
+              <label htmlFor="wwc-contact-email" className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Email</label>
               <input
+                id="wwc-contact-email"
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-2 w-full bg-slate-50/50 dark:bg-slate-800 border border-[#073075]/10 dark:border-white/10 rounded-xl px-5 py-3.5 text-base outline-none focus:border-[#073075] dark:focus:border-sky-500 focus:ring-2 focus:ring-[#073075]/20 dark:focus:ring-sky-500/20 transition-all text-[#020b18] dark:text-white font-medium"
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Subject</label>
+              <label htmlFor="wwc-contact-subject" className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Subject</label>
               <input
+                id="wwc-contact-subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Billing, setup, partnership…"
@@ -716,8 +727,9 @@ export function ContactPage() {
               />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Message</label>
+              <label htmlFor="wwc-contact-message" className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black ml-1">Message</label>
               <textarea
+                id="wwc-contact-message"
                 required
                 minLength={10}
                 rows={5}
@@ -793,6 +805,42 @@ export function ChangelogPage() {
         <div className="mt-8 bg-white p-8 sm:p-10 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-gray-100">
           <MarkdownLite text={site?.changelog_body || '## Changelog\n\n- Latest updates appear here once published from Admin → Site & SEO.\n- See CHANGELOG.md in the repo for version history.'} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function NotFoundPage() {
+  const { site } = useOutletContext<Ctx>();
+  useEffect(() => {
+    // Use the real requested path for the self canonical — a hardcoded "/404"
+    // canonical would look like another alternate/soft-404 to crawlers.
+    const path = typeof window !== 'undefined' ? window.location.pathname : '/404';
+    applyDocumentSeo({
+      title: 'Page not found — Weatherlink Web Console',
+      description: 'This page does not exist. Find station guides, features, and pricing instead.',
+      canonicalBase: site?.site_canonical_base,
+      path,
+      indexable: false,
+      siteName: site?.site_name,
+    });
+  }, [site]);
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-24 text-center">
+      <p className="text-sm font-bold uppercase tracking-widest text-sky-700 dark:text-sky-400">404</p>
+      <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight mt-3">
+        Page not found
+      </h1>
+      <p className="text-slate-600 dark:text-slate-400 mt-4">
+        The link may be mistyped. Try the homepage or the blog instead.
+      </p>
+      <div className="mt-8 flex items-center justify-center gap-3">
+        <Link to="/" className="px-6 py-3 rounded-xl bg-sky-700 hover:bg-sky-600 text-white text-sm font-bold min-h-[44px] inline-flex items-center">
+          Back home
+        </Link>
+        <Link to="/blogs" className="px-6 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-bold min-h-[44px] inline-flex items-center">
+          Read the blog
+        </Link>
       </div>
     </div>
   );

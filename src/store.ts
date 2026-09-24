@@ -21,6 +21,8 @@ interface WeatherStore {
   /** 6313-style display prefs (persisted to localStorage). */
   tileLayout: 'dense' | 'room';
   highContrast: boolean;
+  /** Trailing wind-direction readings (oldest first, max 5) for the rose trail. */
+  windDirHistory: number[];
 
   updateWeather: (data: WeatherData) => void;
   updateConnection: (conn: Partial<ConnectionState>) => void;
@@ -58,6 +60,7 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
     wind_speed_avg_2_min: 0,
     wind_speed_avg_10_min: 0,
     wind_dir_10_min: 0,
+    wind_gust_10_min: 0,
     rain_rate_last: 0,
     rainfall_daily: 0,
     high_rain_rate_today: 0,
@@ -95,6 +98,7 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   trialDays: null,
   tileLayout: (typeof localStorage !== 'undefined' && localStorage.getItem('wwc_layout') === 'room' ? 'room' : 'dense') as 'dense' | 'room',
   highContrast: typeof localStorage !== 'undefined' && localStorage.getItem('wwc_contrast') === 'high',
+  windDirHistory: [],
 
   updateWeather: (data) => set((state) => ({ weather: { ...state.weather, ...data } })),
   updateConnection: (conn) => set((state) => ({ connection: { ...state.connection, ...conn } })),
@@ -151,6 +155,12 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
         : [payload.weather];
       const validIdx = state.currentStationIndex < list.length ? state.currentStationIndex : 0;
       const activeWeather = list[validIdx] || payload.weather;
+      // Roll the wind-direction trail on fresh data (max 5, oldest first).
+      const incomingTs = activeWeather.ts || 0;
+      const windDirHistory =
+        incomingTs > 0 && incomingTs !== state.weather.ts
+          ? [...state.windDirHistory, activeWeather.wind_dir_last].slice(-5)
+          : state.windDirHistory;
       return {
         weather: activeWeather,
         weatherList: list,
@@ -158,6 +168,7 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
         connection: payload.connection,
         config: payload.config,
         stationId: payload.stationId ?? null,
+        windDirHistory,
       };
     }),
 }));

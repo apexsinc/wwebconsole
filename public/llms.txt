@@ -1,0 +1,25 @@
+# WWebConsole (wwebconsole.com)
+
+Independent web console for Davis Instruments WeatherLink® stations.
+Live dashboard and TV share links for Vantage Pro2 / Vantage Vue data via
+WeatherLink Cloud. Start free; yearly Pro per device. Not affiliated with,
+endorsed by, or connected to Davis Instruments or WeatherLink.
+
+## Pages
+
+- Home: https://wwebconsole.com/
+- Features: https://wwebconsole.com/features
+- Pricing: https://wwebconsole.com/pricing
+- Blog: https://wwebconsole.com/blogs
+- About: https://wwebconsole.com/about
+- Contact: https://wwebconsole.com/contact
+- Privacy: https://wwebconsole.com/privacy
+- Terms: https://wwebconsole.com/terms
+- Changelog: https://wwebconsole.com/changelog
+- Sign in: https://wwebconsole.com/login
+- Live console (account required): https://wwebconsole.com/app
+
+## Feeds
+
+- Blog RSS: https://wwebconsole.com/blog.xml
+- Sitemap: https://wwebconsole.com/sitemap.xml

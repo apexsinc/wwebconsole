@@ -31,10 +31,10 @@ WWebConsole has a solid baseline (PBKDF2 passwords, AES-GCM WeatherLink credenti
 
 | Surface | Entry |
 |---------|--------|
-| Public marketing | `/`, SEO pages, `/api/public/site` |
-| Auth | `/api/auth/*` on main host |
-| Console | `/app`, `/api/station`, `/api/weather/*`, `/api/share` |
-| Public TV | `/tv/:slug`, `/api/public/tv/:slug` |
+| Public marketing | `/`, SEO pages, `/api/public/site` (via `api.wwebconsole.com`) |
+| Auth | `/api/auth/*` on `api.wwebconsole.com` (apex fallback kept) |
+| Console | `/app`, `/api/station`, `/api/weather/*`, `/api/share` (via `api.wwebconsole.com`) |
+| Public TV | `/tv/:slug`, `/api/public/tv/:slug` (via `api.wwebconsole.com`) |
 | Admin | `admin.wwebconsole.com` (Access OTP) + `/api/admin/*` |
 | Cron | `*/2 * * * *` WeatherLink poll |
 

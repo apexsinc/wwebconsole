@@ -12,6 +12,8 @@ export interface WeatherData {
   wind_speed_avg_2_min: number;
   wind_speed_avg_10_min: number;
   wind_dir_10_min: number;
+  /** Max gust over the trailing 10 minutes (0 when the station never reports it). */
+  wind_gust_10_min: number;
   rain_rate_last: number;
   rainfall_daily: number;
   high_rain_rate_today: number;
@@ -41,6 +43,9 @@ export interface PublicConfig {
   hasApiToken: boolean;
   hasApiSecret: boolean;
   stationName: string;
+  /** Owner's display prefs — TV wall displays apply these over local defaults. */
+  tileLayout: 'dense' | 'room';
+  highContrast: boolean;
   wlPlan?: string;
   subscriptionStatus?: string;
   subscriptionExpiresAt?: number | null;
@@ -68,6 +73,8 @@ export interface Env {
   CREDENTIALS_KEY: string;
   APP_NAME: string;
   APP_URL: string;
+  /** Public API base (https://api.wwebconsole.com). Falls back to APP_URL when unset (local dev). */
+  API_URL?: string;
   /** Comma-separated admin emails (preferred). Falls back to ADMIN_EMAIL. */
   ADMIN_EMAILS?: string;
   ADMIN_EMAIL?: string;
@@ -119,6 +126,8 @@ export interface StationRow {
   unit_wind: string;
   unit_baro: string;
   unit_rain: string;
+  tile_layout: string;
+  contrast: string;
   last_http_at: number | null;
   last_error: string | null;
   weather_json: string | null;

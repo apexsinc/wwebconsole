@@ -29,7 +29,10 @@ export default function Toaster() {
     return () => window.removeEventListener('wwc:toast', onToast);
   }, []);
 
-  if (toasts.length === 0) return null;
+  if (toasts.length === 0) {
+    // Keep the live region mounted so the first toast is never missed.
+    return <div role="status" aria-live="polite" className="sr-only" />;
+  }
   const tones = {
     info: 'bg-slate-900 text-white border-white/10',
     error: 'bg-rose-950 text-rose-100 border-rose-500/30',
@@ -38,8 +41,19 @@ export default function Toaster() {
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[300] flex flex-col gap-2 w-max max-w-[92vw]" role="status" aria-live="polite">
       {toasts.map((t) => (
-        <div key={t.id} className={`px-4 py-3 rounded-xl border text-sm font-medium shadow-2xl ${tones[t.tone]}`}>
-          {t.message}
+        <div
+          key={t.id}
+          role={t.tone === 'error' ? 'alert' : undefined}
+          className={`px-4 py-3 rounded-xl border text-sm font-medium shadow-2xl flex items-center gap-3 ${tones[t.tone]}`}
+        >
+          <span>{t.message}</span>
+          <button
+            type="button"
+            onClick={() => setToasts((list) => list.filter((x) => x.id !== t.id))}
+            aria-label="Dismiss notification"
+            className="p-1 rounded-md hover:bg-white/10 transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center shrink-0"
+          >
+            <span aria-hidden="true">×</span>          </button>
         </div>
       ))}
     </div>
