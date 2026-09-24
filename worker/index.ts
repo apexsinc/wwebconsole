@@ -438,7 +438,10 @@ app.post('/api/auth/logout', async (c) => {
 });
 
 // ---------- Sign in with Google (OAuth 2.0 code flow) ----------
-const OAUTH_STATE_COOKIE = 'wwc_oauth_state';
+// One cookie PER FLOW: a single fixed-name cookie means a second attempt
+// (new tab / retry / old Google tab still open) overwrites the first flow's
+// cookie and the first callback then fails the double-submit check.
+const OAUTH_STATE_COOKIE_PREFIX = 'wwc_oauth_state_';
 
 function googleClientId(c: { env: Env }) {
   return c.env.GOOGLE_CLIENT_ID || '';
@@ -467,8 +470,9 @@ app.get('/api/auth/google/start', async (c) => {
     .object({ entry: z.enum(['admin']).optional() })
     .safeParse({ entry: c.req.query('entry') || undefined });
   const adminEntry = qe.success ? qe.data.entry === 'admin' : false;
+  const nonce = randomSlug(24);
   const state = await signOAuthState(c.env.SESSION_SECRET, hmacSha256Hex, {
-    nonce: randomSlug(24),
+    nonce,
     mode,
     next: '/app',
     exp: Date.now() + 10 * 60 * 1000,
@@ -478,7 +482,7 @@ app.get('/api/auth/google/start', async (c) => {
   // api-subdomain callback URI, so a host-only cookie would be missing there.
   const reqHost = new URL(c.req.url).hostname;
   const stateDomain = reqHost.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
-  setCookie(c, OAUTH_STATE_COOKIE, state, {
+  setCookie(c, `${OAUTH_STATE_COOKIE_PREFIX}${nonce}`, state, {
     path: '/',
     httpOnly: true,
     secure: !isDevEnvironment(c.env, c.req.url),
@@ -503,16 +507,19 @@ app.get('/api/auth/google/callback', async (c) => {
 
   const code = c.req.query('code') || '';
   const returnedState = c.req.query('state') || '';
-  const cookieState = getCookie(c, OAUTH_STATE_COOKIE) || '';
   if (!code || !returnedState) return fail('google_denied');
+  // Verify the signature BEFORE touching cookies, then read the cookie that
+  // belongs to this exact flow (nonce-keyed), so concurrent tabs don't collide.
+  const verified = await verifyOAuthState(c.env.SESSION_SECRET, hmacSha256Hex, returnedState);
+  if (!verified) return fail('google_failed');
+  const stateCookie = `${OAUTH_STATE_COOKIE_PREFIX}${verified.nonce}`;
+  const cookieState = getCookie(c, stateCookie) || '';
   // Double-submit CSRF check: query state must equal the signed HttpOnly cookie.
   if (!cookieState || returnedState !== cookieState) return fail('google_failed');
-  const verified = await verifyOAuthState(c.env.SESSION_SECRET, hmacSha256Hex, returnedState);
   // Clear with the same domain the cookie was set with, or it lingers.
   const cbHost = new URL(c.req.url).hostname;
   const cbDomain = cbHost.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
-  deleteCookie(c, OAUTH_STATE_COOKIE, cbDomain ? { path: '/', domain: cbDomain } : { path: '/' });
-  if (!verified) return fail('google_failed');
+  deleteCookie(c, stateCookie, cbDomain ? { path: '/', domain: cbDomain } : { path: '/' });
 
   // Entry-aware routing (from sealed state, never user input): admin-portal
   // flows land back on the admin host; register flows keep their page so the

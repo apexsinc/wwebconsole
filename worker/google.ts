@@ -119,14 +119,23 @@ export async function exchangeGoogleCode(
 
 /** Validate the ID token with Google and extract the profile. */
 export async function verifyGoogleIdToken(idToken: string, expectedClientId: string): Promise<GoogleProfile> {
-  const res = await fetch(`${GOOGLE_TOKENINFO_URL}?id_token=${encodeURIComponent(idToken)}`, {
-    signal: AbortSignal.timeout(10000),
-  });
+  const fetchInfo = () =>
+    fetch(`${GOOGLE_TOKENINFO_URL}?id_token=${encodeURIComponent(idToken)}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+  // tokeninfo is Google's DEBUGGING endpoint: Google documents it as subject to
+  // throttling/intermittent errors. One retry absorbs a transient 429/5xx so a
+  // login doesn't fail for an infrastructure blip.
+  let res = await fetchInfo();
+  if (res.status === 429 || res.status >= 500) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    res = await fetchInfo();
+  }
   if (!res.ok) throw new Error('Google sign-in verification failed. Please try again.');
   const data = (await res.json()) as {
     sub?: string;
     email?: string;
-    email_verified?: string;
+    email_verified?: string | boolean;
     name?: string;
     picture?: string;
     aud?: string;
@@ -137,7 +146,10 @@ export async function verifyGoogleIdToken(idToken: string, expectedClientId: str
   return {
     sub: data.sub,
     email: data.email.trim().toLowerCase(),
-    emailVerified: data.email_verified === 'true',
+    // Google currently sends the string "true"; accept a boolean too so a
+    // format change can't silently mark every account's email unverified
+    // (which would block account linking with a confusing google_failed).
+    emailVerified: data.email_verified === true || data.email_verified === 'true',
     name: data.name || '',
     picture: data.picture || '',
   };

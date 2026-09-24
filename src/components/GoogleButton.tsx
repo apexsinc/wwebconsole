@@ -38,7 +38,11 @@ export function GoogleButton({ mode }: { mode: 'login' | 'register' }) {
   const href = `${API_BASE}/api/auth/google/start?mode=${mode}${entry}`;
   return (
     <a
-      href={redirecting ? undefined : href}
+      // Keep href present even while showing the spinner: React commits the
+      // state update before the browser follows the link, so removing href in
+      // the same tick cancels the navigation entirely (confirmed with trusted
+      // Playwright/mouse/keyboard clicks: 0 requests to /google/start).
+      href={href}
       onClick={(e) => {
         if (redirecting) e.preventDefault();
         else setRedirecting(true);
