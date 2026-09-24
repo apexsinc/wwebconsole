@@ -74,7 +74,7 @@ const code = String(Math.floor(100000 + Math.random() * 900000));
 
 ```typescript
 // worker/index.ts (before)
-app.use('/v1/*', cors({ origin: (origin) => origin || '*', credentials: true }));
+app.use('/api/*', cors({ origin: (origin) => origin || '*', credentials: true }));
 ```
 
 ```typescript
@@ -137,7 +137,7 @@ Priority:
 - [x] Anti-enumeration register responses  
 - [x] PBKDF2 310k for new password hashes  
 - [x] Strip `.dev.vars` from Vite `dist/` output  
-- [x] Enable Cloudflare WAF rate-limit rules — Free-plan rule live (`/v1/auth/*` plus legacy `/api/auth/*`, 20/10s/IP) via `npm run waf:rate-limits`
+- [ ] Apply the updated Cloudflare WAF rate-limit rule — the live Free-plan rule still matches only legacy `/api/auth/*`; run `npm run waf:rate-limits` to cover `/v1/auth/*` too
 - [x] Enable Turnstile in production (`turnstile_enabled=1`, site key in D1, secret as Worker secret)  
 - [x] Fix swapped Turnstile site/secret keys + widget domains (www/admin) + auth form mount/reset  
 - [~] Enable Resend — blocked until `RESEND_API_KEY` is added to `.env` then `npm run secrets:push`  
@@ -167,7 +167,7 @@ Closed remaining Low/Partial items in code:
 | Worker secrets (session, credentials, Turnstile, admin emails) | Live |
 | Turnstile production | On |
 | Resend production | Off until API key in `.env` |
-| WAF rate limits via API | Done — Free-plan 1 rule covers `/v1/auth/*` and legacy `/api/auth/*` (20 req / 10s / IP) |
+| WAF rate limits via API | Pending — the live Free-plan rule still covers only legacy `/api/auth/*`; run `npm run waf:rate-limits` to cover `/v1/auth/*` too |
 
 ---
 

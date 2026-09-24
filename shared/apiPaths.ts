@@ -2,7 +2,7 @@
  * API URL path policy shared by the Worker and the browser client.
  *
  * Keep the version prefix here rather than repeating it throughout route and
- * fetch definitions. The legacy prefix is intentionally mounted alongside
+ * fetch definitions. The legacy prefix is intentionally served alongside
  * the canonical prefix so existing clients and integrations keep working.
  */
 export const API_PREFIX = '/v1';
