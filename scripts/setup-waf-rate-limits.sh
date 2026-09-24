@@ -34,6 +34,20 @@ token = vals.get("CLOUDFLARE_API_TOKEN") or ""
 zone_id = vals.get("ZONE_ID") or ""
 plan = (vals.get("CF_PLAN") or "free").lower()
 
+# Keep these prefixes aligned with shared/apiPaths.ts. Both are intentional:
+# /v1 is canonical and /api is the permanent compatibility alias.
+API_PREFIXES = ("/v1", "/api")
+
+def api_path_set(suffix: str) -> str:
+    return "{" + " ".join(json.dumps(f"{prefix}{suffix}") for prefix in API_PREFIXES) + "}"
+
+def api_starts_with(suffix: str) -> str:
+    expressions = [
+        f"starts_with(http.request.uri.path, {json.dumps(prefix + suffix)})"
+        for prefix in API_PREFIXES
+    ]
+    return "(" + " or ".join(expressions) + ")"
+
 if not token:
     sys.exit("Missing CLOUDFLARE_API_TOKEN in .env")
 if not account_id:
@@ -71,7 +85,7 @@ if plan in ("pro", "business", "enterprise"):
     rules_payload = [
         {
             "action": "block",
-            "expression": '(http.request.uri.path eq "/api/auth/login")',
+            "expression": f'(http.request.uri.path in {api_path_set("/auth/login")})',
             "description": "WWC rate limit login",
             "ratelimit": {
                 "characteristics": ["cf.colo.id", "ip.src"],
@@ -82,7 +96,7 @@ if plan in ("pro", "business", "enterprise"):
         },
         {
             "action": "block",
-            "expression": '(http.request.uri.path eq "/api/auth/register")',
+            "expression": f'(http.request.uri.path in {api_path_set("/auth/register")})',
             "description": "WWC rate limit register",
             "ratelimit": {
                 "characteristics": ["cf.colo.id", "ip.src"],
@@ -93,7 +107,7 @@ if plan in ("pro", "business", "enterprise"):
         },
         {
             "action": "block",
-            "expression": '(http.request.uri.path in {"/api/auth/verify-email" "/api/auth/reset-password" "/api/auth/forgot-password"})',
+            "expression": f'(http.request.uri.path in {api_path_set("/auth/verify-email")} or http.request.uri.path in {api_path_set("/auth/reset-password")} or http.request.uri.path in {api_path_set("/auth/forgot-password")})',
             "description": "WWC rate limit OTP auth",
             "ratelimit": {
                 "characteristics": ["cf.colo.id", "ip.src"],
@@ -104,7 +118,7 @@ if plan in ("pro", "business", "enterprise"):
         },
         {
             "action": "block",
-            "expression": '(starts_with(http.request.uri.path, "/api/public/tv/"))',
+            "expression": f'{api_starts_with("/public/tv/")}',
             "description": "WWC rate limit public TV",
             "ratelimit": {
                 "characteristics": ["cf.colo.id", "ip.src"],
@@ -115,7 +129,7 @@ if plan in ("pro", "business", "enterprise"):
         },
         {
             "action": "block",
-            "expression": '(http.host eq "admin.wwebconsole.com" and starts_with(http.request.uri.path, "/api/admin/"))',
+            "expression": f'(http.host eq "admin.wwebconsole.com" and {api_starts_with("/admin/")})',
             "description": "WWC rate limit admin API",
             "ratelimit": {
                 "characteristics": ["cf.colo.id", "ip.src"],
@@ -131,7 +145,7 @@ else:
     rules_payload = [
         {
             "action": "block",
-            "expression": '(starts_with(http.request.uri.path, "/api/auth/"))',
+            "expression": f'{api_starts_with("/auth/")}',
             "description": "WWC rate limit auth API",
             "ratelimit": {
                 "characteristics": ["cf.colo.id", "ip.src"],
@@ -142,7 +156,7 @@ else:
         },
     ]
     print(
-        "Using Free-plan rule set (1 rule on /api/auth/*). Set CF_PLAN=pro in .env for more rules.",
+        "Using Free-plan rule set (1 rule covering /v1/auth/* and /api/auth/*). Set CF_PLAN=pro in .env for more rules.",
         file=sys.stderr,
     )
 
@@ -204,7 +218,7 @@ if not result.get("success"):
         "\nAPI could not create rate-limit rules (token missing Zone WAF Edit, or plan limits).\n"
         "Dashboard (Free = 1 rule):\n"
         "  Security → WAF → Rate limiting rules → Create rule\n"
-        "  Match: URI Path starts with /api/auth/\n"
+        "  Match: URI Path starts with /v1/auth/ or /api/auth/\n"
         "  Rate: 20 requests / 10 seconds / IP → Block\n"
         "Also ensure the API token includes: Zone → Zone WAF → Edit\n"
         "See docs/security/cloudflare-hardening.md",

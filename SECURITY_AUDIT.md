@@ -31,11 +31,11 @@ WWebConsole has a solid baseline (PBKDF2 passwords, AES-GCM WeatherLink credenti
 
 | Surface | Entry |
 |---------|--------|
-| Public marketing | `/`, SEO pages, `/api/public/site` (via `api.wwebconsole.com`) |
-| Auth | `/api/auth/*` on `api.wwebconsole.com` (apex fallback kept) |
-| Console | `/app`, `/api/station`, `/api/weather/*`, `/api/share` (via `api.wwebconsole.com`) |
-| Public TV | `/tv/:slug`, `/api/public/tv/:slug` (via `api.wwebconsole.com`) |
-| Admin | `admin.wwebconsole.com` (Access OTP) + `/api/admin/*` |
+| Public marketing | `/`, SEO pages, `/v1/public/site` (legacy `/api/public/site` alias; via `api.wwebconsole.com`) |
+| Auth | `/v1/auth/*` on `api.wwebconsole.com` (legacy `/api/auth/*` alias; apex fallback kept) |
+| Console | `/app`, `/v1/station`, `/v1/weather/*`, `/v1/share` (legacy `/api/*` alias; via `api.wwebconsole.com`) |
+| Public TV | `/tv/:slug`, `/v1/public/tv/:slug` (legacy `/api/public/tv/:slug` alias) |
+| Admin | `admin.wwebconsole.com` (Access OTP) + `/v1/admin/*` (legacy `/api/admin/*` alias) |
 | Cron | `*/2 * * * *` WeatherLink poll |
 
 ---
@@ -74,7 +74,7 @@ const code = String(Math.floor(100000 + Math.random() * 900000));
 
 ```typescript
 // worker/index.ts (before)
-app.use('/api/*', cors({ origin: (origin) => origin || '*', credentials: true }));
+app.use('/v1/*', cors({ origin: (origin) => origin || '*', credentials: true }));
 ```
 
 ```typescript
@@ -101,7 +101,7 @@ See [docs/security/cloudflare-hardening.md](docs/security/cloudflare-hardening.m
 Priority:
 
 1. WAF managed rules + Bot Fight Mode  
-2. Rate limiting rules for `/api/auth/*`, `/api/public/tv/*`, admin API  
+2. Rate limiting rules for `/v1/auth/*` (and legacy `/api/auth/*`), `/v1/public/tv/*` (and legacy alias), admin API
 3. Keep Access OTP on `admin.wwebconsole.com`  
 4. Enable Turnstile + Resend in production  
 5. Alerts on Worker errors / auth 401 spikes  
@@ -137,7 +137,7 @@ Priority:
 - [x] Anti-enumeration register responses  
 - [x] PBKDF2 310k for new password hashes  
 - [x] Strip `.dev.vars` from Vite `dist/` output  
-- [x] Enable Cloudflare WAF rate-limit rules — Free-plan rule live (`/api/auth/*`, 20/10s/IP) via `npm run waf:rate-limits`  
+- [x] Enable Cloudflare WAF rate-limit rules — Free-plan rule live (`/v1/auth/*` plus legacy `/api/auth/*`, 20/10s/IP) via `npm run waf:rate-limits`
 - [x] Enable Turnstile in production (`turnstile_enabled=1`, site key in D1, secret as Worker secret)  
 - [x] Fix swapped Turnstile site/secret keys + widget domains (www/admin) + auth form mount/reset  
 - [~] Enable Resend — blocked until `RESEND_API_KEY` is added to `.env` then `npm run secrets:push`  
@@ -167,7 +167,7 @@ Closed remaining Low/Partial items in code:
 | Worker secrets (session, credentials, Turnstile, admin emails) | Live |
 | Turnstile production | On |
 | Resend production | Off until API key in `.env` |
-| WAF rate limits via API | Done — Free-plan 1 rule on `/api/auth/*` (20 req / 10s / IP) |
+| WAF rate limits via API | Done — Free-plan 1 rule covers `/v1/auth/*` and legacy `/api/auth/*` (20 req / 10s / IP) |
 
 ---
 

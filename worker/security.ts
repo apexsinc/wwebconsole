@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+import { isApiPath } from '../shared/apiPaths.ts';
 import type { Env } from './types';
 import { rateLimit, RATE_LIMITS } from './rateLimit';
 
@@ -33,7 +34,7 @@ export function corsOriginAllowlist(origin: string): string | null {
 export async function securityHeaders(c: Context<{ Bindings: Env }>, next: Next) {
   await next();
   const path = new URL(c.req.url).pathname;
-  const isApi = path.startsWith('/api/');
+  const isApi = isApiPath(path);
   c.res.headers.set('X-Content-Type-Options', 'nosniff');
   c.res.headers.set('X-Frame-Options', 'DENY');
   c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');

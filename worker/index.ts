@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
+import { API_PREFIX, API_ROUTE_PREFIXES, isApiPath, rewriteLegacyApiPath } from '../shared/apiPaths.ts';
 import {
   cancelAccountDeletion,
   changePassword,
@@ -99,36 +100,39 @@ import {
 
 type AppVars = { user: UserRow };
 const app = new Hono<{ Bindings: Env; Variables: AppVars }>();
+const api = new Hono<{ Bindings: Env; Variables: AppVars }>();
 
 app.use('*', securityHeaders);
-app.use(
-  '/api/*',
-  cors({
-    origin: (origin) => corsOriginAllowlist(origin) || '',
-    credentials: true,
-    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type'],
-    maxAge: 86400,
-  })
-);
-app.use('/api/*', limitJsonBody);
+for (const prefix of API_ROUTE_PREFIXES) {
+  app.use(
+    `${prefix}/*`,
+    cors({
+      origin: (origin) => corsOriginAllowlist(origin) || '',
+      credentials: true,
+      allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowHeaders: ['Content-Type'],
+      maxAge: 86400,
+    })
+  );
+  app.use(`${prefix}/*`, limitJsonBody);
+}
 
-app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME }));
+api.get('/health', (c) => c.json({ ok: true, app: c.env.APP_NAME }));
 
-app.get('/api/auth/config', async (c) => {
+api.get('/auth/config', async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault');
   if (limited) return limited;
   return c.json(await getPublicAuthConfig(c.env));
 });
 
-app.get('/api/public/site', async (c) => {
+api.get('/public/site', async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault');
   if (limited) return limited;
   const country = c.req.header('cf-ipcountry') || c.req.header('CF-IPCountry') || null;
   return c.json(await getPublicSiteConfig(c.env, country));
 });
 
-app.post('/api/public/contact', async (c) => {
+api.post('/public/contact', async (c) => {
   const limited = enforceRateLimit(c, 'contact');
   if (limited) return limited;
 
@@ -194,7 +198,7 @@ app.post('/api/public/contact', async (c) => {
 });
 
 // ---------- Public blog (/blogs, /post/:slug) ----------
-app.get('/api/public/blog', async (c) => {
+api.get('/public/blog', async (c) => {
   const limited = enforceRateLimit(c, 'publicTv');
   if (limited) return limited;
   const limitParse = z.coerce.number().int().min(1).max(50).optional().safeParse(c.req.query('limit'));
@@ -204,7 +208,7 @@ app.get('/api/public/blog', async (c) => {
   return c.json({ ...(await listPublishedPosts(c.env, limit, offset)), limit, offset });
 });
 
-app.get('/api/public/blog/:slug', async (c) => {
+api.get('/public/blog/:slug', async (c) => {
   const limited = enforceRateLimit(c, 'publicTv');
   if (limited) return limited;
   const slug = (c.req.param('slug') || '').slice(0, 160);
@@ -213,7 +217,7 @@ app.get('/api/public/blog/:slug', async (c) => {
   return c.json({ post });
 });
 
-app.get('/api/public/blog/:slug/related', async (c) => {
+api.get('/public/blog/:slug/related', async (c) => {
   const limited = enforceRateLimit(c, 'publicTv');
   if (limited) return limited;
   const slug = (c.req.param('slug') || '').slice(0, 160);
@@ -221,7 +225,7 @@ app.get('/api/public/blog/:slug/related', async (c) => {
 });
 
 // Cover image redirect (cached Unsplash URL, else live fetch, else 404 → gradient fallback).
-app.get('/api/public/blog/cover/:slug', async (c) => {
+api.get('/public/blog/cover/:slug', async (c) => {
   const limited = enforceRateLimit(c, 'publicTv');
   if (limited) return limited;
   const slug = (c.req.param('slug') || '').slice(0, 160);
@@ -259,7 +263,7 @@ app.get('/blog.xml', async (c) => {
 export { isAdminHostname } from './hosts.ts';
 
 // ---------- Auth ----------
-app.post('/api/auth/register', async (c) => {
+api.post('/auth/register', async (c) => {
   // Admin subdomain is invite/allowlist only — never create accounts here
   if (isAdminHostname(new URL(c.req.url).hostname)) {
     return c.json({ error: 'Registration is not available on the admin site. Use wwebconsole.com.' }, 403);
@@ -309,7 +313,7 @@ app.post('/api/auth/register', async (c) => {
   }
 });
 
-app.post('/api/auth/verify-email', async (c) => {
+api.post('/auth/verify-email', async (c) => {
   const limited = enforceRateLimit(c, 'authOtp');
   if (limited) return limited;
 
@@ -337,7 +341,7 @@ app.post('/api/auth/verify-email', async (c) => {
   }
 });
 
-app.post('/api/auth/resend-verification', async (c) => {
+api.post('/auth/resend-verification', async (c) => {
   const limited = enforceRateLimit(c, 'authForgot');
   if (limited) return limited;
   const body = z
@@ -361,7 +365,7 @@ app.post('/api/auth/resend-verification', async (c) => {
   }
 });
 
-app.post('/api/auth/login', async (c) => {
+api.post('/auth/login', async (c) => {
   const raw = await c.req.json().catch(() => ({}));
   const body = z
     .object({
@@ -389,7 +393,7 @@ app.post('/api/auth/login', async (c) => {
   }
 });
 
-app.post('/api/auth/forgot-password', async (c) => {
+api.post('/auth/forgot-password', async (c) => {
   const limited = enforceRateLimit(c, 'authForgot');
   if (limited) return limited;
   const body = z
@@ -411,7 +415,7 @@ app.post('/api/auth/forgot-password', async (c) => {
   }
 });
 
-app.post('/api/auth/reset-password', async (c) => {
+api.post('/auth/reset-password', async (c) => {
   const limited = enforceRateLimit(c, 'authOtp');
   if (limited) return limited;
   const body = z
@@ -433,7 +437,7 @@ app.post('/api/auth/reset-password', async (c) => {
   }
 });
 
-app.post('/api/auth/logout', async (c) => {
+api.post('/auth/logout', async (c) => {
   await destroySession(c);
   return c.json({ ok: true });
 });
@@ -455,7 +459,7 @@ function apiBaseUrl(env: Env): string {
   return (env.API_URL || env.APP_URL || 'https://wwebconsole.com').replace(/\/+$/, '');
 }
 
-app.get('/api/auth/google/start', async (c) => {
+api.get('/auth/google/start', async (c) => {
   const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
   // Full-page navigation: redirect (never JSON) so the browser always lands somewhere useful.
   const limited = enforceRateLimit(c, 'oauthStart');
@@ -497,7 +501,9 @@ app.get('/api/auth/google/start', async (c) => {
   return c.redirect(buildGoogleAuthUrl({ clientId, redirectUri: googleRedirectUri(apiBaseUrl(c.env)), state }), 302);
 });
 
-app.get('/api/auth/google/callback', async (c) => {
+// Mounted at both /v1 and /api; googleRedirectUri intentionally emits the
+// registered legacy /api callback until Google Cloud is updated.
+api.get('/auth/google/callback', async (c) => {
   const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
   // Pre-verification failures don't know the entry page yet: fail closed to main login.
   const fail = (code: string) => c.redirect(`${appUrl}/login?error=${code}`, 302);
@@ -562,7 +568,7 @@ app.get('/api/auth/google/callback', async (c) => {
  *  claim must equal both the cookie and the body value. This binds the token to
  *  the browsing context that asked for it.
  */
-app.post('/api/auth/google/credential', async (c) => {
+api.post('/auth/google/credential', async (c) => {
   const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
   const limited = enforceRateLimit(c, 'oauthCallback');
   if (limited) return limited;
@@ -621,7 +627,7 @@ app.post('/api/auth/google/credential', async (c) => {
 /** Mint a short-lived nonce cookie for the GIS credential flow.
  *  Separate from /start (which issues a full signed state) because GIS tokens
  *  are verified by nonce binding rather than the double-submit state check. */
-app.post('/api/auth/google/nonce', async (c) => {
+api.post('/auth/google/nonce', async (c) => {
   const limited = enforceRateLimit(c, 'oauthStart');
   if (limited) return limited;
   const nonce = randomSlug(24);
@@ -638,7 +644,7 @@ app.post('/api/auth/google/nonce', async (c) => {
   return c.json({ ok: true, nonce });
 });
 
-app.get('/api/auth/me', optionalAuth, async (c) => {
+api.get('/auth/me', optionalAuth, async (c) => {
   const user = c.get('user');
   if (!user) return c.json({ user: null, billing: null });
   const station = await getStationForUser(c.env, user.id);
@@ -647,7 +653,7 @@ app.get('/api/auth/me', optionalAuth, async (c) => {
 });
 
 // ---------- Account settings ----------
-app.post('/api/account/password', requireAuth, async (c) => {
+api.post('/account/password', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'accountSensitive', c.get('user').id);
   if (limited) return limited;
   const body = z
@@ -666,7 +672,7 @@ app.post('/api/account/password', requireAuth, async (c) => {
   }
 });
 
-app.post('/api/account/email/request', requireAuth, async (c) => {
+api.post('/account/email/request', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'accountSensitive', c.get('user').id);
   if (limited) return limited;
   const body = z.object({ email: z.string().email().max(254) }).safeParse(await c.req.json().catch(() => ({})));
@@ -693,7 +699,7 @@ app.post('/api/account/email/request', requireAuth, async (c) => {
   }
 });
 
-app.post('/api/account/email/confirm', requireAuth, async (c) => {
+api.post('/account/email/confirm', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'authOtp', c.get('user').id);
   if (limited) return limited;
   const body = z.object({ code: z.string().min(4).max(12) }).safeParse(await c.req.json().catch(() => ({})));
@@ -707,7 +713,7 @@ app.post('/api/account/email/confirm', requireAuth, async (c) => {
   }
 });
 
-app.post('/api/account/delete', requireAuth, async (c) => {
+api.post('/account/delete', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'accountSensitive', c.get('user').id);
   if (limited) return limited;
   const body = z.object({ confirm: z.literal('DELETE') }).safeParse(await c.req.json());
@@ -719,7 +725,7 @@ app.post('/api/account/delete', requireAuth, async (c) => {
   return c.json({ ok: true, ...result, user: publicUser(fresh!) });
 });
 
-app.post('/api/account/delete/cancel', requireAuth, async (c) => {
+api.post('/account/delete/cancel', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'accountSensitive', c.get('user').id);
   if (limited) return limited;
   await cancelAccountDeletion(c.env, c.get('user').id);
@@ -738,7 +744,7 @@ async function assertAccess(c: { env: Env; json: Function; get: Function }) {
 }
 
 // ---------- Station / weather ----------
-app.get('/api/station', requireAuth, async (c) => {
+api.get('/station', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
   if (limited) return limited;
   const gate = await assertAccess(c);
@@ -766,7 +772,7 @@ app.get('/api/station', requireAuth, async (c) => {
   });
 });
 
-app.patch('/api/station', requireAuth, async (c) => {
+api.patch('/station', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
   if (limited) return limited;
   const gate = await assertAccess(c);
@@ -900,7 +906,7 @@ app.patch('/api/station', requireAuth, async (c) => {
   });
 });
 
-app.get('/api/weather/current', requireAuth, async (c) => {
+api.get('/weather/current', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
   if (limited) return limited;
   const gate = await assertAccess(c);
@@ -931,7 +937,7 @@ app.get('/api/weather/current', requireAuth, async (c) => {
   });
 });
 
-app.post('/api/billing/activate', requireAuth, async (c) => {
+api.post('/billing/activate', requireAuth, async (c) => {
   // Manual/admin-assisted activation until payment provider is wired
   const user = c.get('user');
   if (user.role !== 'admin') {
@@ -968,7 +974,7 @@ app.post('/api/billing/activate', requireAuth, async (c) => {
 });
 
 // ---------- Polar Billing & Checkout ----------
-app.post('/api/billing/checkout', requireAuth, async (c) => {
+api.post('/billing/checkout', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
   if (limited) return limited;
   const user = c.get('user');
@@ -1008,7 +1014,7 @@ app.post('/api/billing/checkout', requireAuth, async (c) => {
   }
 });
 
-app.post('/api/billing/verify-checkout', requireAuth, async (c) => {
+api.post('/billing/verify-checkout', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
   if (limited) return limited;
   const user = c.get('user');
@@ -1071,12 +1077,12 @@ const handleWebhookRequest = async (c: any) => {
   }
 };
 
-app.post('/api/webhooks/polar', handleWebhookRequest);
-app.post('/api/billing/webhook', handleWebhookRequest);
+api.post('/webhooks/polar', handleWebhookRequest);
+api.post('/billing/webhook', handleWebhookRequest);
 
 
 // ---------- Share links ----------
-app.get('/api/share', requireAuth, async (c) => {
+api.get('/share', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
   if (limited) return limited;
   const gate = await assertAccess(c);
@@ -1098,7 +1104,7 @@ app.get('/api/share', requireAuth, async (c) => {
   });
 });
 
-app.post('/api/share', requireAuth, async (c) => {
+api.post('/share', requireAuth, async (c) => {
   const gate = await assertAccess(c);
   if (gate.blocked) return gate.response;
   const { user, station } = gate;
@@ -1148,7 +1154,7 @@ app.post('/api/share', requireAuth, async (c) => {
   });
 });
 
-app.delete('/api/share/:id', requireAuth, async (c) => {
+api.delete('/share/:id', requireAuth, async (c) => {
   const limited = enforceRateLimit(c, 'apiDefault', c.get('user').id);
   if (limited) return limited;
   const gate = await assertAccess(c);
@@ -1162,7 +1168,7 @@ app.delete('/api/share/:id', requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
-app.get('/api/public/tv/:slug', async (c) => {
+api.get('/public/tv/:slug', async (c) => {
   const slugParse = z
     .string()
     .min(4)
@@ -1220,7 +1226,7 @@ app.get('/api/public/tv/:slug', async (c) => {
 });
 
 // ---------- Admin ----------
-app.get('/api/admin/overview', requireAdmin, async (c) => {
+api.get('/admin/overview', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const now = Date.now();
@@ -1251,7 +1257,7 @@ app.get('/api/admin/overview', requireAdmin, async (c) => {
   });
 });
 
-app.get('/api/admin/users', requireAdmin, async (c) => {
+api.get('/admin/users', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const qParse = z.string().max(120).optional().safeParse(c.req.query('q') || undefined);
@@ -1325,7 +1331,7 @@ app.get('/api/admin/users', requireAdmin, async (c) => {
   return c.json({ users: out, limit, offset, nextOffset: offset + rows.length });
 });
 
-app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
+api.patch('/admin/users/:id', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
@@ -1385,7 +1391,7 @@ app.patch('/api/admin/users/:id', requireAdmin, async (c) => {
   return c.json({ user: publicUser(updatedUser!), billing: publicBilling(updatedUser!, station) });
 });
 
-app.delete('/api/admin/users/:id', requireAdmin, async (c) => {
+api.delete('/admin/users/:id', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const adminUser = c.get('user');
@@ -1411,7 +1417,7 @@ app.delete('/api/admin/users/:id', requireAdmin, async (c) => {
   return c.json({ ok: true, message: 'Customer account and associated station data deleted successfully.' });
 });
 
-app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
+api.post('/admin/users/:id/activate-device', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
@@ -1427,7 +1433,7 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
   const userId = idParse.data;
   let station = await getStationForUser(c.env, userId);
   if (!station) {
-    // Mirrors /api/billing/checkout: a registered user should always have a
+    // Mirrors /v1/billing/checkout: a registered user should always have a
     // station row (created at signup), but self-heal for legacy/edge-case
     // accounts instead of silently blocking the admin's manual grant.
     const targetUser = await c.env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first<{ id: string }>();
@@ -1462,7 +1468,7 @@ app.post('/api/admin/users/:id/activate-device', requireAdmin, async (c) => {
   return c.json({ ok: true, billing: publicBilling(user!, updated) });
 });
 
-app.get('/api/admin/settings', requireAdmin, async (c) => {
+api.get('/admin/settings', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   return c.json({ settings: await listSettingsForAdmin(c.env), groups: SITE_SETTING_GROUPS });
@@ -1486,13 +1492,13 @@ function slugify(title: string) {
   return title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120) || `post-${Date.now()}`;
 }
 
-app.get('/api/admin/blog', requireAdmin, async (c) => {
+api.get('/admin/blog', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   return c.json({ posts: await listAllPosts(c.env) });
 });
 
-app.post('/api/admin/blog', requireAdmin, async (c) => {
+api.post('/admin/blog', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const body = blogPostSchema.safeParse(await c.req.json().catch(() => ({})));
@@ -1514,7 +1520,7 @@ app.post('/api/admin/blog', requireAdmin, async (c) => {
   return c.json({ post: row });
 });
 
-app.patch('/api/admin/blog/:id', requireAdmin, async (c) => {
+api.patch('/admin/blog/:id', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
@@ -1547,7 +1553,7 @@ app.patch('/api/admin/blog/:id', requireAdmin, async (c) => {
   return c.json({ post: updated });
 });
 
-app.delete('/api/admin/blog/:id', requireAdmin, async (c) => {
+api.delete('/admin/blog/:id', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
@@ -1557,7 +1563,7 @@ app.delete('/api/admin/blog/:id', requireAdmin, async (c) => {
 });
 
 // (Re)fetch the Unsplash cover for a post (cached into cover_image_url).
-app.post('/api/admin/blog/:id/cover', requireAdmin, async (c) => {
+api.post('/admin/blog/:id/cover', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
@@ -1578,7 +1584,7 @@ app.post('/api/admin/blog/:id/cover', requireAdmin, async (c) => {
   return c.json({ ok: true, coverImageUrl: url });
 });
 
-app.put('/api/admin/settings', requireAdmin, async (c) => {
+api.put('/admin/settings', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   const body = z
@@ -1596,7 +1602,11 @@ app.put('/api/admin/settings', requireAdmin, async (c) => {
   return c.json({ settings: await listSettingsForAdmin(c.env), groups: SITE_SETTING_GROUPS });
 });
 
-app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));
+api.all('*', (c) => c.json({ error: 'Not found' }, 404));
+
+// ONE route table, mounted once. The permanent legacy `/api/*` alias reaches it
+// through the rewrite middleware above rather than a second mount.
+app.route(API_PREFIX, api);
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
@@ -1621,7 +1631,19 @@ export default {
       url.pathname = '/blogs';
       return Response.redirect(url.toString(), 301);
     }
-    if (url.pathname.startsWith('/api/') || url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml' || url.pathname === '/blog.xml') {
+    if (isApiPath(url.pathname) || url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml' || url.pathname === '/blog.xml') {
+      // Legacy `/api/*` alias: re-dispatch to the canonical path BEFORE Hono
+      // routes. Hono picks its handler chain from the original URL, so a
+      // rewrite inside middleware cannot re-route; doing it here also keeps
+      // exactly ONE route table, which is what makes matching deterministic.
+      // (Mounting the same table at both prefixes intermittently fell through
+      // to the JSON catch-all and 404'd valid routes in production.)
+      const canonical = rewriteLegacyApiPath(url.pathname);
+      if (canonical) {
+        const rewritten = new URL(request.url);
+        rewritten.pathname = canonical;
+        return app.fetch(new Request(rewritten.toString(), request), env, ctx);
+      }
       return app.fetch(request, env, ctx);
     }
 

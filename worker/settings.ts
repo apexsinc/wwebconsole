@@ -1,3 +1,4 @@
+import { API_ROUTE_PREFIXES } from '../shared/apiPaths.ts';
 import type { Env } from './types';
 import { localizeYearlyPrice } from './pricing';
 
@@ -253,7 +254,7 @@ export async function getSettingsMap(env: Env, keys: string[]): Promise<Record<s
 
   let found = new Map<string, string>();
   if (dbKeys.length > 0) {
-    // Single round-trip instead of N sequential SELECTs (was 52 queries per /api/public/site).
+    // Single round-trip instead of N sequential SELECTs (was 52 queries per /v1/public/site).
     const placeholders = dbKeys.map(() => '?').join(',');
     const { results } = await env.DB.prepare(
       `SELECT key, value FROM app_settings WHERE key IN (${placeholders})`
@@ -463,7 +464,7 @@ export async function buildRobotsTxt(env: Env, hostname = ''): Promise<string> {
     'Disallow: /app',
     'Disallow: /account',
     'Disallow: /admin',
-    'Disallow: /api/',
+    ...API_ROUTE_PREFIXES.map((prefix) => `Disallow: ${prefix}/`),
     'Disallow: /tv/',
     '',
     `Sitemap: ${base}/sitemap.xml`,

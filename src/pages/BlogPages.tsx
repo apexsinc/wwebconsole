@@ -9,7 +9,7 @@ import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useSpring } from 'motion/react';
 import { CalendarDays, Tag, ArrowLeft, ArrowRight } from 'lucide-react';
 import { MarkdownLite, usePageSeo } from './MarketingPages.js';
-import { API_BASE, type PublicSiteConfig } from '../services/api.js';
+import { apiUrl, type PublicSiteConfig } from '../services/api.js';
 import { applyDocumentSeo } from '../components/MarketingLayout.js';
 
 export function readingMinutes(body: string): number {
@@ -44,7 +44,7 @@ function formatDate(ms: number) {
 }
 
 function Cover({ post, large }: { post: BlogPost; large?: boolean }) {
-  const src = post.coverImageUrl || `${API_BASE}/api/public/blog/cover/${encodeURIComponent(post.slug)}`;
+  const src = post.coverImageUrl || apiUrl(`/public/blog/cover/${encodeURIComponent(post.slug)}`);
   const [failed, setFailed] = useState(false);
   if (failed || (!post.coverImageUrl && !post.coverQuery)) {
     return (
@@ -82,7 +82,7 @@ export function BlogListPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`${API_BASE}/api/public/blog?limit=${LIMIT}&offset=${offset}`)
+    fetch(apiUrl(`/public/blog?limit=${LIMIT}&offset=${offset}`))
       .then((r) => r.json() as Promise<{ posts?: BlogPost[]; total?: number }>)
       .then((d) => {
         if (cancelled) return;
@@ -262,7 +262,7 @@ export function BlogPostPage() {
     setPost(null);
     setRelated([]);
     setMissing(false);
-    fetch(`${API_BASE}/api/public/blog/${encodeURIComponent(slug || '')}`)
+    fetch(apiUrl(`/public/blog/${encodeURIComponent(slug || '')}`))
       .then((r) => {
         if (r.status === 404) {
           if (!cancelled) setMissing(true);
@@ -273,7 +273,7 @@ export function BlogPostPage() {
       .then((d) => {
         if (!cancelled && d?.post) {
           setPost(d.post);
-          fetch(`${API_BASE}/api/public/blog/${encodeURIComponent(slug || '')}/related`)
+          fetch(apiUrl(`/public/blog/${encodeURIComponent(slug || '')}/related`))
             .then((r) => r.json() as Promise<{ posts?: BlogPost[] }>)
             .then((rel) => {
               if (!cancelled) setRelated(rel.posts || []);

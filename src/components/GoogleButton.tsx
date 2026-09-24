@@ -7,19 +7,19 @@
  * Primary path: Google's own rendered button (Google Identity Services), which
  * shows the account name + avatar of the account already signed in to the
  * browser. The ID token it returns is POSTed to our own
- * /api/auth/google/credential endpoint, which verifies it server-side against
+ * /v1/auth/google/credential endpoint, which verifies it server-side against
  * Google's tokeninfo (exact `aud === GOOGLE_CLIENT_ID`) plus a one-shot nonce
  * cookie, then creates the session. No client secret and no trust in anything
  * the browser sends.
  *
- * Fallback: the plain redirect flow (/api/auth/google/start) is kept as a
+ * Fallback: the plain redirect flow (/v1/auth/google/start) is kept as a
  * normal link, and is used whenever GIS is unavailable, blocked by CSP/ad
  * blockers, not yet loaded, or errors. The redirect flow remains fully
  * functional on its own.
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { API_BASE, fetchAuthConfig, fetchGoogleNonce, loginWithGoogleCredential } from '../services/api.js';
+import { apiUrl, fetchAuthConfig, fetchGoogleNonce, loginWithGoogleCredential } from '../services/api.js';
 import { useWeatherStore } from '../store.js';
 
 const GOOGLE_ERROR_COPY: Record<string, string> = {
@@ -80,7 +80,7 @@ export function GoogleButton({ mode }: { mode: 'login' | 'register' }) {
 
   // The plain redirect flow stays a working anchor in every state.
   const entry = adminEntry ? '&entry=admin' : '';
-  const href = `${API_BASE}/api/auth/google/start?mode=${mode}${entry}`;
+  const href = apiUrl(`/auth/google/start?mode=${mode}${entry}`);
 
   useEffect(() => {
     let cancelled = false;

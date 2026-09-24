@@ -7,6 +7,8 @@
  * endpoint instead of bundling a JWT library into the Worker.
  */
 
+import { LEGACY_API_PREFIX } from '../shared/apiPaths.ts';
+
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_TOKENINFO_URL = 'https://oauth2.googleapis.com/tokeninfo';
@@ -20,7 +22,9 @@ export type GoogleProfile = {
 };
 
 export function googleRedirectUri(appUrl: string): string {
-  return `${appUrl.replace(/\/+$/, '')}/api/auth/google/callback`;
+  // Keep the Google-registered legacy callback URI until it is explicitly
+  // changed in Google Cloud. The Worker serves this route under both prefixes.
+  return `${appUrl.replace(/\/+$/, '')}${LEGACY_API_PREFIX}/auth/google/callback`;
 }
 
 /** Pure: build the Google consent URL (unit-testable, no secrets needed). */

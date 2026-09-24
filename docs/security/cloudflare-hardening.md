@@ -26,18 +26,18 @@ Manual dashboard actions that complement app-level controls.
 2. Enable **Bot Fight Mode** (or Super Bot Fight Mode on Pro+).
 3. Add **Rate limiting** rules (edge layer; Worker still has app-level limits):
 
-**Free plan (1 rule only):** path starts with `/api/auth/` · 20 req / 10 s / IP · Block  
+**Free plan (1 rule only):** path starts with `/v1/auth/` or legacy `/api/auth/` · 20 req / 10 s / IP · Block
 Applied via `npm run waf:rate-limits` (or dashboard: **Security → WAF → Rate limiting rules**)
 
 **Pro+ (script default when `CF_PLAN=pro`):**
 
 | Rule | Match | Limit |
 |------|-------|-------|
-| Auth login | path `/api/auth/login` | 20 / 60 s / IP |
-| Auth register | `/api/auth/register` | 10 / 60 s / IP |
-| OTP | verify-email / reset / forgot | 20 / 60 s / IP |
-| Public TV | `/api/public/tv/*` | 120 / 60 s / IP |
-| Admin API | `admin…/api/admin/*` | 60 / 60 s / IP |
+| Auth login | path `/v1/auth/login` (legacy `/api/auth/login`) | 20 / 60 s / IP |
+| Auth register | `/v1/auth/register` (legacy `/api/auth/register`) | 10 / 60 s / IP |
+| OTP | `/v1/auth/{verify-email,reset-password,forgot-password}` (legacy alias) | 20 / 60 s / IP |
+| Public TV | `/v1/public/tv/*` (legacy `/api/public/tv/*`) | 120 / 60 s / IP |
+| Admin API | `admin…/v1/admin/*` (legacy `/api/admin/*`) | 60 / 60 s / IP |
 
 API helper: `npm run waf:rate-limits` (needs token with **Zone → Zone WAF → Edit**).  
 If the API returns `request is not authorized`, create the Free rule in the dashboard and/or widen the token.
@@ -46,7 +46,7 @@ If the API returns `request is not authorized`, create the Free rule in the dash
 
 ## Cache
 
-- Do **not** cache `/api/*` at the edge (app sets `Cache-Control: no-store`).
+- Do **not** cache `/v1/*` or legacy `/api/*` at the edge (app sets `Cache-Control: no-store`).
 - Marketing HTML may use short `max-age` (SEO injection).
 - Public TV JSON may use `max-age=30` only.
 
@@ -79,7 +79,7 @@ If unauthorized or Free-plan capped, add the Free rule in the dashboard (see tab
 
 - Worker error rate, CPU time, subrequests
 - D1 rows read/written
-- Spike in `/api/auth/login` 401s
+- Spike in `/v1/auth/login` (or legacy `/api/auth/login`) 401s
 - Access login failures on admin host
 
 ## Staging
