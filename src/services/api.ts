@@ -31,7 +31,26 @@ export async function fetchAuthConfig() {
     emailVerificationRequired: boolean;
     yearlyPriceUsd: number;
     freeTrialDays: number;
+    googleClientId?: string;
   }>('/api/auth/config');
+}
+
+/** Mint a one-shot nonce for the Google Identity Services credential flow. */
+export async function fetchGoogleNonce() {
+  return api<{ ok: boolean; nonce: string }>('/api/auth/google/nonce', { method: 'POST' });
+}
+
+/** Exchange a Google ID token (from the rendered GIS button) for a session. */
+export async function loginWithGoogleCredential(payload: {
+  credential: string;
+  nonce: string;
+  entry?: 'admin';
+  mode?: 'login' | 'register';
+}) {
+  return api<{ ok: boolean; redirectTo: string; user: { email: string; name: string } }>(
+    '/api/auth/google/credential',
+    { method: 'POST', body: JSON.stringify(payload) }
+  );
 }
 
 export type PublicSiteConfig = {

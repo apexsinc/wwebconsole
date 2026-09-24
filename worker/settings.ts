@@ -338,6 +338,9 @@ export async function getPublicAuthConfig(env: Env) {
     emailVerificationRequired: resendEnabled,
     yearlyPriceUsd: Number(yearlyPrice) || 39,
     freeTrialDays: Number(freeDays) || 30,
+    // Public client id (safe to expose) so the SPA can render Google's own
+    // "Sign in with Google" button, which shows the browser's active account.
+    googleClientId: env.GOOGLE_CLIENT_ID || '',
   };
 }
 

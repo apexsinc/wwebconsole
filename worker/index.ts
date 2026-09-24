@@ -82,6 +82,7 @@ import {
   buildGoogleAuthUrl,
   exchangeGoogleCode,
   googleRedirectUri,
+  googleJwtNonce,
   signOAuthState,
   verifyGoogleIdToken,
   verifyOAuthState,
@@ -442,6 +443,8 @@ app.post('/api/auth/logout', async (c) => {
 // (new tab / retry / old Google tab still open) overwrites the first flow's
 // cookie and the first callback then fails the double-submit check.
 const OAUTH_STATE_COOKIE_PREFIX = 'wwc_oauth_state_';
+/** Nonce cookie for the Google Identity Services (rendered button) flow. */
+const OAUTH_NONCE_COOKIE = 'wwc_google_nonce';
 
 function googleClientId(c: { env: Env }) {
   return c.env.GOOGLE_CLIENT_ID || '';
@@ -545,6 +548,94 @@ app.get('/api/auth/google/callback', async (c) => {
     console.error('Google OAuth callback failed:', err?.message || err);
     return failAs('google_failed');
   }
+});
+
+/** Google Identity Services (GIS) credential endpoint.
+ *
+ *  The rendered "Sign in with Google" button returns a Google ID token directly
+ *  in the browser (no authorization code, no client secret). We verify it with
+ *  the SAME server-side check the redirect flow uses — Google's tokeninfo plus
+ *  an exact `aud === GOOGLE_CLIENT_ID` match — so the browser never holds any
+ *  privileged credential and we never trust a client-supplied profile.
+ *
+ *  CSRF/binding: a nonce cookie is minted per request; the ID token's `nonce`
+ *  claim must equal both the cookie and the body value. This binds the token to
+ *  the browsing context that asked for it.
+ */
+app.post('/api/auth/google/credential', async (c) => {
+  const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
+  const limited = enforceRateLimit(c, 'oauthCallback');
+  if (limited) return limited;
+
+  const clientId = googleClientId(c);
+  if (!clientId) return c.json({ error: 'Google sign-in is not configured', code: 'google_not_configured' }, 400);
+
+  const body = z
+    .object({
+      credential: z.string().min(20).max(4096),
+      nonce: z.string().min(8).max(128),
+      // Which portal the user started from; same allowlist as the redirect flow.
+      entry: z.enum(['admin']).optional(),
+      mode: z.enum(['login', 'register']).default('login'),
+    })
+    .safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: 'Invalid input' }, 400);
+
+  const cookieNonce = getCookie(c, OAUTH_NONCE_COOKIE) || '';
+  const tokenNonce = googleJwtNonce(body.data.credential) || '';
+  if (!cookieNonce || cookieNonce !== body.data.nonce || tokenNonce !== body.data.nonce) {
+    return c.json({ error: 'Google sign-in failed. Please try again.', code: 'google_failed' }, 400);
+  }
+
+  // One-shot nonce: clear before verification so a captured token can't be replayed.
+  const reqHost = new URL(c.req.url).hostname;
+  const nonceDomain = reqHost.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
+  deleteCookie(c, OAUTH_NONCE_COOKIE, nonceDomain ? { path: '/', domain: nonceDomain } : { path: '/' });
+
+  const adminEntry = body.data.entry === 'admin';
+  try {
+    const profile = await verifyGoogleIdToken(body.data.credential, clientId);
+    const outcome = await findOrCreateGoogleUser(c.env, profile, { allowCreate: !adminEntry });
+    if (outcome.kind === 'blocked') {
+      return c.json(
+        {
+          error: adminEntry
+            ? 'Only existing admin accounts can sign in with Google here.'
+            : 'This email cannot use Google sign-in. Contact support.',
+          code: adminEntry ? 'google_admin_only' : 'google_blocked',
+        },
+        403
+      );
+    }
+    await createSession(c, outcome.user.id);
+    const redirectTo = adminEntry && outcome.user.role === 'admin'
+      ? `${adminBaseUrl(appUrl)}/`
+      : `${appUrl}/app`;
+    return c.json({ ok: true, user: publicUser(outcome.user), redirectTo });
+  } catch (err: any) {
+    console.error('Google GIS credential login failed:', err?.message || err);
+    return c.json({ error: 'Google sign-in failed. Please try again.', code: 'google_failed' }, 400);
+  }
+});
+
+/** Mint a short-lived nonce cookie for the GIS credential flow.
+ *  Separate from /start (which issues a full signed state) because GIS tokens
+ *  are verified by nonce binding rather than the double-submit state check. */
+app.post('/api/auth/google/nonce', async (c) => {
+  const limited = enforceRateLimit(c, 'oauthStart');
+  if (limited) return limited;
+  const nonce = randomSlug(24);
+  const reqHost = new URL(c.req.url).hostname;
+  const nonceDomain = reqHost.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
+  setCookie(c, OAUTH_NONCE_COOKIE, nonce, {
+    path: '/',
+    httpOnly: true,
+    secure: !isDevEnvironment(c.env, c.req.url),
+    sameSite: 'Lax',
+    maxAge: 600,
+    ...(nonceDomain ? { domain: nonceDomain } : {}),
+  });
+  return c.json({ ok: true, nonce });
 });
 
 app.get('/api/auth/me', optionalAuth, async (c) => {
