@@ -34,18 +34,10 @@
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Barlow+Semi+Condensed:wght@500;600&display=swap"
+      data-font-defer
       media="print"
-      onload="this.media='all'"
     />
-    <script>
-      (function () {
-        try {
-          var t = localStorage.getItem('wwc_theme');
-          if (t === 'dark') document.documentElement.classList.add('dark');
-          else document.documentElement.classList.remove('dark');
-        } catch (e) {}
-      })();
-    </script>
+    <script src="/head-init.js"></script>
     <!-- Phase 0: Polar checkout embed is lazy-loaded only inside PolarCheckoutModal (see src/components/polarEmbed.ts). No global third-party script here for privacy/perf. -->
   </head>
   <body>

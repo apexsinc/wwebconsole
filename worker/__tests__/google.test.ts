@@ -8,7 +8,13 @@ import { isAllowedCoverHost } from '../blog.ts';
 import { adminBaseUrl } from '../hosts.ts';
 import {
   buildGoogleAuthUrl,
+  classifyGoogleOAuthError,
+  classifyGoogleRedirectProbe,
   googleRedirectUri,
+  GOOGLE_REDIRECT_URI_CHECK_INTERVAL_MS,
+  parseGoogleRedirectUriCheckState,
+  serializeGoogleRedirectUriCheckState,
+  shouldRunGoogleRedirectCheck,
   signOAuthState,
   verifyOAuthState,
 } from '../google.ts';
@@ -45,6 +51,88 @@ describe('buildGoogleAuthUrl', () => {
     assert.equal(url.searchParams.get('state'), 'st');
     assert.ok((url.searchParams.get('scope') || '').includes('openid'));
     assert.ok((url.searchParams.get('scope') || '').includes('email'));
+  });
+});
+
+describe('Google OAuth token error classification', () => {
+  it('maps redirect mismatches and invalid grants to stable typed codes', () => {
+    assert.equal(
+      classifyGoogleOAuthError('{"error":"redirect_uri_mismatch","error_description":"bad redirect"}'),
+      'google_redirect_mismatch'
+    );
+    assert.equal(
+      classifyGoogleOAuthError('{"error":"invalid_grant","error_description":"expired code"}'),
+      'google_invalid_grant'
+    );
+  });
+
+  it('uses the generic code for malformed, non-JSON, empty, and unknown bodies', () => {
+    for (const body of [
+      '{not json',
+      '<html>gateway error</html>',
+      '',
+      '   ',
+      '{}',
+      '{"error":"some_future_google_error"}',
+    ]) {
+      assert.equal(classifyGoogleOAuthError(body), 'google_oauth_error', body);
+    }
+  });
+});
+
+describe('Google redirect URI probe classification', () => {
+  it('recognizes the observed sign-in and OAuth-error redirect shapes', () => {
+    assert.equal(
+      classifyGoogleRedirectProbe(
+        302,
+        'https://accounts.google.com/v3/signin/identifier?client_id=cid&redirect_uri=https%3A%2F%2Fapi.example%2Fv1%2Fcallback'
+      ),
+      'ok'
+    );
+    assert.equal(
+      classifyGoogleRedirectProbe(
+        302,
+        'https://accounts.google.com/signin/oauth/error?authError=opaque-error'
+      ),
+      'mismatch'
+    );
+  });
+
+  it('treats non-redirects and unknown Google paths as inconclusive', () => {
+    assert.equal(classifyGoogleRedirectProbe(200, 'https://accounts.google.com/signin'), 'probe_failed');
+    assert.equal(classifyGoogleRedirectProbe(302, null), 'probe_failed');
+    assert.equal(classifyGoogleRedirectProbe(302, 'https://accounts.google.com/other'), 'probe_failed');
+  });
+});
+
+describe('Google redirect URI check interval and persisted state', () => {
+  it('runs for missing, due, invalid, and future timestamps but not within the interval', () => {
+    const now = 1_800_000_000_000;
+    assert.equal(shouldRunGoogleRedirectCheck(null, now), true);
+    assert.equal(shouldRunGoogleRedirectCheck(now, now), false);
+    assert.equal(
+      shouldRunGoogleRedirectCheck(now - GOOGLE_REDIRECT_URI_CHECK_INTERVAL_MS + 1, now),
+      false
+    );
+    assert.equal(shouldRunGoogleRedirectCheck(now - GOOGLE_REDIRECT_URI_CHECK_INTERVAL_MS, now), true);
+    assert.equal(shouldRunGoogleRedirectCheck(now + 1, now), true);
+    assert.equal(shouldRunGoogleRedirectCheck(Number.NaN, now), true);
+  });
+
+  it('round-trips the secret-free status value and rejects malformed values', () => {
+    const state = {
+      checkedAt: 1_800_000_000_000,
+      status: 'mismatch' as const,
+      expectedRedirectUri: 'https://api.example/v1/auth/google/callback',
+      httpStatus: 302,
+    };
+    assert.deepEqual(
+      parseGoogleRedirectUriCheckState(serializeGoogleRedirectUriCheckState(state)),
+      state
+    );
+    assert.equal(parseGoogleRedirectUriCheckState(''), null);
+    assert.equal(parseGoogleRedirectUriCheckState('{bad'), null);
+    assert.equal(parseGoogleRedirectUriCheckState('{"checkedAt":"not-a-number"}'), null);
   });
 });
 

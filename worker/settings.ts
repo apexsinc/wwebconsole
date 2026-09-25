@@ -4,6 +4,9 @@ import { localizeYearlyPrice } from './pricing';
 
 const SECRET_KEYS = new Set(['turnstile_secret_key', 'resend_api_key']);
 
+/** Read-only health status written by the scheduled Google redirect-URI probe. */
+export const GOOGLE_REDIRECT_URI_CHECK_SETTING = 'google_redirect_uri_check';
+
 /** Keys exposed on the public marketing site (safe to show). */
 export const PUBLIC_SITE_KEYS = [
   'site_name',
@@ -314,6 +317,8 @@ export async function listSettingsForAdmin(env: Env) {
       (r.key === 'resend_api_key' && Boolean(env.RESEND_API_KEY)),
     secret: SECRET_KEYS.has(r.key),
     updated_at: r.updated_at,
+    // Operational health keys (including the Google redirect probe) stay
+    // visible as `other` and are not editable through the allowlisted PUT API.
     group: INTEGRATION_KEYS.has(r.key)
       ? 'integrations'
       : SITE_SETTING_GROUPS.find((g) => g.keys.includes(r.key))?.id || 'other',

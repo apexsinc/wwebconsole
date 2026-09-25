@@ -42,6 +42,7 @@ import {
   getPublicSiteConfig,
   getSeoForPath,
   getSetting,
+  GOOGLE_REDIRECT_URI_CHECK_SETTING,
   injectSeoIntoHtml,
   isEnabled,
   isKnownIndexableRoute,
@@ -84,9 +85,16 @@ import {
   exchangeGoogleCode,
   googleRedirectUri,
   googleJwtNonce,
+  GoogleOAuthError,
+  GOOGLE_REDIRECT_URI_CHECK_INTERVAL_MS,
+  parseGoogleRedirectUriCheckState,
+  probeGoogleRedirectUri,
+  serializeGoogleRedirectUriCheckState,
+  shouldRunGoogleRedirectCheck,
   signOAuthState,
   verifyGoogleIdToken,
   verifyOAuthState,
+  type GoogleRedirectUriCheckState,
 } from './google.ts';
 import type { Env, ShareLinkRow, StationCredentials, StationRow, UserRow } from './types';
 import {
@@ -450,6 +458,10 @@ const OAUTH_STATE_COOKIE_PREFIX = 'wwc_oauth_state_';
 /** Nonce cookie for the Google Identity Services (rendered button) flow. */
 const OAUTH_NONCE_COOKIE = 'wwc_google_nonce';
 
+// Fast in-isolate guard; the persisted state below is the cross-isolate guard.
+let lastGoogleRedirectCheckStartedAt = 0;
+let lastGoogleRedirectCheckUri = '';
+
 function googleClientId(c: { env: Env }) {
   return c.env.GOOGLE_CLIENT_ID || '';
 }
@@ -537,8 +549,9 @@ api.get('/auth/google/callback', async (c) => {
   const entryPage = verified.adminEntry ? 'login' : verified.mode;
   const failAs = (errorCode: string) => c.redirect(`${entryBase}/${entryPage}?error=${errorCode}`, 302);
 
+  const expectedRedirectUri = googleRedirectUri(apiBaseUrl(c.env));
   try {
-    const { idToken } = await exchangeGoogleCode(clientId, clientSecret, code, googleRedirectUri(apiBaseUrl(c.env)));
+    const { idToken } = await exchangeGoogleCode(clientId, clientSecret, code, expectedRedirectUri);
     const profile = await verifyGoogleIdToken(idToken, clientId);
     // The callback always runs on the api host, so the entry portal comes from
     // sealed state: on the admin portal only existing users may sign in.
@@ -551,7 +564,20 @@ api.get('/auth/google/callback', async (c) => {
     if (verified.adminEntry && outcome.user.role === 'admin') return c.redirect(`${entryBase}/`, 302);
     return c.redirect(`${appUrl}${verified.next}`, 302);
   } catch (err: any) {
-    console.error('Google OAuth callback failed:', err?.message || err);
+    if (err instanceof GoogleOAuthError) {
+      const detail =
+        err.code === 'google_redirect_mismatch'
+          ? 'Google rejected the redirect URI as not registered for this OAuth client; verify that the exact URI below is listed under Authorized redirect URIs in Google Cloud.'
+          : err.code === 'google_invalid_grant'
+            ? 'Google rejected the authorization code (invalid_grant); it may be expired, reused, or tied to a different redirect URI. Restart the sign-in flow and verify the URI below.'
+            : `Google token exchange failed (${err.code}).`;
+      console.error(
+        `Google OAuth callback token exchange failed (${err.code}, HTTP ${err.status}): ${detail} ` +
+          `Expected/sent redirect URI: ${expectedRedirectUri}`
+      );
+    } else {
+      console.error('Google OAuth callback failed:', err?.message || err);
+    }
     return failAs('google_failed');
   }
 });
@@ -1604,6 +1630,95 @@ api.put('/admin/settings', requireAdmin, async (c) => {
 
 api.all('*', (c) => c.json({ error: 'Not found' }, 404));
 
+/**
+ * Check the exact URI this Worker sends without using the client secret.
+ * The in-memory guard avoids repeated work in one isolate; the JSON status in
+ * D1 carries the last-checked timestamp across isolate eviction and is also
+ * returned by the existing admin settings endpoint.
+ */
+async function checkGoogleRedirectUriDrift(env: Env): Promise<void> {
+  const expectedRedirectUri = googleRedirectUri(apiBaseUrl(env));
+  const now = Date.now();
+  if (
+    lastGoogleRedirectCheckStartedAt > 0 &&
+    lastGoogleRedirectCheckUri === expectedRedirectUri &&
+    now >= lastGoogleRedirectCheckStartedAt &&
+    now - lastGoogleRedirectCheckStartedAt < GOOGLE_REDIRECT_URI_CHECK_INTERVAL_MS
+  ) {
+    return;
+  }
+  lastGoogleRedirectCheckStartedAt = now;
+  lastGoogleRedirectCheckUri = expectedRedirectUri;
+  let previous: GoogleRedirectUriCheckState | null = null;
+  try {
+    previous = parseGoogleRedirectUriCheckState(
+      await getSetting(env, GOOGLE_REDIRECT_URI_CHECK_SETTING)
+    );
+  } catch (err) {
+    console.error(
+      'Google redirect URI check could not read persisted status:',
+      err instanceof Error ? err.message : 'unknown error'
+    );
+    return;
+  }
+
+  const afterRead = Date.now();
+  if (
+    previous &&
+    previous.expectedRedirectUri === expectedRedirectUri &&
+    !shouldRunGoogleRedirectCheck(previous.checkedAt, afterRead)
+  ) {
+    return;
+  }
+
+  let state: GoogleRedirectUriCheckState;
+  const clientId = env.GOOGLE_CLIENT_ID || '';
+  if (!clientId) {
+    state = {
+      checkedAt: Date.now(),
+      status: 'not_configured',
+      expectedRedirectUri,
+      httpStatus: null,
+    };
+    console.warn('Google redirect URI check skipped: GOOGLE_CLIENT_ID is not configured');
+  } else {
+    const probe = await probeGoogleRedirectUri(clientId, expectedRedirectUri);
+    state = {
+      checkedAt: Date.now(),
+      status: probe.status,
+      expectedRedirectUri,
+      httpStatus: probe.httpStatus,
+    };
+    if (probe.status === 'mismatch') {
+      console.error(
+        'Google OAuth redirect URI drift detected: Google returned its OAuth error redirect for the URI this Worker sends. ' +
+          `Expected/sent redirect URI: ${expectedRedirectUri}. ` +
+          'Add that exact URI to the OAuth client Authorized redirect URIs in Google Cloud Console, or deploy with a matching API_URL.'
+      );
+    } else if (probe.status === 'probe_failed') {
+      const response = probe.httpStatus == null ? 'no HTTP response' : `HTTP ${probe.httpStatus}`;
+      console.error(
+        `Google OAuth redirect URI probe inconclusive (${response}). ` +
+          `Expected/sent redirect URI: ${expectedRedirectUri}. ` +
+          'Google did not return the observed sign-in or OAuth-error redirect.'
+      );
+    }
+  }
+
+  try {
+    await setSetting(
+      env,
+      GOOGLE_REDIRECT_URI_CHECK_SETTING,
+      serializeGoogleRedirectUriCheckState(state)
+    );
+  } catch (err) {
+    console.error(
+      'Google redirect URI check could not persist status:',
+      err instanceof Error ? err.message : 'unknown error'
+    );
+  }
+}
+
 // ONE route table, mounted once. The permanent legacy `/api/*` alias reaches it
 // through the rewrite middleware above rather than a second mount.
 app.route(API_PREFIX, api);
@@ -1665,6 +1780,10 @@ export default {
     const isAssetPath =
       url.pathname.startsWith('/assets/') || /\.[a-z0-9]{2,5}$/i.test(url.pathname);
     const onAdminHost = isAdminHostname(url.hostname);
+    // Vite's dev server injects an inline react-refresh preamble, so the CSP
+    // may only relax 'unsafe-inline' in local dev. Production always ships the
+    // strict policy (asserted by ui/smoke.test.cjs).
+    const devOpts = { dev: isDevEnvironment(env, request.url) };
     const isHtmlNav =
       !isAssetPath &&
       request.method === 'GET' &&
@@ -1733,7 +1852,8 @@ export default {
               'Content-Type': 'text/html; charset=utf-8',
               'Cache-Control': 'public, max-age=60',
             },
-          })
+          }),
+          { dev: isDevEnvironment(env, request.url) }
         );
         // Belt-and-braces: crawlers honor the header even if they ignore the
         // meta tag (and it covers the admin host + private routes uniformly).
@@ -1744,11 +1864,11 @@ export default {
       }
       // Admin host with no matched SEO: still never index the shell.
       if (onAdminHost) {
-        const res = withSpaSecurityHeaders(assetRes);
+        const res = withSpaSecurityHeaders(assetRes, devOpts);
         res.headers.set('X-Robots-Tag', 'noindex, nofollow');
         return res;
       }
-      return withSpaSecurityHeaders(assetRes);
+      return withSpaSecurityHeaders(assetRes, devOpts);
     }
 
     if (assetRes.headers.get('Content-Type')?.includes('text/html')) {
@@ -1780,12 +1900,13 @@ export default {
           new Response(injectSeoIntoHtml(html, seo), {
             status: needsNoIndex ? assetRes.status : 404,
             headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=60' },
-          })
+          }),
+          devOpts
         );
         res.headers.set('X-Robots-Tag', 'noindex, nofollow');
         return res;
       }
-      const res = withSpaSecurityHeaders(assetRes);
+      const res = withSpaSecurityHeaders(assetRes, devOpts);
       // Any HTML shell served for a private route or on the admin host is unlisted.
       if (needsNoIndex) {
         res.headers.set('X-Robots-Tag', 'noindex, nofollow');
@@ -1803,6 +1924,15 @@ export default {
         await purgeOldContactMessages(env);
         await pollAllStations(env);
       })()
+    );
+    // Keep the inexpensive registration probe independent from station polling.
+    ctx.waitUntil(
+      checkGoogleRedirectUriDrift(env).catch((err) => {
+        console.error(
+          'Google redirect URI scheduled check failed:',
+          err instanceof Error ? err.message : 'unknown error'
+        );
+      })
     );
   },
 };

@@ -1,7 +1,7 @@
 import type { Context, Next } from 'hono';
 import { isApiPath } from '../shared/apiPaths.ts';
 import type { Env } from './types';
-import { rateLimit, RATE_LIMITS } from './rateLimit';
+import { rateLimit, RATE_LIMITS } from './rateLimit.ts';
 
 const MAX_JSON_BYTES = 64 * 1024; // 64 KiB
 
@@ -50,23 +50,44 @@ export async function securityHeaders(c: Context<{ Bindings: Env }>, next: Next)
   }
 }
 
-/** CSP for HTML document responses (SPA). Allows Vite assets + Turnstile. */
-export const SPA_CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "img-src 'self' data: https:",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://accounts.google.com",
-  "connect-src 'self' https://api.wwebconsole.com https://challenges.cloudflare.com https://api.polar.sh https://sandbox-api.polar.sh https://cloudflareinsights.com https://accounts.google.com https://oauth2.googleapis.com",
-  "frame-src https://challenges.cloudflare.com https://polar.sh https://sandbox.polar.sh https://accounts.google.com",
-  "worker-src 'self' blob:",
-].join('; ');
+/**
+ * CSP for HTML document responses (SPA). Allows Vite assets + Turnstile.
+ *
+ * `scriptSrc` is a function because the production policy must NOT allow
+ * 'unsafe-inline' (the theme bootstrap and the non-blocking font promotion live
+ * in public/head-init.js, and every other script is an external file), while the
+ * Vite DEV server must allow it: @vitejs/plugin-react injects an inline
+ * react-refresh preamble that cannot be removed without breaking HMR.
+ */
+const SCRIPT_SRC_PRODUCTION =
+  "'self' https://challenges.cloudflare.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://accounts.google.com";
+const SCRIPT_SRC_DEV = `'unsafe-inline' ${SCRIPT_SRC_PRODUCTION}`;
 
-export function withSpaSecurityHeaders(res: Response): Response {
+export function spaContentSecurityPolicy(dev = false): string {
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "img-src 'self' data: https:",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    // 'unsafe-inline' is required for style attributes / injected styles in the
+    // React app and is unrelated to script execution. accounts.google.com is
+    // required because the rendered Google button loads its own stylesheet from
+    // https://accounts.google.com/gsi/style; without it the button is unstyled.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
+    `script-src ${dev ? SCRIPT_SRC_DEV : SCRIPT_SRC_PRODUCTION}`,
+    "connect-src 'self' https://api.wwebconsole.com https://challenges.cloudflare.com https://api.polar.sh https://sandbox-api.polar.sh https://cloudflareinsights.com https://accounts.google.com https://oauth2.googleapis.com",
+    "frame-src https://challenges.cloudflare.com https://polar.sh https://sandbox.polar.sh https://accounts.google.com",
+    "worker-src 'self' blob:",
+  ].join('; ');
+}
+
+/** @deprecated kept as a named export for compatibility; production policy. */
+export const SPA_CONTENT_SECURITY_POLICY = spaContentSecurityPolicy(false);
+
+export function withSpaSecurityHeaders(res: Response, opts: { dev?: boolean } = {}): Response {
   const headers = new Headers(res.headers);
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('X-Frame-Options', 'DENY');
@@ -74,7 +95,7 @@ export function withSpaSecurityHeaders(res: Response): Response {
   headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   headers.set('Cross-Origin-Opener-Policy', 'same-origin');
   headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  headers.set('Content-Security-Policy', SPA_CONTENT_SECURITY_POLICY);
+  headers.set('Content-Security-Policy', spaContentSecurityPolicy(Boolean(opts.dev)));
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 

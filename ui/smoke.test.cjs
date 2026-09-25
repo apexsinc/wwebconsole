@@ -64,24 +64,33 @@ async function startServer() {
     return;
   }
 
-  // Vite is already a project dependency; run its server API in-process so the
-  // single test command owns startup and cleanup without a shell wrapper.
+  // Build and serve the PRODUCTION bundle rather than the dev server. The dev
+  // server injects an inline react-refresh preamble (it must, for HMR), which
+  // the strict production CSP correctly blocks — so testing against dev would
+  // either fail spuriously or force a dev-only CSP exception. Preview runs the
+  // real Worker, so headers, API routes, and SEO injection are all authentic.
   process.env.VITE_API_URL = '';
-  const { createServer } = await import('vite');
-  viteServer = await createServer({
+  const vite = await import('vite');
+
+  await vite.build({ root: ROOT, logLevel: 'error' });
+
+  viteServer = await vite.preview({
     root: ROOT,
     logLevel: 'error',
-    server: { host: '127.0.0.1', port: 0 },
+    preview: { host: '127.0.0.1', port: 0 },
   });
-  await viteServer.listen();
-  const address = viteServer.httpServer?.address();
-  if (!address || typeof address === 'string') throw new Error('Vite did not expose a TCP port');
+  const address = viteServer.httpServer?.address?.();
+  if (!address || typeof address === 'string') {
+    throw new Error('Vite preview did not expose a TCP port');
+  }
   baseUrl = `http://127.0.0.1:${address.port}`;
   await detectWorkerGoogleSupport();
 }
 
 async function stopServer() {
-  await viteServer?.close();
+  // vite.preview() resolves to a server factory; close whatever it returned.
+  if (typeof viteServer === 'function') await viteServer.close();
+  else await viteServer?.close?.();
   viteServer = null;
 }
 
@@ -309,6 +318,79 @@ describe('browser regression coverage', () => {
         assert.match(robots, /noindex/i, `${pathname} response meta`);
         assert.equal(canonical, `${CANONICAL_BASE}${pathname}`, `${pathname} self-canonical`);
         assert.notEqual(canonical, `${CANONICAL_BASE}/`, `${pathname} must not canonicalize to the homepage`);
+      });
+    }
+  });
+
+  it('serves pages that boot under a CSP with no violations or script errors', async () => {
+    // Guards the removal of script-src 'unsafe-inline'. The theme bootstrap and
+    // the non-blocking font promotion moved to public/head-init.js precisely so
+    // this policy could hold; if either is ever inlined again, the browser
+    // blocks it and these assertions fail.
+    for (const pathname of ['/', '/login', '/features']) {
+      await withPage(async (page) => {
+        const cspViolations = [];
+        const consoleErrors = [];
+        const onConsole = (message) => {
+          const text = message.text();
+          if (/Content Security Policy|Refused to (execute|load|create)/i.test(text)) {
+            cspViolations.push(text);
+          } else if (
+            message.type() === 'error' &&
+            // This suite deliberately aborts every non-local request, so the
+            // browser logs those as resource failures. They are an artifact of
+            // the isolation, not an application fault. Genuine script errors
+            // (and any blocked inline script) still surface here.
+            !/Failed to load resource/i.test(text)
+          ) {
+            consoleErrors.push(text);
+          }
+        };
+        page.on('console', onConsole);
+
+        try {
+          const response = await openPage(page, pathname);
+          assert.ok(response, `expected an HTTP response for ${pathname}`);
+          assert.equal(response.status(), 200, pathname);
+
+          const csp = responseHeader(response.headers(), 'content-security-policy');
+          assert.ok(csp, `${pathname} must send a Content-Security-Policy`);
+          // NOTE: whether script-src allows 'unsafe-inline' is host-dependent by
+          // design — local dev/preview must allow it because Vite injects an
+          // inline react-refresh preamble. The strict production policy is
+          // asserted directly in worker/__tests__/security.test.ts via
+          // spaContentSecurityPolicy(false), and on the deployed host. What this
+          // browser test guarantees is that the page actually BOOTS and that
+          // nothing is blocked at runtime, which is what a policy regression
+          // would silently break.
+          assert.match(csp, /script-src [^;]*'self'/, `${pathname} script-src must allow 'self'`);
+          // The head bootstrap must actually execute, otherwise the theme
+          // silently stops applying and the page paints the wrong theme.
+          await page.waitForFunction(() => !!document.querySelector('script[src*="head-init"]'), null, {
+            timeout: 5_000,
+          });
+          const appliedTheme = await page.evaluate(() => {
+            const stored = (() => {
+              try {
+                return localStorage.getItem('wwc_theme');
+              } catch {
+                return null;
+              }
+            })();
+            const isDark = document.documentElement.classList.contains('dark');
+            return { stored, isDark };
+          });
+          assert.equal(
+            appliedTheme.isDark,
+            appliedTheme.stored === 'dark',
+            `${pathname} head-init.js must have applied the stored theme`
+          );
+        } finally {
+          page.off('console', onConsole);
+        }
+
+        assert.deepEqual(cspViolations, [], `${pathname} must not trigger CSP violations`);
+        assert.deepEqual(consoleErrors, [], `${pathname} must not log console errors`);
       });
     }
   });
