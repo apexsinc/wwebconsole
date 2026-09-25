@@ -10,7 +10,9 @@ import {
   buildGoogleAuthUrl,
   classifyGoogleOAuthError,
   classifyGoogleRedirectProbe,
+  exchangeGoogleCode,
   googleRedirectUri,
+  GoogleOAuthError,
   GOOGLE_REDIRECT_URI_CHECK_INTERVAL_MS,
   parseGoogleRedirectUriCheckState,
   serializeGoogleRedirectUriCheckState,
@@ -76,6 +78,30 @@ describe('Google OAuth token error classification', () => {
       '{"error":"some_future_google_error"}',
     ]) {
       assert.equal(classifyGoogleOAuthError(body), 'google_oauth_error', body);
+    }
+  });
+});
+
+describe('Google OAuth token exchange failures', () => {
+  it('throws a typed, generic-message failure for a Google error response', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () =>
+      new Response('{"error":"redirect_uri_mismatch","error_description":"not registered"}', {
+        status: 400,
+      });
+    try {
+      await assert.rejects(
+        exchangeGoogleCode('client-id', 'not-a-secret', 'not-an-auth-code', 'https://api.example/callback'),
+        (err: unknown) => {
+          assert.ok(err instanceof GoogleOAuthError);
+          assert.equal(err.code, 'google_redirect_mismatch');
+          assert.equal(err.status, 400);
+          assert.equal(err.message, 'Google authorization failed. Please try again.');
+          return true;
+        }
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
     }
   });
 });
