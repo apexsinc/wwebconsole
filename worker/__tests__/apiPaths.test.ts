@@ -290,7 +290,7 @@ describe('production worker legacy re-dispatch', () => {
       assert.equal(location.hostname, 'accounts.google.com');
       assert.equal(
         location.searchParams.get('redirect_uri'),
-        'https://api.wwebconsole.com/api/auth/google/callback'
+        'https://api.wwebconsole.com/v1/auth/google/callback'
       );
 
       const state = location.searchParams.get('state') || '';

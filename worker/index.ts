@@ -501,8 +501,8 @@ api.get('/auth/google/start', async (c) => {
   return c.redirect(buildGoogleAuthUrl({ clientId, redirectUri: googleRedirectUri(apiBaseUrl(c.env)), state }), 302);
 });
 
-// Reachable through /v1 and the legacy /api rewrite; googleRedirectUri
-// intentionally emits the registered /api callback until Google Cloud is updated.
+// Reachable through the canonical /v1 prefix and the legacy /api rewrite.
+// googleRedirectUri() emits the /v1 callback registered in Google Cloud.
 api.get('/auth/google/callback', async (c) => {
   const appUrl = c.env.APP_URL || 'https://wwebconsole.com';
   // Pre-verification failures don't know the entry page yet: fail closed to main login.

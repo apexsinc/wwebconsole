@@ -14,17 +14,22 @@ import {
 } from '../google.ts';
 
 describe('googleRedirectUri', () => {
+  it('uses the canonical /v1 callback registered in Google Cloud', () => {
+    // Google matches redirect_uri exactly, so this exact string must stay in
+    // sync with the Authorized redirect URIs in the Google Cloud console.
+    assert.equal(
+      googleRedirectUri('https://api.wwebconsole.com'),
+      'https://api.wwebconsole.com/v1/auth/google/callback'
+    );
+  });
   it('appends callback path without double slashes', () => {
     assert.equal(
       googleRedirectUri('https://wwebconsole.com/'),
-      'https://wwebconsole.com/api/auth/google/callback'
+      'https://wwebconsole.com/v1/auth/google/callback'
     );
   });
-  it('builds the api-subdomain callback URI', () => {
-    assert.equal(
-      googleRedirectUri('https://api.wwebconsole.com'),
-      'https://api.wwebconsole.com/api/auth/google/callback'
-    );
+  it('never emits the legacy /api prefix', () => {
+    assert.ok(!googleRedirectUri('https://api.wwebconsole.com').includes('/api/'));
   });
 });
 
