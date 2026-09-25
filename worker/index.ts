@@ -1078,22 +1078,26 @@ const handleWebhookRequest = async (c: any) => {
     }
     if (!payload) return c.text('Bad Request', 400);
 
-    // Verify Standard Webhooks signature when a secret is configured.
-    // Without POLAR_WEBHOOK_SECRET we cannot authenticate the sender:
-    // accept-and-log (backward compatible) so subscription polling still works.
+    // Authenticate the sender. If the signing secret is missing we CANNOT verify
+    // anything, and the payload can activate an arbitrary station by supplying
+    // its id or owner metadata. So fail CLOSED rather than accepting unsigned
+    // billing events. This is a configuration failure (503), not a bad
+    // signature (401), and it is deliberately loud in Workers Logs.
     const webhookSecret = c.env.POLAR_WEBHOOK_SECRET || '';
-    if (webhookSecret) {
-      const ok = await verifyStandardWebhookSignature({
-        secret: webhookSecret,
-        webhookId: c.req.header('webhook-id') || '',
-        timestamp: c.req.header('webhook-timestamp') || '',
-        rawBody,
-        signatureHeader: c.req.header('webhook-signature') || '',
-      });
-      if (!ok) return c.text('Invalid signature', 401);
-    } else {
-      console.warn('Polar webhook received without POLAR_WEBHOOK_SECRET configured — skipping signature check');
+    if (!webhookSecret) {
+      console.error(
+        'Polar webhook REJECTED: POLAR_WEBHOOK_SECRET is not configured. Set it with: wrangler secret put POLAR_WEBHOOK_SECRET'
+      );
+      return c.text('Webhook authentication is not configured', 503);
     }
+    const ok = await verifyStandardWebhookSignature({
+      secret: webhookSecret,
+      webhookId: c.req.header('webhook-id') || '',
+      timestamp: c.req.header('webhook-timestamp') || '',
+      rawBody,
+      signatureHeader: c.req.header('webhook-signature') || '',
+    });
+    if (!ok) return c.text('Invalid signature', 401);
 
     const result = await handlePolarWebhook(c.env, payload);
     return c.json({ ok: true, result });
