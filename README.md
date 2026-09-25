@@ -36,6 +36,23 @@ npx wrangler d1 migrations apply wwebconsole-db --local
 npm run dev
 ```
 
+### Browser regression tests
+
+The focused browser suite uses the already-installed `playwright-core` Chromium
+browser. It starts an ephemeral Vite server, blocks third-party network access,
+and covers trusted Google-link navigation, auth-config request coalescing,
+private-page SEO headers, and the `/v1` + `/api` contract:
+
+```bash
+npm run test:ui
+```
+
+The Google tests intercept `accounts.google.com` and never authenticate with or
+contact Google. The auth-config response is fulfilled with a valid public test
+shape so the suite does not require a migrated local D1; its request count is
+still measured in the browser. Set `UI_TEST_BASE_URL` only when intentionally
+running against an already-running local server.
+
 ## Deploy
 
 ```bash
