@@ -31,15 +31,57 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+type AuthConfig = {
+  turnstileEnabled: boolean;
+  turnstileSiteKey: string;
+  emailVerificationRequired: boolean;
+  yearlyPriceUsd: number;
+  freeTrialDays: number;
+  googleClientId?: string;
+};
+
+// Public, infrequently changing auth flags/keys/pricing: keep a few minutes of
+// reuse to avoid duplicate page-load requests, while allowing admin changes
+// to appear soon without requiring every caller to opt out of the cache.
+const AUTH_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+let authConfigCache: { value: AuthConfig; expiresAt: number } | null = null;
+let authConfigInFlight: Promise<AuthConfig> | null = null;
+
+function isCompleteAuthConfig(value: unknown): value is AuthConfig {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const config = value as Partial<AuthConfig>;
+  return (
+    typeof config.turnstileEnabled === 'boolean' &&
+    typeof config.turnstileSiteKey === 'string' &&
+    typeof config.emailVerificationRequired === 'boolean' &&
+    typeof config.yearlyPriceUsd === 'number' &&
+    typeof config.freeTrialDays === 'number' &&
+    (config.googleClientId === undefined || typeof config.googleClientId === 'string')
+  );
+}
+
 export async function fetchAuthConfig() {
-  return api<{
-    turnstileEnabled: boolean;
-    turnstileSiteKey: string;
-    emailVerificationRequired: boolean;
-    yearlyPriceUsd: number;
-    freeTrialDays: number;
-    googleClientId?: string;
-  }>('/auth/config');
+  if (authConfigCache && authConfigCache.expiresAt > Date.now()) {
+    return authConfigCache.value;
+  }
+  authConfigCache = null;
+  if (authConfigInFlight) return authConfigInFlight;
+
+  const request = api<AuthConfig>('/auth/config')
+    .then((value) => {
+      // Do not retain undefined or incomplete/malformed responses; the next
+      // caller should be able to retry after a transient bad response.
+      if (isCompleteAuthConfig(value)) {
+        authConfigCache = { value, expiresAt: Date.now() + AUTH_CONFIG_CACHE_TTL_MS };
+      }
+      return value;
+    })
+    .finally(() => {
+      // Also clear this on rejection so a later call can retry.
+      authConfigInFlight = null;
+    });
+  authConfigInFlight = request;
+  return request;
 }
 
 /** Mint a one-shot nonce for the Google Identity Services credential flow. */

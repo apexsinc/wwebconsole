@@ -5,6 +5,21 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "./worker/index.ts",
   "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      // Persist so console.error from failure paths (e.g. Google OAuth token
+      // exchange failures) is queryable in the dashboard instead of being
+      // discarded at the edge. Without this, diagnosing a login failure is
+      // guesswork.
+      "persist": true
+    },
+    // OAuth callbacks carry `code`/`state` and reset links carry tokens.
+    // Never persist query strings.
+    "redact_query_string": true
+  },
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",

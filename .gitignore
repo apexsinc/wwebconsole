@@ -10,3 +10,7 @@ coverage/
 # keep .env ignored via .env* above; ensure example stays tracked
 worker-configuration.d.ts
 .wrangler/
+
+# Local scratch output from ad-hoc profiling/diagnostic runs
+fitprobe*.tmp.cjs
+temp/
