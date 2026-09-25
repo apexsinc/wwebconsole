@@ -1,5 +1,5 @@
-import { getSetting } from './settings';
-import type { Env, StationRow, SubscriptionStatus, UserRow, WlPlan } from './types';
+import { getSetting } from './settings.ts';
+import type { Env, StationRow, SubscriptionStatus, UserRow, WlPlan } from './types.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const YEAR_MS = 365 * DAY_MS;
@@ -61,23 +61,41 @@ export function hasAccountAccess(user: UserRow, station?: StationRow | null): { 
   };
 }
 
-export async function activateYearlySubscription(env: Env, stationId: string, wlPlan: WlPlan = 'pro') {
+export async function prepareYearlySubscriptionActivation(
+  env: Env,
+  stationId: string,
+  wlPlan: WlPlan = 'pro',
+  fulfillmentClaimId?: string
+) {
   if (wlPlan !== 'pro') {
     throw new Error('Yearly paid access requires WeatherLink Pro on this device');
   }
   const now = Date.now();
   const poll = await getPollIntervalSec(env, 'pro');
-  await env.DB.prepare(
-    `UPDATE stations SET
-      wl_plan = 'pro',
-      subscription_status = 'active',
-      subscription_expires_at = ?,
-      poll_interval_sec = ?,
-      updated_at = ?
-     WHERE id = ?`
-  )
-    .bind(now + YEAR_MS, poll, now, stationId)
-    .run();
+  const claimGuard = fulfillmentClaimId
+    ? `AND EXISTS (
+         SELECT 1 FROM polar_fulfillment_claims
+         WHERE id = ? AND status = 'claimed'
+       )`
+    : '';
+  const values: unknown[] = [now + YEAR_MS, poll, now, stationId];
+  if (fulfillmentClaimId) values.push(fulfillmentClaimId);
+  return {
+    statement: env.DB.prepare(
+      `UPDATE stations SET
+        wl_plan = 'pro',
+        subscription_status = 'active',
+        subscription_expires_at = ?,
+        poll_interval_sec = ?,
+        updated_at = ?
+       WHERE id = ? ${claimGuard}`
+    ).bind(...values),
+  };
+}
+
+export async function activateYearlySubscription(env: Env, stationId: string, wlPlan: WlPlan = 'pro') {
+  const { statement } = await prepareYearlySubscriptionActivation(env, stationId, wlPlan);
+  await statement.run();
 }
 
 export async function setStationWlPlan(env: Env, stationId: string, wlPlan: WlPlan) {

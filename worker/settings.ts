@@ -1,6 +1,6 @@
 import { API_ROUTE_PREFIXES } from '../shared/apiPaths.ts';
-import type { Env } from './types';
-import { localizeYearlyPrice } from './pricing';
+import type { Env } from './types.ts';
+import { localizeYearlyPrice } from './pricing.ts';
 
 const SECRET_KEYS = new Set(['turnstile_secret_key', 'resend_api_key']);
 

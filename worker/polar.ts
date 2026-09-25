@@ -1,6 +1,6 @@
-import { activateYearlySubscription } from './billing';
-import { getSetting } from './settings';
-import type { Env, StationRow, UserRow } from './types';
+import { getSetting } from './settings.ts';
+import { fulfillPolarSubscriptionOnce } from './polarFulfillment.ts';
+import type { Env, StationRow, UserRow } from './types.ts';
 
 const POLAR_API_BASE = 'https://api.polar.sh/v1';
 
@@ -200,22 +200,31 @@ export async function verifyAndApplyCheckout(
     }
   }
 
-  // Activate Pro yearly subscription (+1 year from now or extends current expiry)
-  await activateYearlySubscription(env, stationId, 'pro');
+  // Exactly-once fulfillment: the claim is committed in the same D1 transaction
+  // as the subscription update. Key on Polar's own canonical checkout id (not
+  // the caller-supplied string) so the claim is anchored to what Polar says
+  // this payment actually is.
+  const fulfillment = await fulfillPolarSubscriptionOnce(env, stationId, {
+    checkoutId: checkout.id || checkoutId,
+  });
+  const alreadyProcessed = fulfillment.kind === 'already-fulfilled';
 
   return {
     ok: true,
     status: checkout.status,
     stationId,
     userId,
-    message: 'Subscription successfully activated for 1 year.',
+    alreadyProcessed,
+    message: alreadyProcessed
+      ? 'This checkout was already processed; no additional subscription time was added.'
+      : 'Subscription successfully activated for 1 year.',
   };
 }
 
 /**
  * Handles incoming Polar webhooks for subscription or order updates.
  */
-export async function handlePolarWebhook(env: Env, event: any) {
+export async function handlePolarWebhook(env: Env, event: any, deliveryId?: string) {
   const type = event?.type;
   const data = event?.data;
 
@@ -245,21 +254,26 @@ export async function handlePolarWebhook(env: Env, event: any) {
     }
   }
 
-  if (
-    type === 'checkout.updated' &&
-    (data.status === 'confirmed' || data.status === 'succeeded') &&
-    stationId
-  ) {
-    await activateYearlySubscription(env, stationId, 'pro');
-    return { ok: true, action: 'activated', stationId };
-  }
+  const isActivatingEvent =
+    (type === 'checkout.updated' && (data.status === 'confirmed' || data.status === 'succeeded')) ||
+    type === 'order.created' ||
+    type === 'subscription.created' ||
+    type === 'subscription.active';
 
-  if (
-    (type === 'order.created' || type === 'subscription.created' || type === 'subscription.active') &&
-    stationId
-  ) {
-    await activateYearlySubscription(env, stationId, 'pro');
-    return { ok: true, action: 'activated', stationId };
+  if (isActivatingEvent && stationId) {
+    const fulfillment = await fulfillPolarSubscriptionOnce(env, stationId, {
+      // Standard Webhooks delivery ids survive Polar retries.
+      eventId: deliveryId || event?.id || event?.event_id,
+      // Polar order and subscription payloads expose checkout_id. checkout.updated
+      // carries the checkout id as data.id.
+      checkoutId: data.checkout_id || data.checkout?.id || (type === 'checkout.updated' ? data.id : undefined),
+      orderId: data.order_id || data.order?.id || (type === 'order.created' ? data.id : undefined),
+    });
+    return {
+      ok: true,
+      action: fulfillment.kind === 'activated' ? 'activated' : 'already_fulfilled',
+      stationId,
+    };
   }
 
   return { ok: true, action: 'ignored', type };

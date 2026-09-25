@@ -1057,7 +1057,12 @@ api.post('/billing/verify-checkout', requireAuth, async (c) => {
       return c.json({ ok: false, error: result.message, status: result.status }, 400);
     }
     const station = await getStationForUser(c.env, user.id);
-    return c.json({ ok: true, message: result.message, billing: publicBilling(user, station) });
+    return c.json({
+      ok: true,
+      alreadyProcessed: result.alreadyProcessed,
+      message: result.message,
+      billing: publicBilling(user, station),
+    });
   } catch (err: any) {
     console.error('Polar verify checkout error:', err);
     return c.json({ error: err.message || 'Failed to verify checkout' }, 500);
@@ -1090,16 +1095,17 @@ const handleWebhookRequest = async (c: any) => {
       );
       return c.text('Webhook authentication is not configured', 503);
     }
+    const webhookId = c.req.header('webhook-id') || '';
     const ok = await verifyStandardWebhookSignature({
       secret: webhookSecret,
-      webhookId: c.req.header('webhook-id') || '',
+      webhookId,
       timestamp: c.req.header('webhook-timestamp') || '',
       rawBody,
       signatureHeader: c.req.header('webhook-signature') || '',
     });
     if (!ok) return c.text('Invalid signature', 401);
 
-    const result = await handlePolarWebhook(c.env, payload);
+    const result = await handlePolarWebhook(c.env, payload, webhookId);
     return c.json({ ok: true, result });
   } catch (err: any) {
     console.error('Polar webhook error:', err?.message || err);
