@@ -32,11 +32,15 @@ export function googleErrorMessage(code: string | null): string {
   return GOOGLE_ERROR_COPY[code] || '';
 }
 
-/** Admin portal host check (mirrors AuthPages): entry must be flagged for the worker. */
+/** Admin portal host check (mirrors isAdminHostname() in worker/hosts.ts). */
 function isAdminEntryHost() {
   if (typeof window === 'undefined') return false;
   const host = window.location.hostname;
-  return host === 'admin.wwebconsole.com' || host === 'admin.localhost';
+  return (
+    host === 'admin.wwebconsole.com' ||
+    host === 'admin.localhost' ||
+    host.endsWith('.admin.wwebconsole.com')
+  );
 }
 
 export function GoogleButton({ mode }: { mode: 'login' | 'register' }) {

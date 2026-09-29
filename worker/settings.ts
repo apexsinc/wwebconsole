@@ -1,4 +1,5 @@
 import { API_ROUTE_PREFIXES } from '../shared/apiPaths.ts';
+import { isSafePostSlug } from './blog.ts';
 import type { Env } from './types.ts';
 import { localizeYearlyPrice } from './pricing.ts';
 
@@ -585,16 +586,19 @@ export async function buildSitemapXml(
   const staticUrls = staticPaths
     .map(({ p, changefreq, priority }) => {
       const loc = p === '/' ? `${base}/` : `${base}${p}`;
-      return `  <url>\n    <loc>${loc}</loc>${staticLastmod}\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+      return `  <url>\n    <loc>${esc(loc)}</loc>${staticLastmod}\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
     })
     .join('\n');
   const postUrls = posts
+    // Skip legacy/malformed slugs rather than emitting a path that normalizes
+    // into a private route such as /app.
+    .filter((post) => isSafePostSlug(post.slug))
     .map((post) => {
       const lastmod = fmtDate(Math.max(post.updated_at || 0, post.publish_at || 0) || Date.now());
       const image = post.cover_image_url
         ? `\n    <image:image xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n      <image:loc>${esc(post.cover_image_url)}</image:loc>\n    </image:image>`
         : '';
-      return `  <url>\n    <loc>${base}/post/${post.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>${image}\n  </url>`;
+      return `  <url>\n    <loc>${esc(`${base}/post/${post.slug}`)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>${image}\n  </url>`;
     })
     .join('\n');
   const urls = [staticUrls, postUrls].filter(Boolean).join('\n');
@@ -626,6 +630,20 @@ function orgJsonLd(seo: { siteName: string; canonical: string }): string {
   });
 }
 
+/**
+ * JSON-LD is written into a <script> element, and JSON.stringify does not
+ * escape "<" or ">". An admin-authored string containing "</script>" would
+ * otherwise close the element and the rest would execute as markup. The
+ * \u003c / \u003e sequences below are valid JSON string escapes, so the payload
+ * still parses to the original text while staying inert in HTML.
+ */
+function safeJsonLd(value: string): string {
+  return value
+    .replace(/&/g, '\\u0026')
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e');
+}
+
 /** Inject title/meta into SPA HTML for crawlers on marketing routes. */
 export function injectSeoIntoHtml(
   html: string,
@@ -654,8 +672,8 @@ export function injectSeoIntoHtml(
     `<meta name="twitter:description" content="${escape(seo.description)}" />`,
     seo.twitter ? `<meta name="twitter:site" content="${escape(seo.twitter)}" />` : '',
     seo.ogImage ? `<meta name="twitter:image" content="${escape(seo.ogImage)}" />` : '',
-    `<script type="application/ld+json">${orgJsonLd(seo)}</script>`,
-    seo.jsonLd ? `<script type="application/ld+json">${seo.jsonLd}</script>` : '',
+    `<script type="application/ld+json">${safeJsonLd(orgJsonLd(seo))}</script>`,
+    seo.jsonLd ? `<script type="application/ld+json">${safeJsonLd(seo.jsonLd)}</script>` : '',
   ]
     .filter(Boolean)
     .join('\n    ');

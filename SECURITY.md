@@ -20,7 +20,7 @@ We aim to acknowledge reports within 3 business days.
 
 In scope:
 
-- `wwebconsole.com`, `www.wwebconsole.com`, `admin.wwebconsole.com`
+- `wwebconsole.com`, `www.wwebconsole.com`, `api.wwebconsole.com`, `admin.wwebconsole.com`
 - Auth, account, station, share/TV, and admin APIs
 - Session handling and credential storage
 

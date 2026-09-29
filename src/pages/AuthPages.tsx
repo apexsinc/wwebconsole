@@ -17,8 +17,14 @@ import { applyDocumentSeo } from '../components/MarketingLayout.js';
 
 function isAdminHost() {
   if (typeof window === 'undefined') return false;
+  // Same policy as isAdminHostname() in worker/hosts.ts — the redirect target
+  // must not be decided by a looser rule than the server applies.
   const host = window.location.hostname;
-  return host === 'admin.wwebconsole.com' || host.startsWith('admin.') || host === 'admin.localhost';
+  return (
+    host === 'admin.wwebconsole.com' ||
+    host === 'admin.localhost' ||
+    host.endsWith('.admin.wwebconsole.com')
+  );
 }
 
 /** After login/register/verify: admin host → admin home; main site → console. */

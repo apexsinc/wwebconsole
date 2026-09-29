@@ -72,7 +72,12 @@ async function startServer() {
   process.env.VITE_API_URL = '';
   const vite = await import('vite');
 
-  await vite.build({ root: ROOT, logLevel: 'error' });
+  // Build BOTH environments through Vite's multi-environment builder. The
+  // programmatic vite.build() only builds the client environment, leaving
+  // dist/wwebconsole/index.js missing/stale — vite.preview would then serve an
+  // old Worker bundle and Worker regressions could pass unnoticed.
+  const builder = await vite.createBuilder({ root: ROOT, logLevel: 'error' });
+  await builder.buildApp();
 
   viteServer = await vite.preview({
     root: ROOT,
@@ -320,6 +325,17 @@ describe('browser regression coverage', () => {
         assert.notEqual(canonical, `${CANONICAL_BASE}/`, `${pathname} must not canonicalize to the homepage`);
       });
     }
+  });
+
+  it('returns a real noindex 404 for an unknown .html navigation', async () => {
+    // A *.html path used to be classified as a static asset, so it fell
+    // through to the raw SPA shell: a 200, indexable soft-404.
+    await withPage(async (page) => {
+      const response = await openPage(page, '/featurez.html');
+      assert.ok(response, 'expected an HTTP response for /featurez.html');
+      assert.equal(response.status(), 404);
+      assert.match(responseHeader(response.headers(), 'x-robots-tag'), /noindex/i);
+    });
   });
 
   it('serves pages that boot under a CSP with no violations or script errors', async () => {

@@ -58,8 +58,10 @@ export async function createSession(c: Context<{ Bindings: Env; Variables: AppVa
   await pruneSessionsToCap(c.env.DB, userId, MAX_SESSIONS_PER_USER);
   const isHttps = new URL(c.req.url).protocol === 'https:';
   const host = new URL(c.req.url).hostname;
-  const domain = host.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
-  const isProd = host.endsWith('wwebconsole.com');
+  // Suffix match must be dot-anchored: "xwwebconsole.com" also endsWith
+  // "wwebconsole.com" and must never be treated as a production host.
+  const isProd = host === 'wwebconsole.com' || host.endsWith('.wwebconsole.com');
+  const domain = isProd ? '.wwebconsole.com' : undefined;
   const cookieValue = await signSessionCookieValue(c.env.SESSION_SECRET, id);
   setCookie(c, SESSION_COOKIE, cookieValue, {
     httpOnly: true,
@@ -95,7 +97,8 @@ export async function destroySession(c: Context<{ Bindings: Env; Variables: AppV
     await c.env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sid).run();
   }
   const host = new URL(c.req.url).hostname;
-  const domain = host.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
+  const domain =
+    host === 'wwebconsole.com' || host.endsWith('.wwebconsole.com') ? '.wwebconsole.com' : undefined;
   deleteCookie(c, SESSION_COOKIE, { path: '/', domain });
 }
 
@@ -318,6 +321,12 @@ export async function findOrCreateGoogleUser(
 
   if (!user) {
     if (!opts.allowCreate) return { kind: 'blocked' };
+    // Never mint a local account (email_verified = 1) from an email Google
+    // has not verified. The link path above already enforces this; without it
+    // here an unverified external claim becomes a verified local identity.
+    if (!profile.emailVerified) {
+      throw new Error('Google email is not verified. Use password sign-in first.');
+    }
     // Allowlisted admin emails cannot self-register (prevents squatting).
     if (isAdminEmail(env, normalized)) return { kind: 'blocked' };
     const id = newId();

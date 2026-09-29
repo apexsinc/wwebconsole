@@ -252,6 +252,67 @@ describe('production worker legacy re-dispatch', () => {
       });
       assert.equal(oversized.status, 413, prefix);
       assert.deepEqual(await oversized.json(), { error: 'Request body too large' });
+
+      // A streamed request can omit Content-Length; the limit must still be
+      // enforced rather than relying on a spoofable header.
+      const streamedOversized = await dispatch(`https://api.wwebconsole.com${prefix}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: oversizedBody,
+      });
+      assert.equal(streamedOversized.status, 413, `${prefix} streamed body`);
+      assert.deepEqual(await streamedOversized.json(), { error: 'Request body too large' }, prefix);
+    }
+  });
+
+  it('does not disclose whether a resend target is already verified', async () => {
+    const rateLimit = await vite!.ssrLoadModule('/worker/rateLimit.ts');
+    rateLimit.__resetRateLimitsForTests();
+    const enumEnv = {
+      ...env,
+      DB: {
+        prepare(sql: string) {
+          return {
+            bind() {
+              return {
+                first: async () => {
+                  if (sql.includes('FROM app_settings')) return { value: '0' };
+                  if (sql.includes('FROM users')) return { email_verified: 1 };
+                  return null;
+                },
+              };
+            },
+          };
+        },
+      },
+    } as any;
+    for (const email of ['known@example.test', 'unknown@example.test']) {
+      const res = await worker.fetch(
+        new Request('https://api.wwebconsole.com/v1/auth/resend-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '198.51.100.99' },
+          body: JSON.stringify({ email }),
+        }),
+        enumEnv,
+        executionContext
+      );
+      assert.equal(res.status, 200, email);
+      // A verified address must answer exactly like an unknown one.
+      assert.deepEqual(await res.json(), { ok: true }, email);
+    }
+  });
+
+  it('fails closed when the Polar webhook secret is missing', async () => {
+    // Regression guard for the deployed fail-open incident: without
+    // POLAR_WEBHOOK_SECRET the handler must refuse, never activate a station.
+    for (const prefix of [API_PREFIX, LEGACY_API_PREFIX]) {
+      const res = await dispatch(`https://api.wwebconsole.com${prefix}/webhooks/polar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'order.created', data: { metadata: { stationId: 'station-id' } } }),
+      });
+      assert.equal(res.status, 503, prefix);
+      assert.equal(await res.text(), 'Webhook authentication is not configured', prefix);
     }
   });
 
@@ -333,6 +394,127 @@ describe('production worker legacy re-dispatch', () => {
     assert.match(missing.headers.get('Content-Type') || '', /^application\/json/);
     assert.deepEqual(await missing.json(), { error: 'Not found' });
     assert.equal(assetFetches, before, 'API-only host 404 must not serve the SPA shell');
+  });
+
+  it('treats due scheduled posts as published', async () => {
+    // Nothing flips status 'scheduled' -> 'published' (the cron only purges and
+    // polls), so a scheduled post must still go public once publish_at passes.
+    const blog = await vite!.ssrLoadModule('/worker/blog.ts');
+    const queries: string[] = [];
+    const statement = {
+      bind() {
+        return {
+          all: async () => ({ results: [] }),
+          first: async () => ({ c: 0 }),
+        };
+      },
+    };
+    await blog.listPublishedPosts(
+      { DB: { prepare: (sql: string) => { queries.push(sql); return statement; } } } as any,
+      10,
+      0
+    );
+    assert.match(queries[0] || '', /status IN \('published', 'scheduled'\)/);
+  });
+
+  it('does not emit unsafe legacy slugs into the sitemap', async () => {
+    const settings = await vite!.ssrLoadModule('/worker/settings.ts');
+    const statement = {
+      bind() { return this; },
+      all: async () => ({ results: [] }),
+      first: async () => null,
+    };
+    const xml = await settings.buildSitemapXml(
+      { DB: { prepare: () => statement } } as any,
+      [
+        { slug: '../../app', updated_at: 1, publish_at: 1, cover_image_url: null },
+        { slug: 'safe-post', updated_at: 1, publish_at: 1, cover_image_url: null },
+      ]
+    );
+    assert.doesNotMatch(xml, /\/post\/\.\.\/\.\.\/app/);
+    assert.match(xml, /\/post\/safe-post/);
+  });
+
+  it('keeps admin-authored JSON-LD from closing the script element', async () => {
+    const settings = await vite!.ssrLoadModule('/worker/settings.ts');
+    const injected = settings.injectSeoIntoHtml(
+      '<html><head></head><body></body></html>',
+      {
+        title: 'Test',
+        description: 'Test',
+        keywords: '',
+        canonical: 'https://wwebconsole.com/',
+        indexable: true,
+        siteName: '</script><script src="https://cdn.jsdelivr.net/npm/evil.js"></script>',
+        jsonLd: JSON.stringify({ value: '</script><script src="https://cdn.jsdelivr.net/npm/evil.js"></script>' }),
+      }
+    );
+    assert.doesNotMatch(injected, /<script[^>]+evil\.js/i);
+    assert.match(injected, /\\u003cscript/i);
+  });
+
+  it('never creates a checkout against another user\'s station', async () => {
+    // A caller-supplied stationId used to be looked up with no user_id filter,
+    // so any authenticated user could start a paid checkout that is later
+    // fulfilled onto somebody else's station.
+    const crypto = await vite!.ssrLoadModule('/worker/crypto.ts');
+    const rateLimit = await vite!.ssrLoadModule('/worker/rateLimit.ts');
+    rateLimit.__resetRateLimitsForTests();
+
+    const sessionId = '22222222-2222-4222-8222-222222222222';
+    const cookie = await crypto.signSessionCookieValue('test-session-secret', sessionId);
+    const seen: string[] = [];
+    const dbEnv = {
+      ...env,
+      SESSION_SECRET: 'test-session-secret',
+      DB: {
+        prepare(sql: string) {
+          seen.push(sql);
+          return {
+            bind() {
+              return {
+                first: async () =>
+                  sql.includes('FROM sessions')
+                    ? {
+                        id: 'caller-user',
+                        email: 'caller@example.test',
+                        role: 'user',
+                        suspended: 0,
+                        email_verified: 1,
+                      }
+                    : null,
+                run: async () => ({}),
+              };
+            },
+          };
+        },
+      },
+    } as any;
+
+    const res = await worker.fetch(
+      new Request('https://api.wwebconsole.com/v1/billing/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `wwc_session=${cookie}`,
+          'CF-Connecting-IP': '198.51.100.7',
+        },
+        body: JSON.stringify({ stationId: 'someone-elses-station' }),
+      }),
+      dbEnv,
+      executionContext
+    );
+    assert.equal(res.status, 404);
+    assert.deepEqual(await res.json(), { error: 'Station not found' });
+    const stationLookup = seen.find((sql) => sql.includes('FROM stations WHERE id = ?'));
+    assert.ok(stationLookup, 'expected a station lookup');
+    assert.match(stationLookup, /user_id = \?/, 'station lookup must be scoped to the caller');
+    // Self-healing must not run for a stationId the caller does not own.
+    assert.equal(
+      seen.some((sql) => sql.includes('INSERT INTO stations')),
+      false,
+      'must not create a station for an unknown stationId'
+    );
   });
 
   it('keeps robots, private-route SEO, and the earlier CSP allowlist fixes intact', async () => {

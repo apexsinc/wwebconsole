@@ -599,7 +599,13 @@ function HostAwareRoutes() {
   const host = typeof window !== 'undefined' ? window.location.hostname : '';
 
   // Dedicated admin host: login only (no public registration). Cloudflare Access OTP sits in front.
-  if (host === 'admin.wwebconsole.com' || host.startsWith('admin.') || host === 'admin.localhost') {
+  // Must mirror isAdminHostname() in worker/hosts.ts: a bare "admin." prefix would
+  // also swallow unrelated hosts such as admin.example.test.
+  if (
+    host === 'admin.wwebconsole.com' ||
+    host === 'admin.localhost' ||
+    host.endsWith('.admin.wwebconsole.com')
+  ) {
     return (
       <Suspense fallback={<RouteFallback label="Loading admin…" />}>
       <Routes>

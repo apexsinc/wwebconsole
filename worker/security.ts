@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { isApiPath } from '../shared/apiPaths.ts';
 import type { Env } from './types';
 import { rateLimit, RATE_LIMITS } from './rateLimit.ts';
@@ -99,15 +100,19 @@ export function withSpaSecurityHeaders(res: Response, opts: { dev?: boolean } = 
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 
+const enforceBodyLimit = bodyLimit({
+  maxSize: MAX_JSON_BYTES,
+  onError: (c) => c.json({ error: 'Request body too large' }, 413),
+});
+
 export async function limitJsonBody(c: Context<{ Bindings: Env }>, next: Next) {
   if (c.req.method === 'GET' || c.req.method === 'HEAD' || c.req.method === 'OPTIONS') {
     return next();
   }
-  const cl = c.req.header('content-length');
-  if (cl && Number(cl) > MAX_JSON_BYTES) {
-    return c.json({ error: 'Request body too large' }, 413);
-  }
-  return next();
+  // Hono's bodyLimit also counts streamed/chunked bodies. A Content-Length
+  // check alone is bypassable with an omitted or dishonest length header.
+  // (Content-Length requests keep the same fast path and the same 413 body.)
+  return enforceBodyLimit(c, next);
 }
 
 export function clientIp(c: { req: { header: (n: string) => string | undefined } }): string {
@@ -129,14 +134,28 @@ export function enforceRateLimit(
   );
 }
 
+/** Hosts that must never be treated as development, whatever the bindings say. */
+const NEVER_DEV_HOST_SUFFIXES = ['.wwebconsole.com', '.workers.dev'];
+
 export function isDevEnvironment(env: Env, requestUrl: string): boolean {
-  if ((env as any).ENVIRONMENT === 'development' || (env as any).ALLOW_DEV_OTP === '1') return true;
+  let host = '';
   try {
-    const host = new URL(requestUrl).hostname;
-    return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.localhost');
+    host = new URL(requestUrl).hostname.toLowerCase();
   } catch {
     return false;
   }
+  // A development-only flag (ENVIRONMENT/ALLOW_DEV_OTP) must never weaken a
+  // known production domain: that would relax the CSP back to 'unsafe-inline'
+  // and expose the devCode/dev bypass. Checking the host first also makes an
+  // accidentally copied .dev.vars value harmless in production.
+  if (
+    host === 'wwebconsole.com' ||
+    NEVER_DEV_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))
+  ) {
+    return false;
+  }
+  if ((env as any).ENVIRONMENT === 'development' || (env as any).ALLOW_DEV_OTP === '1') return true;
+  return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.localhost');
 }
 
 export function safePublicError(err: unknown, fallback = 'Request failed'): string {

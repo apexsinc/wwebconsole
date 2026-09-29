@@ -270,8 +270,13 @@ api.get('/public/blog/cover/:slug', async (c) => {
   const limited = enforceRateLimit(c, 'publicTv');
   if (limited) return limited;
   const slug = (c.req.param('slug') || '').slice(0, 160);
-  const row = await c.env.DB.prepare('SELECT * FROM blog_posts WHERE slug = ? COLLATE NOCASE')
-    .bind(slug)
+  // Draft/unscheduled posts must not leak a cover image (or trigger the
+  // upstream cover fetch) through a public endpoint.
+  const row = await c.env.DB.prepare(
+    `SELECT * FROM blog_posts
+     WHERE slug = ? COLLATE NOCASE AND status IN ('published', 'scheduled') AND publish_at <= ?`
+  )
+    .bind(slug, Date.now())
     .first<BlogPostRow>();
   if (!row) return c.text('Not found', 404);
   const url = await resolveCoverImage(c.env, row);
@@ -398,7 +403,10 @@ api.post('/auth/resend-verification', async (c) => {
       .bind(body.data.email.trim())
       .first<UserRow>();
     if (!user) return c.json({ ok: true }); // don't leak
-    if (user.email_verified) return c.json({ ok: true, alreadyVerified: true });
+    // Never reveal whether an address is already verified — that is an
+    // account-enumeration oracle. The client only needs an acknowledgement;
+    // resending to a verified account is a no-op.
+    if (user.email_verified) return c.json({ ok: true });
     await createAndSendOtp(c.env, user.email, 'verify');
     return c.json({ ok: true });
   } catch (err: any) {
@@ -530,8 +538,10 @@ api.get('/auth/google/start', async (c) => {
   });
   // Share the state cookie across apex + www + api: Google returns to the
   // api-subdomain callback URI, so a host-only cookie would be missing there.
+  // Dot-anchored so a lookalike host (xwwebconsole.com) never gets it.
   const reqHost = new URL(c.req.url).hostname;
-  const stateDomain = reqHost.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
+  const stateDomain =
+    reqHost === 'wwebconsole.com' || reqHost.endsWith('.wwebconsole.com') ? '.wwebconsole.com' : undefined;
   setCookie(c, `${OAUTH_STATE_COOKIE_PREFIX}${nonce}`, state, {
     path: '/',
     httpOnly: true,
@@ -570,7 +580,8 @@ api.get('/auth/google/callback', async (c) => {
   if (!cookieState || returnedState !== cookieState) return fail('google_failed');
   // Clear with the same domain the cookie was set with, or it lingers.
   const cbHost = new URL(c.req.url).hostname;
-  const cbDomain = cbHost.endsWith('wwebconsole.com') ? '.wwebconsole.com' : undefined;
+  const cbDomain =
+    cbHost === 'wwebconsole.com' || cbHost.endsWith('.wwebconsole.com') ? '.wwebconsole.com' : undefined;
   deleteCookie(c, stateCookie, cbDomain ? { path: '/', domain: cbDomain } : { path: '/' });
 
   // Entry-aware routing (from sealed state, never user input): admin-portal
@@ -955,9 +966,15 @@ api.post('/billing/checkout', requireAuth, async (c) => {
     .safeParse(await c.req.json().catch(() => ({})));
   if (!body.success) return c.json({ error: 'Invalid input' }, 400);
 
+  // A caller-supplied stationId must belong to the caller: a checkout created
+  // for someone else's station would be fulfilled onto that station.
   let station = body.data.stationId
-    ? await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?').bind(body.data.stationId).first<StationRow>()
+    ? await c.env.DB.prepare('SELECT * FROM stations WHERE id = ? AND user_id = ?')
+        .bind(body.data.stationId, user.id)
+        .first<StationRow>()
     : await getStationForUser(c.env, user.id);
+
+  if (!station && body.data.stationId) return c.json({ error: 'Station not found' }, 404);
 
   if (!station) {
     const now = Date.now();
@@ -1157,7 +1174,11 @@ api.get('/public/tv/:slug', async (c) => {
     .safeParse(c.req.param('slug'));
   if (!slugParse.success) return c.json({ error: 'Display not found' }, 404);
 
-  const limited = enforceRateLimit(c, 'publicTv', slugParse.data.toLowerCase());
+  // The per-display bucket is trivially bypassed by rotating slugs, so keep
+  // a per-IP ceiling in front of it as well.
+  const limited =
+    enforceRateLimit(c, 'publicTv', slugParse.data.toLowerCase()) ||
+    enforceRateLimit(c, 'publicTvIp');
   if (limited) return limited;
 
   const link = await c.env.DB.prepare(
@@ -1525,7 +1546,15 @@ api.get('/admin/audit', requireAdmin, async (c) => {
 // ---------- Admin blog (/admin → Blog tab) ----------
 const blogPostSchema = z.object({
   title: z.string().min(3).max(160),
-  slug: z.string().max(160).optional(),
+  // Slugs become public URLs (/post/<slug>) and are echoed into sitemap.xml,
+  // blog.xml, and og:url, so restrict the character set at the source.
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .regex(/^[a-z0-9-]+$/i, 'Slug must contain only letters, numbers, and hyphens')
+    .optional(),
   excerpt: z.string().max(400).optional().default(''),
   body: z.string().max(60000).optional().default(''),
   coverQuery: z.string().max(80).optional().default(''),
@@ -1799,8 +1828,11 @@ export default {
     const assetRes = await env.ASSETS.fetch(request);
     const accept = request.headers.get('Accept') || '';
     // Skip SEO work for hashed static assets (never HTML navigations).
+    // A *.html/*.htm path is a navigation for crawlers, not an asset: treating
+    // it as an asset is what let /featurez.html return an indexable 200 shell.
     const isAssetPath =
-      url.pathname.startsWith('/assets/') || /\.[a-z0-9]{2,5}$/i.test(url.pathname);
+      url.pathname.startsWith('/assets/') ||
+      (/\.[a-z0-9]{2,5}$/i.test(url.pathname) && !/\.html?$/i.test(url.pathname));
     const onAdminHost = isAdminHostname(url.hostname);
     // Vite's dev server injects an inline react-refresh preamble, so the CSP
     // may only relax 'unsafe-inline' in local dev. Production always ships the
@@ -1902,7 +1934,7 @@ export default {
         !isKnownIndexableRoute(url.pathname) &&
         !isNoIndexPath(url.pathname) &&
         !url.pathname.startsWith('/post/');
-      if ((needsNoIndex || isUnknown) && request.method === 'GET' && assetRes.ok) {
+      if ((needsNoIndex || isUnknown) && request.method === 'GET') {
         const site = await getPublicSiteConfig(env).catch(() => null);
         const base = site?.site_canonical_base || 'https://wwebconsole.com';
         const seo = needsNoIndex

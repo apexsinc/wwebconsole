@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateOtpCode, randomSlug, hashPassword, verifyPassword, hmacSha256Hex, parseSessionCookieValue } from '../crypto.ts';
 import { __resetRateLimitsForTests, rateLimit } from '../rateLimit.ts';
-import { spaContentSecurityPolicy, SPA_CONTENT_SECURITY_POLICY } from '../security.ts';
+import { spaContentSecurityPolicy, SPA_CONTENT_SECURITY_POLICY, corsOriginAllowlist, isDevEnvironment } from '../security.ts';
 
 function directive(policy: string, name: string): string {
   const found = policy.split(';').map((d) => d.trim()).find((d) => d.startsWith(`${name} `));
@@ -109,15 +109,42 @@ describe('rateLimit', () => {
   });
 });
 
+describe('development environment detection', () => {
+  it('does not let dev flags weaken known production hosts', () => {
+    // ENVIRONMENT/ALLOW_DEV_OTP must never relax the CSP or expose devCode on
+    // a production (or previously live workers.dev) host.
+    const env = { ENVIRONMENT: 'development', ALLOW_DEV_OTP: '1' } as any;
+    assert.equal(isDevEnvironment(env, 'https://wwebconsole.com/login'), false);
+    assert.equal(isDevEnvironment(env, 'https://api.wwebconsole.com/health'), false);
+    assert.equal(isDevEnvironment(env, 'https://admin.wwebconsole.com/'), false);
+    assert.equal(isDevEnvironment(env, 'https://wwebconsole.apexsinc.workers.dev/login'), false);
+    assert.equal(isDevEnvironment(env, 'http://localhost:5173/login'), true);
+    assert.equal(isDevEnvironment({} as any, 'http://127.0.0.1:8787/'), true);
+    assert.equal(isDevEnvironment({} as any, 'http://admin.localhost:5173/login'), true);
+    // Unparseable URLs must never be treated as development.
+    assert.equal(isDevEnvironment(env, 'not-a-url'), false);
+  });
+});
+
 describe('cors allowlist policy', () => {
-  const allowed = new Set([
-    'https://wwebconsole.com',
-    'https://www.wwebconsole.com',
-    'https://admin.wwebconsole.com',
-  ]);
-  it('documents production origins', () => {
-    assert.equal(allowed.has('https://wwebconsole.com'), true);
-    assert.equal(allowed.has('https://evil.example'), false);
+  it('accepts only the explicit production origins (plus local development)', () => {
+    for (const origin of [
+      'https://wwebconsole.com',
+      'https://www.wwebconsole.com',
+      'https://admin.wwebconsole.com',
+      'http://localhost:5173',
+    ]) {
+      assert.equal(corsOriginAllowlist(origin), origin, origin);
+    }
+    for (const origin of [
+      'https://evil.example',
+      'https://wwebconsole.com.evil.example',
+      'https://localhost.evil.example',
+      'null',
+      '',
+    ]) {
+      assert.equal(corsOriginAllowlist(origin), null, origin);
+    }
   });
 });
 

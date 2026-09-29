@@ -39,9 +39,11 @@ npm run dev
 ### Browser regression tests
 
 The focused browser suite uses the already-installed `playwright-core` Chromium
-browser. It starts an ephemeral Vite server, blocks third-party network access,
-and covers trusted Google-link navigation, auth-config request coalescing,
-private-page SEO headers, and the `/v1` + `/api` contract:
+browser. It builds the app (client **and** Worker) with Vite's multi-environment
+builder, starts an ephemeral preview server that runs the real Worker, blocks
+third-party network access, and covers trusted Google-link navigation,
+auth-config request coalescing, private-page SEO headers, unknown `.html` 404s,
+and the `/v1` + `/api` contract:
 
 ```bash
 npm run test:ui
@@ -59,6 +61,9 @@ running against an already-running local server.
 npx wrangler d1 migrations apply wwebconsole-db --remote
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put CREDENTIALS_KEY
+# required for billing — the webhook endpoint fails closed without the secret:
+npx wrangler secret put POLAR_ACCESS_TOKEN
+npx wrangler secret put POLAR_WEBHOOK_SECRET
 # optional overrides:
 # npx wrangler secret put TURNSTILE_SECRET_KEY
 # npx wrangler secret put RESEND_API_KEY

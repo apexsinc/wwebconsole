@@ -48,7 +48,9 @@ If the API returns `request is not authorized`, create the Free rule in the dash
 
 - Do **not** cache `/v1/*` or legacy `/api/*` at the edge (app sets `Cache-Control: no-store`).
 - Marketing HTML may use short `max-age` (SEO injection).
-- Public TV JSON may use `max-age=30` only.
+- Public TV responses are currently forced to `no-store` by the global API
+  security middleware; do not rely on `max-age=30` until that policy is
+  changed deliberately.
 
 ## Secrets
 
@@ -59,11 +61,15 @@ npm run env:sync-dev    # → .dev.vars for local wrangler/vite
 npm run secrets:push    # → Worker secrets + D1 Turnstile/Resend flags
 ```
 
-Secrets pushed: `SESSION_SECRET`, `CREDENTIALS_KEY`, `TURNSTILE_SECRET_KEY`, `RESEND_API_KEY` (if set), `ADMIN_EMAIL`, `ADMIN_EMAILS`.
+Secrets pushed: `SESSION_SECRET`, `CREDENTIALS_KEY`, `TURNSTILE_SECRET_KEY`, `RESEND_API_KEY` (if set), `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `ADMIN_EMAIL`, `ADMIN_EMAILS`.
+
+`POLAR_WEBHOOK_SECRET` is required in production. The Worker returns `503` and
+does not process billing events when it is missing; never restore fail-open
+webhook handling.
 
 Prefer secrets over D1 `app_settings` for integration keys. Rotate if `.dev.vars` or build artifacts were ever exposed.
 
-`SESSION_SECRET` HMAC-signs the session cookie (`sessionId.signature`). Legacy unsigned UUID cookies still work until users re-login.
+`SESSION_SECRET` HMAC-signs the session cookie (`sessionId.signature`). Legacy unsigned or truncated UUID cookies are rejected; rotating the secret invalidates all existing sessions.
 
 ## Rate limiting helper
 

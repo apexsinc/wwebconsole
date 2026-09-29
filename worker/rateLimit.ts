@@ -60,6 +60,9 @@ export const RATE_LIMITS = {
   oauthCallback: { limit: 30, windowMs: 15 * 60 * 1000 },
   shareCreate: { limit: 20, windowMs: 60 * 60 * 1000 },
   publicTv: { limit: 60, windowMs: 60 * 1000 },
+  // Per-IP ceiling in addition to the per-display bucket; otherwise rotating
+  // slugs bypasses the abuse limit for public TV data.
+  publicTvIp: { limit: 120, windowMs: 60 * 1000 },
   adminWrite: { limit: 60, windowMs: 60 * 1000 },
   contact: { limit: 5, windowMs: 60 * 60 * 1000 },
   apiDefault: { limit: 120, windowMs: 60 * 1000 },

@@ -74,15 +74,36 @@ export function publicPost(p: BlogPostRow) {
   };
 }
 
+/**
+ * Public-visibility predicate, applied to every public read.
+ *
+ * A post the admin saved as `scheduled` is never flipped to `published` by any
+ * job (the cron only purges and polls), so requiring status = 'published'
+ * meant a scheduled post stayed invisible forever once its publish_at passed.
+ * `publish_at <= now` still hides anything scheduled for the future, and
+ * `draft` is still excluded.
+ */
+const PUBLIC_POST_PREDICATE = `status IN ('published', 'scheduled') AND publish_at <= ?`;
+
+/**
+ * Slugs are echoed into public URLs (/post/<slug>), sitemap.xml, blog.xml and
+ * og:url. Rows written before slug validation (or by hand) can carry
+ * `../../app` style values that normalize into a private route, so every
+ * public emitter filters on this.
+ */
+export function isSafePostSlug(slug: string): boolean {
+  return /^[a-z0-9-]+$/i.test(slug || '');
+}
+
 export async function listPublishedPosts(env: Env, limit = 24, offset = 0) {
   const now = Date.now();
   const { results } = await env.DB.prepare(
-    `SELECT * FROM blog_posts WHERE status = 'published' AND publish_at <= ? ORDER BY publish_at DESC LIMIT ? OFFSET ?`
+    `SELECT * FROM blog_posts WHERE ${PUBLIC_POST_PREDICATE} ORDER BY publish_at DESC LIMIT ? OFFSET ?`
   )
     .bind(now, limit, offset)
     .all<BlogPostRow>();
   const total = await env.DB.prepare(
-    `SELECT COUNT(*) AS c FROM blog_posts WHERE status = 'published' AND publish_at <= ?`
+    `SELECT COUNT(*) AS c FROM blog_posts WHERE ${PUBLIC_POST_PREDICATE}`
   )
     .bind(now)
     .first<{ c: number }>();
@@ -92,7 +113,7 @@ export async function listPublishedPosts(env: Env, limit = 24, offset = 0) {
 export async function getPublishedPost(env: Env, slug: string) {
   const now = Date.now();
   const row = await env.DB.prepare(
-    `SELECT * FROM blog_posts WHERE slug = ? COLLATE NOCASE AND status = 'published' AND publish_at <= ?`
+    `SELECT * FROM blog_posts WHERE slug = ? COLLATE NOCASE AND ${PUBLIC_POST_PREDICATE}`
   )
     .bind(slug, now)
     .first<BlogPostRow>();
@@ -107,7 +128,7 @@ export async function listRelatedPosts(env: Env, slug: string, limit = 3) {
     .first<{ tags: string }>();
   const currentTags = new Set((current?.tags || '').split(',').map((t) => t.trim()).filter(Boolean));
   const { results } = await env.DB.prepare(
-    `SELECT * FROM blog_posts WHERE slug != ? COLLATE NOCASE AND status = 'published' AND publish_at <= ? ORDER BY publish_at DESC LIMIT 60`
+    `SELECT * FROM blog_posts WHERE slug != ? COLLATE NOCASE AND ${PUBLIC_POST_PREDICATE} ORDER BY publish_at DESC LIMIT 60`
   )
     .bind(slug, now)
     .all<BlogPostRow>();
@@ -240,12 +261,16 @@ export async function buildBlogRss(env: Env): Promise<string> {
   const esc = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const items = posts
+    // Never emit a legacy/malformed slug: it becomes a URL in the feed and can
+    // normalize into a private route in a feed consumer.
+    .filter((p) => isSafePostSlug(p.slug))
     .map((p) => {
       const pubDate = new Date(p.publishAt || Date.now()).toUTCString();
-      return `    <item>\n      <title>${esc(p.title)}</title>\n      <link>${base}/post/${p.slug}</link>\n      <guid isPermaLink="true">${base}/post/${p.slug}</guid>\n      <pubDate>${pubDate}</pubDate>\n      <description>${esc(p.excerpt || p.title)}</description>\n    </item>`;
+      const link = esc(`${base}/post/${p.slug}`);
+      return `    <item>\n      <title>${esc(p.title)}</title>\n      <link>${link}</link>\n      <guid isPermaLink="true">${link}</guid>\n      <pubDate>${pubDate}</pubDate>\n      <description>${esc(p.excerpt || p.title)}</description>\n    </item>`;
     })
     .join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>WWebConsole Blog</title>\n    <link>${base}/blogs</link>\n    <description>Station setup guides, weather reading tips, and product updates.</description>\n    <language>en</language>\n${items}\n  </channel>\n</rss>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>WWebConsole Blog</title>\n    <link>${esc(`${base}/blogs`)}</link>\n    <description>Station setup guides, weather reading tips, and product updates.</description>\n    <language>en</language>\n${items}\n  </channel>\n</rss>`;
 }
 
 /** Published post metadata for sitemap.xml (slugs + freshness + covers). */
@@ -254,7 +279,7 @@ export async function listPublishedPostMeta(
   limit = 500
 ): Promise<{ slug: string; updated_at: number; publish_at: number; cover_image_url: string | null }[]> {
   const { results } = await env.DB.prepare(
-    `SELECT slug, updated_at, publish_at, cover_image_url FROM blog_posts WHERE status = 'published' AND publish_at <= ? ORDER BY publish_at DESC LIMIT ?`
+    `SELECT slug, updated_at, publish_at, cover_image_url FROM blog_posts WHERE ${PUBLIC_POST_PREDICATE} ORDER BY publish_at DESC LIMIT ?`
   )
     .bind(Date.now(), limit)
     .all<{ slug: string; updated_at: number; publish_at: number; cover_image_url: string | null }>();
