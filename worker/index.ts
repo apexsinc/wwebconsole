@@ -109,6 +109,40 @@ type AppVars = { user: UserRow };
 const app = new Hono<{ Bindings: Env; Variables: AppVars }>();
 const api = new Hono<{ Bindings: Env; Variables: AppVars }>();
 
+/**
+ * Append a row to the privileged-action audit log.
+ *
+ * Best-effort by design: an audit write must never block or fail the admin
+ * action it describes, but a genuine failure is surfaced in the logs.
+ * Never record secrets — detail is operator-supplied operational context.
+ */
+async function recordAdminAudit(
+  env: Env,
+  actor: UserRow | undefined,
+  action: string,
+  targetUserId: string | null,
+  detail: Record<string, unknown>
+) {
+  try {
+    await env.DB.prepare(
+      `INSERT INTO admin_audit_log (id, actor_id, actor_email, action, target_user_id, detail, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        newId(),
+        actor?.id ?? null,
+        actor?.email ?? '',
+        action,
+        targetUserId,
+        JSON.stringify(detail),
+        Date.now()
+      )
+      .run();
+  } catch (err) {
+    console.error('admin_audit_log write failed:', err instanceof Error ? err.message : err);
+  }
+}
+
 app.use('*', securityHeaders);
 for (const prefix of API_ROUTE_PREFIXES) {
   app.use(
@@ -1280,6 +1314,7 @@ api.get('/admin/users', requireAdmin, async (c) => {
 api.patch('/admin/users/:id', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
+  const actor = c.get('user');
   const idParse = z.string().uuid().safeParse(c.req.param('id') || '');
   if (!idParse.success) return c.json({ error: 'Invalid user id' }, 400);
   const body = z
@@ -1332,6 +1367,20 @@ api.patch('/admin/users/:id', requireAdmin, async (c) => {
     await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
   }
 
+  // Record the privilege change, including what it changed FROM, so a role or
+  // suspension change can never be a silent mystery later.
+  await recordAdminAudit(c.env, actor, 'user.update', id, {
+    from: { role: user.role, suspended: Boolean(user.suspended), freeUntil: user.free_until },
+    to: {
+      role: d.role ?? user.role,
+      suspended: d.suspended ?? Boolean(user.suspended),
+      freeUntil: newFreeUntil ?? user.free_until,
+      emailVerified: d.emailVerified ?? Boolean(user.email_verified),
+    },
+    extendTrialDays: d.extendTrialDays ?? null,
+    sessionsRevoked: Boolean(d.suspended),
+  });
+
   const updatedUser = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
   const station = await getStationForUser(c.env, id);
   return c.json({ user: publicUser(updatedUser!), billing: publicBilling(updatedUser!, station) });
@@ -1358,6 +1407,13 @@ api.delete('/admin/users/:id', requireAdmin, async (c) => {
   await c.env.DB.prepare('DELETE FROM share_links WHERE user_id = ?').bind(targetId).run().catch(() => undefined);
   await c.env.DB.prepare('DELETE FROM devices WHERE user_id = ?').bind(targetId).run().catch(() => undefined);
   await c.env.DB.prepare('DELETE FROM otp_codes WHERE user_id = ?').bind(targetId).run().catch(() => undefined);
+  // Audit first: the user row is about to disappear, so the identity is only
+  // recoverable from this log.
+  await recordAdminAudit(c.env, adminUser, 'user.delete', targetId, {
+    email: user.email,
+    role: user.role,
+    hadStation: true,
+  });
   await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetId).run();
 
   return c.json({ ok: true, message: 'Customer account and associated station data deleted successfully.' });
@@ -1409,6 +1465,21 @@ api.post('/admin/users/:id/activate-device', requireAdmin, async (c) => {
       .run();
   }
 
+  // Manual grants are the least traceable way to create paid access, so record
+  // who granted it, for how long, and what the expiry was before/after.
+  await recordAdminAudit(c.env, c.get('user'), 'device.activate', userId, {
+    stationId: station.id,
+    years: body.data.years,
+    wlPlan: body.data.wlPlan,
+    expiresBefore: station.subscription_expires_at ?? null,
+    expiresAfter: (
+      await c.env.DB.prepare('SELECT subscription_expires_at FROM stations WHERE id = ?')
+        .bind(station.id)
+        .first<{ subscription_expires_at: number | null }>()
+    )?.subscription_expires_at ?? null,
+    source: 'admin-manual',
+  });
+
   const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<UserRow>();
   const updated = await getStationForUser(c.env, userId);
   return c.json({ ok: true, billing: publicBilling(user!, updated) });
@@ -1418,6 +1489,37 @@ api.get('/admin/settings', requireAdmin, async (c) => {
   const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
   if (limited) return limited;
   return c.json({ settings: await listSettingsForAdmin(c.env), groups: SITE_SETTING_GROUPS });
+});
+
+/** Recent privileged actions, newest first. Read-only investigation aid. */
+api.get('/admin/audit', requireAdmin, async (c) => {
+  const limited = enforceRateLimit(c, 'adminWrite', c.get('user').id);
+  if (limited) return limited;
+  const limit = z.coerce.number().int().min(1).max(200).default(50)
+    .safeParse(c.req.query('limit') || undefined);
+  const n = limit.success && limit.data ? limit.data : 50;
+  const { results } = await c.env.DB.prepare(
+    'SELECT * FROM admin_audit_log ORDER BY created_at DESC LIMIT ?'
+  )
+    .bind(n)
+    .all<Record<string, string | number | null>>();
+  return c.json({
+    entries: (results || []).map((r) => ({
+      id: r.id,
+      actorEmail: r.actor_email,
+      actorId: r.actor_id,
+      action: r.action,
+      targetUserId: r.target_user_id,
+      createdAt: r.created_at,
+      detail: (() => {
+        try {
+          return JSON.parse(String(r.detail || '{}'));
+        } catch {
+          return {};
+        }
+      })(),
+    })),
+  });
 });
 
 // ---------- Admin blog (/admin → Blog tab) ----------
