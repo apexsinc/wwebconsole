@@ -226,19 +226,23 @@ describe('production worker legacy re-dispatch', () => {
   });
 
   it('preserves POST bodies and applies the JSON body limit to both prefixes', async () => {
-    const validShape = JSON.stringify({ credential: 'x'.repeat(20), nonce: '12345678', mode: 'login' });
+    // Uses the public contact endpoint: it is unauthenticated, so a preserved
+    // body is distinguishable from a lost one by the schema error it produces.
+    const path = '/public/contact';
+    const validShape = JSON.stringify({ email: 'not-an-email', message: 'x'.repeat(20) });
     for (const prefix of [API_PREFIX, LEGACY_API_PREFIX]) {
-      const res = await dispatch(`https://api.wwebconsole.com${prefix}/auth/google/credential`, {
+      const res = await dispatch(`https://api.wwebconsole.com${prefix}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: validShape,
       });
       assert.equal(res.status, 400, prefix);
-      // A lost body would parse as `{}` and return "Invalid input" instead.
-      assert.equal((await res.json() as { error: string }).error, 'Google sign-in failed. Please try again.');
+      // A lost body would parse as `{}` and still return 400, so assert the
+      // specific schema error that only a preserved body can produce.
+      assert.equal((await res.json() as { error: string }).error, 'Invalid input', prefix);
 
       const oversizedBody = 'x'.repeat(64 * 1024 + 1);
-      const oversized = await dispatch(`https://api.wwebconsole.com${prefix}/auth/google/credential`, {
+      const oversized = await dispatch(`https://api.wwebconsole.com${prefix}${path}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
