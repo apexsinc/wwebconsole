@@ -145,24 +145,43 @@ body {
   }
 
   :fullscreen .compass-rose-wrap {
-    padding: 0.25rem;
+    padding: 0;
     overflow: visible;
   }
 
   :fullscreen .compass-rose-box {
-    max-width: min(29.5rem, 64vh);
-    max-height: min(29.5rem, 64vh);
-    width: min(29.5rem, 64vh);
-    height: min(29.5rem, 64vh);
+    width: 20rem;
+    height: 20rem;
+    min-width: 20rem;
+    min-height: 20rem;
+    max-width: 20rem;
+    max-height: 20rem;
+    aspect-ratio: 1 / 1 !important;
+    flex-shrink: 0;
     overflow: visible;
   }
 
   :fullscreen .compass-rose-zoom {
-    transform: scale(1.22);
+    transform: scale(1.30);
+    transform-origin: center center;
+  }
+
+  @media (min-height: 800px) {
+    :fullscreen .compass-rose-box {
+      width: 21rem;
+      height: 21rem;
+      min-width: 21rem;
+      min-height: 21rem;
+      max-width: 21rem;
+      max-height: 21rem;
+    }
+    :fullscreen .compass-rose-zoom {
+      transform: scale(1.42);
+    }
   }
 
   :fullscreen .compass-rose-speed {
-    font-size: 5.9rem;
+    font-size: 5.5rem;
   }
 
   :fullscreen .console-tile {
@@ -518,14 +537,16 @@ body {
 }
 @media (min-width: 1024px) {
   .compass-rose-box {
-    width: min(24.5rem, 42vh);
-    height: min(24.5rem, 42vh);
+    width: min(21rem, 38vh);
+    height: min(21rem, 38vh);
+    aspect-ratio: 1 / 1;
   }
 }
 @media (min-width: 1024px) and (min-height: 850px) {
   .compass-rose-box {
-    width: 25rem;
-    height: 25rem;
+    width: 21rem;
+    height: 21rem;
+    aspect-ratio: 1 / 1;
   }
 }
 .compass-rose-point {
