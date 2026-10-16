@@ -59,7 +59,7 @@ export default function CompassRose() {
   ];
 
   return (
-    <div className="compass-rose-wrap flex flex-col items-center justify-center p-1 md:py-1 md:px-2">
+    <div className="compass-rose-wrap flex flex-col items-center justify-center p-2 md:p-4">
       <div
         className="compass-rose-box relative flex items-center justify-center"
         role="img"
@@ -77,117 +77,117 @@ export default function CompassRose() {
         {/* Zoom wrapper: grows the rendered rose to touch the tile corners
             without changing layout footprint (transform never overflows). */}
         <div className="compass-rose-zoom absolute inset-0" aria-hidden="true">
-        {/* Flat outer ring (steel rim by day, pure white by night) */}
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{ background: 'var(--con-ring)', boxShadow: 'var(--con-ring-shadow)' }}
-        />
+          {/* Flat outer ring (steel rim by day, pure white by night) */}
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{ background: 'var(--con-ring)', boxShadow: 'var(--con-ring-shadow)' }}
+          />
 
-        {/* Small uniform labels ON the ring */}
-        {points.map((pt) => {
-          const r = 46.5; // Centered on the white band
-          const rad = (pt.angle * Math.PI) / 180;
-          const x = 50 + r * Math.sin(rad);
-          const y = 50 - r * Math.cos(rad);
-
-          return (
-            <div
-              key={pt.label}
-              className="absolute compass-rose-point select-none"
-              style={{
-                left: `${x}%`,
-                top: `${y}%`,
-                transform: 'translate(-50%, -50%)',
-                color: 'rgba(71,85,105,0.85)',
-                fontWeight: 600,
-              }}
-            >
-              {pt.label}
-            </div>
-          );
-        })}
-
-        {/* Recent-direction trail: last 5 readings as fading shadows so
-            the prevailing bearing reads at a glance (oldest faintest). */}
-        {hasFix &&
-          trail.map((trailDir, i) => {
-            const r = 40;
-            const rad = (trailDir * Math.PI) / 180;
+          {/* Small uniform labels ON the ring */}
+          {points.map((pt) => {
+            const r = 46.5; // Centered on the white band
+            const rad = (pt.angle * Math.PI) / 180;
             const x = 50 + r * Math.sin(rad);
             const y = 50 - r * Math.cos(rad);
-            const opacity = 0.22 + (i / Math.max(1, trail.length - 1)) * 0.48;
 
             return (
               <div
-                key={`${i}-${trailDir}`}
-                aria-hidden="true"
-                className="absolute rounded-full"
+                key={pt.label}
+                className="absolute compass-rose-point select-none"
                 style={{
                   left: `${x}%`,
                   top: `${y}%`,
-                  width: '0.34rem',
-                  height: '0.34rem',
                   transform: 'translate(-50%, -50%)',
-                  backgroundColor: '#38bdf8',
-                  opacity,
+                  color: 'rgba(71,85,105,0.85)',
+                  fontWeight: 600,
                 }}
-              />
+              >
+                {pt.label}
+              </div>
             );
           })}
 
-        {/* Active spear: white pointer with dark outline, tip beyond the ring */}
-        {hasFix && (
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            initial={false}
-            animate={{ rotate: baseAngle }}
-            transition={
-              reduceMotion
-                ? { duration: 0 }
-                : { type: 'spring', stiffness: 60, damping: 18, mass: 0.8 }
-            }
-          >
-            <svg
-              className="absolute left-1/2 -translate-x-1/2"
-              style={{ top: '-7%', width: '10%', height: 'auto', overflow: 'visible' }}
-              viewBox="0 0 28 36"
-              aria-hidden="true"
+          {/* Recent-direction trail: last 5 readings as fading shadows so
+            the prevailing bearing reads at a glance (oldest faintest). */}
+          {hasFix &&
+            trail.map((trailDir, i) => {
+              const r = 40;
+              const rad = (trailDir * Math.PI) / 180;
+              const x = 50 + r * Math.sin(rad);
+              const y = 50 - r * Math.cos(rad);
+              const opacity = 0.22 + (i / Math.max(1, trail.length - 1)) * 0.48;
+
+              return (
+                <div
+                  key={`${i}-${trailDir}`}
+                  aria-hidden="true"
+                  className="absolute rounded-full"
+                  style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    width: '0.34rem',
+                    height: '0.34rem',
+                    transform: 'translate(-50%, -50%)',
+                    backgroundColor: '#38bdf8',
+                    opacity,
+                  }}
+                />
+              );
+            })}
+
+          {/* Active spear: white pointer with dark outline, tip beyond the ring */}
+          {hasFix && (
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              initial={false}
+              animate={{ rotate: baseAngle }}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : { type: 'spring', stiffness: 60, damping: 18, mass: 0.8 }
+              }
             >
-              <polygon
-                points="14,1 26,33 14,25 2,33"
-                fill="#ffffff"
-                stroke="#334155"
-                strokeWidth="2.5"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </motion.div>
-        )}
+              <svg
+                className="absolute left-1/2 -translate-x-1/2"
+                style={{ top: '-7%', width: '10%', height: 'auto', overflow: 'visible' }}
+                viewBox="0 0 28 36"
+                aria-hidden="true"
+              >
+                <polygon
+                  points="14,1 26,33 14,25 2,33"
+                  fill="#ffffff"
+                  stroke="#334155"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </motion.div>
+          )}
 
-        {/* Flat center disc readout */}
-        <div className="absolute compass-rose-disc rounded-full flex flex-col items-center justify-center select-none">
-          <span
-            className="compass-rose-abbrev text-[var(--con-disc-sub)] font-bold tracking-widest uppercase"
-          >
-            {hasFix ? directionText : '--'}
-          </span>
+          {/* Flat center disc readout */}
+          <div className="absolute compass-rose-disc rounded-full flex flex-col items-center justify-center select-none">
+            <span
+              className="compass-rose-abbrev text-[var(--con-disc-sub)] font-bold tracking-widest uppercase"
+            >
+              {hasFix ? directionText : '--'}
+            </span>
 
-          <span
-            className="compass-rose-speed font-bold text-[var(--con-disc-num)] tracking-tighter leading-none"
-          >
-            {hasFix ? convertedSpeed.toFixed(1) : '0.0'}
-          </span>
+            <span
+              className="compass-rose-speed font-bold text-[var(--con-disc-num)] tracking-tighter leading-none"
+            >
+              {hasFix ? convertedSpeed.toFixed(1) : '0.0'}
+            </span>
 
-          <span className="compass-rose-unit text-[var(--con-disc-sub)] font-bold tracking-widest flex items-center justify-center gap-1">
-            <span>{windUnitLabel}</span>
-            {hasFix && convertedSpeed > 0 && (
-              <span
-                className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"
-                title="Live wind telemetry"
-              />
-            )}
-          </span>
-        </div>
+            <span className="compass-rose-unit text-[var(--con-disc-sub)] font-bold tracking-widest flex items-center justify-center gap-1">
+              <span>{windUnitLabel}</span>
+              {hasFix && convertedSpeed > 0 && (
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"
+                  title="Live wind telemetry"
+                />
+              )}
+            </span>
+          </div>
         </div>
       </div>
     </div>

@@ -96,6 +96,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   /* Gated countdown: spinners, pulses, entrances, and Ambient loops. */
   .animate-spin,
   .animate-pulse,
@@ -139,49 +140,15 @@ body {
     gap: 0.6rem;
   }
 
-  :fullscreen .console-center {
-    z-index: 5;
-    overflow: visible;
-  }
-
   :fullscreen .compass-rose-wrap {
-    padding: 0;
-    overflow: visible;
+    padding: 0.25rem;
   }
 
   :fullscreen .compass-rose-box {
-    width: 20rem;
-    height: 20rem;
-    min-width: 20rem;
-    min-height: 20rem;
-    max-width: 20rem;
-    max-height: 20rem;
-    aspect-ratio: 1 / 1 !important;
-    flex-shrink: 0;
-    overflow: visible;
-  }
-
-  :fullscreen .compass-rose-zoom {
-    transform: scale(1.30);
-    transform-origin: center center;
-  }
-
-  @media (min-height: 800px) {
-    :fullscreen .compass-rose-box {
-      width: 21rem;
-      height: 21rem;
-      min-width: 21rem;
-      min-height: 21rem;
-      max-width: 21rem;
-      max-height: 21rem;
-    }
-    :fullscreen .compass-rose-zoom {
-      transform: scale(1.42);
-    }
-  }
-
-  :fullscreen .compass-rose-speed {
-    font-size: 5.5rem;
+    max-width: min(25rem, 42vh);
+    max-height: min(25rem, 42vh);
+    width: min(25rem, 42vh);
+    height: min(25rem, 42vh);
   }
 
   :fullscreen .console-tile {
@@ -197,26 +164,37 @@ body {
   }
 }
 
-.glass-glow-purple, .glass-glow-blue, .glass-glow-dark {
+.glass-glow-purple,
+.glass-glow-blue,
+.glass-glow-dark {
   background: rgba(3, 83, 164, 0.12) !important;
   backdrop-filter: blur(12px);
   border: 1px solid rgba(1, 73, 124, 0.32);
   box-shadow: 0 8px 32px 0 rgba(1, 42, 74, 0.35),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-glow-purple:hover, .glass-glow-blue:hover, .glass-glow-dark:hover {
+.glass-glow-purple:hover,
+.glass-glow-blue:hover,
+.glass-glow-dark:hover {
   border-color: rgba(3, 83, 164, 0.55);
   box-shadow: 0 8px 32px 0 rgba(1, 42, 74, 0.45),
-              0 0 20px -3px rgba(3, 83, 164, 0.35),
-              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    0 0 20px -3px rgba(3, 83, 164, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
 }
 
 @keyframes soft-pulse {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .animate-pulse-soft {
@@ -226,27 +204,48 @@ body {
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(100, 116, 139, 0.45);
   border-radius: 999px;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   /* Entrance utilities render their final state with no motion. */
   [class*="fadeIn"],
   [class*="slideInUp"],
@@ -265,6 +264,7 @@ body {
   gap: 0.75rem;
   padding: 0.75rem 0.75rem 0.5rem;
 }
+
 .console-grid {
   display: grid;
   grid-template-columns: 1fr 17.5rem 1fr;
@@ -272,32 +272,40 @@ body {
   flex: 1;
   min-height: 0;
 }
+
 @media (min-width: 1024px) {
-  .console-grid { grid-template-columns: 1fr 22rem 1fr; }
+  .console-grid {
+    grid-template-columns: 1fr 22rem 1fr;
+  }
 }
+
 @media (max-width: 767px) {
-  .console-grid { grid-template-columns: 1fr; overflow-y: auto; }
+  .console-grid {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
 }
+
 .console-col {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   min-height: 0;
 }
+
 .console-center {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.35rem;
+  justify-content: flex-start;
+  gap: 0.6rem;
   background: transparent;
   border: none;
   padding: 0;
   min-height: 0;
-  height: 100%;
   position: relative;
-  overflow: visible;
 }
+
 /* On wide screens the center column paints above the side cards so the
    corner medallions straddle cleanly. */
 @media (min-width: 1024px) {
@@ -311,22 +319,23 @@ body {
    Uniform 1.15x on wide screens (measured corner distances); small screens
    keep 1:1 since every pixel is budgeted there. */
 @media (min-width: 1024px) {
-  .compass-rose-zoom { transform: scale(1.17); }
+  .compass-rose-zoom {
+    transform: scale(1.17);
+  }
 }
+
 /* 6313 station header: transparent text block, no panel — the center
    column reads as open screen from top to bottom (both themes). */
 .console-station {
-  flex-shrink: 0;
-  z-index: 10;
-  position: relative;
-  gap: 0.1rem;
-  padding: 0.15rem 0.5rem 0.05rem;
+  gap: 0.2rem;
+  padding: 0.45rem 1rem 0.4rem;
   width: 100%;
   background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
 }
+
 .console-station-icon {
   width: 1.5rem;
   height: 1.5rem;
@@ -335,7 +344,12 @@ body {
   justify-content: center;
   color: var(--con-text);
 }
-.console-station-icon svg { width: 1.1rem; height: 1.1rem; }
+
+.console-station-icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .console-station-name {
   font-family: var(--font-sans);
   font-weight: 700;
@@ -344,6 +358,7 @@ body {
   color: var(--con-text);
   line-height: 1.1;
 }
+
 .console-station-time {
   font-size: 0.8rem;
   font-weight: 600;
@@ -351,15 +366,31 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
 .console-station-weekday {
   font-size: 0.72rem;
   font-weight: 500;
   color: var(--con-muted);
   line-height: 1.1;
 }
-.console-station-sep { color: var(--con-muted); font-weight: 400; margin: 0 0.25rem; }
-.console-station-time.console-station-stale { color: #fbbf24; }
-.console-station-stale-tag { font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; }
+
+.console-station-sep {
+  color: var(--con-muted);
+  font-weight: 400;
+  margin: 0 0.25rem;
+}
+
+.console-station-time.console-station-stale {
+  color: #fbbf24;
+}
+
+.console-station-stale-tag {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+}
+
 .console-tile {
   background: var(--con-card);
   border: 1px solid var(--con-card-border);
@@ -369,7 +400,11 @@ body {
   position: relative;
   padding: 0.5rem 0.85rem 0.65rem;
 }
-.console-tile-single { padding: 1.2rem; }
+
+.console-tile-single {
+  padding: 1.2rem;
+}
+
 /* Hairline divider with centered icon at card top (6313) */
 .console-tile-top {
   display: flex;
@@ -377,17 +412,20 @@ body {
   gap: 0.5rem;
   margin-bottom: 0.35rem;
 }
+
 .console-tile-rule {
   flex: 1;
   height: 1px;
   background: var(--con-rule);
 }
+
 .console-tile-glyph {
   width: 0.95rem;
   height: 0.95rem;
   color: var(--con-glyph);
   flex-shrink: 0;
 }
+
 /* Two equal readings side by side, each centered over its caption (6313) */
 .console-tile-half {
   flex: 1;
@@ -398,10 +436,12 @@ body {
   align-items: center;
   text-align: center;
 }
-.console-tile-half + .console-tile-half {
+
+.console-tile-half+.console-tile-half {
   padding-left: 0.75rem;
   margin-left: 0.25rem;
 }
+
 .console-tile-label {
   font-size: clamp(0.85rem, 0.95vw, 1.05rem);
   font-weight: 650;
@@ -412,6 +452,7 @@ body {
   white-space: normal;
   opacity: 0.95;
 }
+
 .console-tile-value {
   font-family: var(--font-digit);
   font-weight: 700;
@@ -427,9 +468,11 @@ body {
   max-width: 100%;
   display: block;
 }
+
 .console-tile-value-xl {
   font-size: clamp(4.4rem, 5.5vw, 5.8rem);
 }
+
 /* Superscript unit at the top-right of the digits (6313): single small
    unit raised, or two stacked lines (in/Hg, mi/hr). */
 /* Alarm glyph + unit column at the top-right of the digits (6313):
@@ -444,6 +487,7 @@ body {
   align-self: flex-start;
   line-height: 1.1;
 }
+
 .console-tile-alarm {
   width: 0.85rem;
   height: 0.85rem;
@@ -451,12 +495,14 @@ body {
   opacity: 0.85;
   margin-bottom: 0.15rem;
 }
-.console-tile-unit-stack span + span {
+
+.console-tile-unit-stack span+span {
   border-top: 1px solid var(--con-rule);
   padding-top: 1px;
   margin-top: 1px;
   width: 100%;
 }
+
 .console-tile-unit {
   display: inline-flex;
   vertical-align: top;
@@ -467,6 +513,7 @@ body {
   line-height: 1.1;
   white-space: normal;
 }
+
 .console-tile-unit-stack {
   display: inline-flex;
   vertical-align: top;
@@ -479,26 +526,45 @@ body {
   text-align: left;
   white-space: normal;
 }
-.console-tile-value-xl + .console-tile-unit, .console-tile-value-xl .console-tile-unit,
-.console-tile-value-xl .console-tile-unit-stack { font-size: 1.4rem; }
+
+.console-tile-value-xl+.console-tile-unit,
+.console-tile-value-xl .console-tile-unit,
+.console-tile-value-xl .console-tile-unit-stack {
+  font-size: 1.4rem;
+}
+
 .console-tile-sub {
   font-size: 0.8rem;
   color: var(--con-bubble-sub);
   margin-top: 0.15rem;
 }
-.console-tile-sub strong { color: var(--con-text); font-variant-numeric: tabular-nums; }
+
+.console-tile-sub strong {
+  color: var(--con-text);
+  font-variant-numeric: tabular-nums;
+}
 
 /* Room mode: 2×2 big-type tiles + rose strip */
-.console-board-room { gap: 1rem; }
+.console-board-room {
+  gap: 1rem;
+}
+
 .console-room-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.9rem;
 }
+
 @media (max-width: 767px) {
-  .console-room-grid { grid-template-columns: 1fr; }
-  .console-tile-value-xl { font-size: 3.5rem; }
+  .console-room-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .console-tile-value-xl {
+    font-size: 3.5rem;
+  }
 }
+
 .console-room-rose {
   display: flex;
   justify-content: center;
@@ -515,87 +581,132 @@ body {
   min-height: 0;
   min-width: 0;
   width: 100%;
-  position: relative;
-  overflow: visible;
 }
-/* 6313 wind rose sizing: responsive to both width and viewport height
-   so the center column never overflows or overlaps header/sun arc in windowed mode. */
+
+/* 6313 wind rose sizing: rem-based (TV root scaling), stepped by width,
+   compressed for short landscape screens (phones turned sideways, short
+   windows) so the board never clips vertically. */
 .compass-rose-box {
-  width: min(13.75rem, 30vh);
-  height: min(13.75rem, 30vh);
-  max-width: 100%;
-  max-height: 100%;
-  aspect-ratio: 1 / 1;
-  flex-shrink: 1;
-  position: relative;
+  width: 13.75rem;
+  height: 13.75rem;
+  flex-shrink: 0;
 }
+
 @media (min-width: 768px) {
   .compass-rose-box {
-    width: min(19rem, 37vh);
-    height: min(19rem, 37vh);
+    width: 17rem;
+    height: 17rem;
   }
 }
+
 @media (min-width: 1024px) {
   .compass-rose-box {
-    width: min(21rem, 38vh);
-    height: min(21rem, 38vh);
-    aspect-ratio: 1 / 1;
+    width: 25rem;
+    height: 25rem;
   }
 }
-@media (min-width: 1024px) and (min-height: 850px) {
-  .compass-rose-box {
-    width: 21rem;
-    height: 21rem;
-    aspect-ratio: 1 / 1;
-  }
-}
+
 .compass-rose-point {
   font-size: 0.55rem;
   letter-spacing: 0.02em;
 }
+
 @media (min-width: 1024px) {
-  .compass-rose-point { font-size: 0.65rem; }
+  .compass-rose-point {
+    font-size: 0.65rem;
+  }
 }
+
 .compass-rose-disc {
   inset: 7.5%;
   background: var(--con-disc);
 }
-.compass-rose-abbrev { font-size: 0.85rem; }
-.compass-rose-speed { font-size: 3.4rem; font-family: var(--font-digit); font-weight: 700; letter-spacing: -0.03em; }
-.compass-rose-unit { font-size: 0.72rem; margin-top: 0.15rem; font-family: var(--font-digit); font-weight: 600; }
+
+.compass-rose-abbrev {
+  font-size: 0.85rem;
+}
+
+.compass-rose-speed {
+  font-size: 3.4rem;
+  font-family: var(--font-digit);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.compass-rose-unit {
+  font-size: 0.72rem;
+  margin-top: 0.15rem;
+  font-family: var(--font-digit);
+  font-weight: 600;
+}
+
 @media (min-width: 1024px) {
-  .compass-rose-abbrev { font-size: 1.3rem; }
-  .compass-rose-speed { font-size: 5.9rem; }
-  .compass-rose-unit { font-size: 1rem; }
+  .compass-rose-abbrev {
+    font-size: 1.3rem;
+  }
+
+  .compass-rose-speed {
+    font-size: 5.9rem;
+  }
+
+  .compass-rose-unit {
+    font-size: 1rem;
+  }
 }
 
 /* Corner medallions: badges ride the tile edges at row mid-height on wide
    screens (like the 6313's straddling medallions); hidden below that.
    Narrow screens keep the wrapping in-flow row. */
-.corner-badge { position: absolute; display: none; z-index: 6; top: 50%; }
-.corner-badge .console-bubble-value { white-space: nowrap; }
-.corner-right { right: 0; transform: translate(50%, -50%); }
-.corner-left { left: 0; transform: translate(-50%, -50%); }
+.corner-badge {
+  position: absolute;
+  display: none;
+  z-index: 6;
+  top: 50%;
+}
+
+.corner-badge .console-bubble-value {
+  white-space: nowrap;
+}
+
+.corner-right {
+  right: 0;
+  transform: translate(50%, -50%);
+}
+
+.corner-left {
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
 @media (min-width: 1024px) {
-  .corner-badge { display: flex; }
-  .corner-badge .console-bubble-value { font-size: 0.62rem; }
+  .corner-badge {
+    display: flex;
+  }
+
+  .corner-badge .console-bubble-value {
+    font-size: 0.62rem;
+  }
+
   /* Clear digit space where medallions straddle and the rose overlaps
      (inner halves on all rows). */
-  .console-grid > .console-col:first-child .console-tile .console-tile-half:last-child { padding-right: 1.5rem; }
-  .console-grid > .console-col:last-child .console-tile .console-tile-half:first-child { padding-left: 1.5rem; }
+  .console-grid>.console-col:first-child .console-tile .console-tile-half:last-child {
+    padding-right: 1.5rem;
+  }
+
+  .console-grid>.console-col:last-child .console-tile .console-tile-half:first-child {
+    padding-left: 1.5rem;
+  }
 }
 
 /* Supplementary badges: circular medallions straddling the rose (6313) */
 .console-bubbles {
-  flex-shrink: 0;
-  z-index: 10;
-  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.6rem;
   width: 100%;
 }
+
 .console-bubble {
   display: flex;
   flex-direction: column;
@@ -614,34 +725,88 @@ body {
   overflow: hidden;
   flex-shrink: 0;
 }
-.console-bubble svg { width: 1rem; height: 1rem; }
-.console-bubble-icon-only svg { width: 1.7rem; height: 1.7rem; }
+
+.console-bubble svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.console-bubble-icon-only svg {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
 /* Screen-reader plumbing: visual wrapper vanishes so flex layout is unchanged. */
-.console-bubble-visual { display: contents; }
-.console-bubble-tone-teal { background: #0b7a72; border-color: rgba(255, 255, 255, 0.8); }
-.console-bubble-tone-green { background: #166b45; border-color: rgba(255, 255, 255, 0.8); }
-.console-bubble-tone-sky { background: #3a4656; border-color: rgba(255, 255, 255, 0.8); }
-.console-bubble-tone-amber { background: #7a5a0e; border-color: rgba(255, 255, 255, 0.8); }
-.console-bubble-tone-orange { background: #8f4c10; border-color: rgba(255, 255, 255, 0.8); }
-.console-bubble-tone-indigo { background: #2b333d; border-color: rgba(255, 255, 255, 0.8); }
-.console-bubble-tone-teal svg, .console-bubble-tone-sky svg,
+.console-bubble-visual {
+  display: contents;
+}
+
+.console-bubble-tone-teal {
+  background: #0b7a72;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.console-bubble-tone-green {
+  background: #166b45;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.console-bubble-tone-sky {
+  background: #3a4656;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.console-bubble-tone-amber {
+  background: #7a5a0e;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.console-bubble-tone-orange {
+  background: #8f4c10;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.console-bubble-tone-indigo {
+  background: #2b333d;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.console-bubble-tone-teal svg,
+.console-bubble-tone-sky svg,
 .console-bubble-tone-green svg,
-.console-bubble-tone-amber svg, .console-bubble-tone-orange svg,
-.console-bubble-tone-indigo svg { color: #fff; }
-.console-bubble-tone-teal .console-bubble-label, .console-bubble-tone-sky .console-bubble-label,
+.console-bubble-tone-amber svg,
+.console-bubble-tone-orange svg,
+.console-bubble-tone-indigo svg {
+  color: #fff;
+}
+
+.console-bubble-tone-teal .console-bubble-label,
+.console-bubble-tone-sky .console-bubble-label,
 .console-bubble-tone-green .console-bubble-label,
-.console-bubble-tone-amber .console-bubble-label, .console-bubble-tone-orange .console-bubble-label,
-.console-bubble-tone-indigo .console-bubble-label { color: rgba(255, 255, 255, 0.85); }
-.console-bubble-tone-teal .console-bubble-value, .console-bubble-tone-sky .console-bubble-value,
+.console-bubble-tone-amber .console-bubble-label,
+.console-bubble-tone-orange .console-bubble-label,
+.console-bubble-tone-indigo .console-bubble-label {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.console-bubble-tone-teal .console-bubble-value,
+.console-bubble-tone-sky .console-bubble-value,
 .console-bubble-tone-green .console-bubble-value,
-.console-bubble-tone-amber .console-bubble-value, .console-bubble-tone-orange .console-bubble-value,
-.console-bubble-tone-indigo .console-bubble-value { color: #fff; }
+.console-bubble-tone-amber .console-bubble-value,
+.console-bubble-tone-orange .console-bubble-value,
+.console-bubble-tone-indigo .console-bubble-value {
+  color: #fff;
+}
 
 /* Medallion proportion on wide screens. Placed after the
    base definition so it wins at equal specificity. */
 @media (min-width: 1024px) {
-  .console-bubble { width: 4rem; height: 4rem; }
+  .console-bubble {
+    width: 4rem;
+    height: 4rem;
+  }
 }
+
 .console-bubble-label {
   font-size: 0.6rem;
   font-weight: 800;
@@ -649,6 +814,7 @@ body {
   text-transform: uppercase;
   color: var(--con-bubble-sub);
 }
+
 .console-bubble-value {
   font-size: 0.68rem;
   font-weight: 700;
@@ -663,19 +829,19 @@ body {
 
 /* Sun arc: thin arc with sun at apex, sunrise/sunset times beneath (6313) */
 .console-sunarc {
-  flex: 0 0 auto;
-  z-index: 10;
-  position: relative;
+  flex: 1 1 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   color: var(--con-glyph);
   min-width: 0;
 }
+
 .console-sunarc-track {
   position: relative;
   width: 7.5rem;
 }
+
 .console-sunarc-arc {
   width: 100%;
   height: auto;
@@ -683,6 +849,7 @@ body {
   overflow: visible;
   display: block;
 }
+
 .console-sunarc-sun {
   position: absolute;
   width: 1.1rem;
@@ -691,6 +858,7 @@ body {
   transform: translate(-50%, -50%);
   filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.7));
 }
+
 .console-sunarc-times {
   display: flex;
   justify-content: space-between;
@@ -698,6 +866,7 @@ body {
   max-width: 100%;
   margin-top: 0.45rem;
 }
+
 .console-sunarc-time {
   display: inline-flex;
   align-items: center;
@@ -708,12 +877,19 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.console-sunarc-time svg { width: 0.85rem; height: 0.85rem; color: var(--con-glyph); }
+
+.console-sunarc-time svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--con-glyph);
+}
 
 /* Wide screens: corner medallions live on the tiles, so in-flow copies
    hide and only the sun arc row remains (centered). */
 @media (min-width: 1024px) {
-  .console-bubbles > .desktop-hidden { display: none; }
+  .console-bubbles>.desktop-hidden {
+    display: none;
+  }
 }
 
 /* High-contrast mode (mirrors the 6313's own Hi-Contrast option) */
@@ -724,32 +900,64 @@ html[data-contrast="high"] .console-center {
   box-shadow: none;
   backdrop-filter: none;
 }
+
 html[data-contrast="high"] .console-center,
-html[data-contrast="high"] .console-station { background: transparent; border: none; }
+html[data-contrast="high"] .console-station {
+  background: transparent;
+  border: none;
+}
+
 html[data-contrast="high"] .console-tile-label,
 html[data-contrast="high"] .console-tile-unit,
 html[data-contrast="high"] .console-tile-unit-stack,
 html[data-contrast="high"] .console-tile-sub,
 html[data-contrast="high"] .console-tile-sub strong,
 html[data-contrast="high"] .console-bubble-value,
-html[data-contrast="high"] .console-station-sub { color: #fff; }
-html[data-contrast="high"] .console-tile-value { color: #fff; }
-html[data-contrast="high"] .console-tile-rule { background: #fff; }
-html[data-contrast="high"] .console-tile-glyph { color: #fff; }
-html[data-contrast="high"] .console-tile-alarm { color: #fff; }
+html[data-contrast="high"] .console-station-sub {
+  color: #fff;
+}
+
+html[data-contrast="high"] .console-tile-value {
+  color: #fff;
+}
+
+html[data-contrast="high"] .console-tile-rule {
+  background: #fff;
+}
+
+html[data-contrast="high"] .console-tile-glyph {
+  color: #fff;
+}
+
+html[data-contrast="high"] .console-tile-alarm {
+  color: #fff;
+}
+
 html[data-contrast="high"] .console-sunarc,
-html[data-contrast="high"] .console-sunarc-time { color: #fff; }
-html[data-contrast="high"] .console-sunarc-sun { color: #fff; }
+html[data-contrast="high"] .console-sunarc-time {
+  color: #fff;
+}
+
+html[data-contrast="high"] .console-sunarc-sun {
+  color: #fff;
+}
+
 html[data-contrast="high"] .console-station-name,
 html[data-contrast="high"] .console-station-time,
 html[data-contrast="high"] .console-station-weekday,
-html[data-contrast="high"] .console-station-icon { color: #fff; }
+html[data-contrast="high"] .console-station-icon {
+  color: #fff;
+}
+
 html[data-contrast="high"] .console-bubble {
   background: #000;
   border-color: #fff;
 }
+
 html[data-contrast="high"] .console-bubble-label,
-html[data-contrast="high"] .console-bubble svg { color: #fff; }
+html[data-contrast="high"] .console-bubble svg {
+  color: #fff;
+}
 
 /* Visible keyboard focus on console controls (touch + remote feel) */
 .console-board button:focus-visible,
@@ -761,117 +969,259 @@ footer button:focus-visible {
 /* ── Responsive matrix: portrait + landscape, small + big ── */
 /* Narrow portrait phones: pairs stay side-by-side, type steps down. */
 @media (max-width: 480px) {
-  .console-tile-value { font-size: 2.2rem; }
-  .console-tile-value-xl { font-size: 3.2rem; }
-  .console-tile-label { font-size: 0.8rem; }
-  .console-tile-half + .console-tile-half { padding-left: 0.6rem; }
-  .console-tile { padding: 0.45rem 0.6rem 0.6rem; }
-  .console-bubble { width: 4rem; height: 4rem; }
+  .console-tile-value {
+    font-size: 2.2rem;
+  }
+
+  .console-tile-value-xl {
+    font-size: 3.2rem;
+  }
+
+  .console-tile-label {
+    font-size: 0.8rem;
+  }
+
+  .console-tile-half+.console-tile-half {
+    padding-left: 0.6rem;
+  }
+
+  .console-tile {
+    padding: 0.45rem 0.6rem 0.6rem;
+  }
+
+  .console-bubble {
+    width: 4rem;
+    height: 4rem;
+  }
 }
+
 /* Short landscape (phones turned sideways, short windows, landscape
    tablets with little height): compress vertically + scroll instead of clip. */
 @media (max-height: 540px) {
-  .console-board { gap: 0.4rem; padding: 0.4rem 0.4rem 0; overflow-y: auto; }
-  .console-grid { gap: 0.4rem; flex: none; }
-  .console-col { gap: 0.4rem; }
-  .console-center { gap: 0.35rem; }
-  .compass-rose-box { width: 10rem; height: 10rem; }
-  .compass-rose-speed { font-size: 2.6rem; }
-  .compass-rose-abbrev { font-size: 0.72rem; }
-  .compass-rose-unit { font-size: 0.6rem; }
-  .console-tile-value { font-size: 2.1rem; }
-  .console-tile-value-xl { font-size: 3rem; }
-  .console-tile-label { font-size: 0.78rem; }
-  .console-tile { padding: 0.4rem 0.6rem 0.5rem; }
-  .console-tile-top { margin-bottom: 0.15rem; }
-  .console-station { padding: 0.3rem 0.75rem; }
-  .console-station-name { font-size: 0.9rem; }
-  .console-station-weekday { display: none; }
-  .console-bubble { width: 3.6rem; height: 3.6rem; }
-  .console-bubble-label { font-size: 0.52rem; }
-  .console-bubble-value { font-size: 0.68rem; }
-}
-/* Portrait tablets / large portrait phones: single column with scroll. */
-@media (orientation: portrait) and (min-width: 768px) and (max-width: 1023px) {
-  .console-grid { grid-template-columns: 1fr; overflow-y: auto; }
+  .console-board {
+    gap: 0.4rem;
+    padding: 0.4rem 0.4rem 0;
+    overflow-y: auto;
+  }
+
+  .console-grid {
+    gap: 0.4rem;
+    flex: none;
+  }
+
+  .console-col {
+    gap: 0.4rem;
+  }
+
+  .console-center {
+    gap: 0.35rem;
+  }
+
+  .compass-rose-box {
+    width: 10rem;
+    height: 10rem;
+  }
+
+  .compass-rose-speed {
+    font-size: 2.6rem;
+  }
+
+  .compass-rose-abbrev {
+    font-size: 0.72rem;
+  }
+
+  .compass-rose-unit {
+    font-size: 0.6rem;
+  }
+
+  .console-tile-value {
+    font-size: 2.1rem;
+  }
+
+  .console-tile-value-xl {
+    font-size: 3rem;
+  }
+
+  .console-tile-label {
+    font-size: 0.78rem;
+  }
+
+  .console-tile {
+    padding: 0.4rem 0.6rem 0.5rem;
+  }
+
+  .console-tile-top {
+    margin-bottom: 0.15rem;
+  }
+
+  .console-station {
+    padding: 0.3rem 0.75rem;
+  }
+
+  .console-station-name {
+    font-size: 0.9rem;
+  }
+
+  .console-station-weekday {
+    display: none;
+  }
+
+  .console-bubble {
+    width: 3.6rem;
+    height: 3.6rem;
+  }
+
+  .console-bubble-label {
+    font-size: 0.52rem;
+  }
+
+  .console-bubble-value {
+    font-size: 0.68rem;
+  }
 }
 
-/* Medium-short screens (typical laptops in windowed browser, e.g. 600px - 820px window height):
-   guarantee that center column station header and sun arc never collide with the compass rose */
-@media (max-height: 820px) {
-  .console-board { gap: 0.5rem; padding: 0.5rem 0.6rem 0.35rem; }
-  .console-grid { gap: 0.5rem; }
-  .console-col { gap: 0.5rem; }
-  .console-center { gap: 0.2rem; }
-  .console-station { padding: 0.15rem 0.5rem 0.1rem; gap: 0.08rem; }
-  .console-station-icon { width: 1.25rem; height: 1.25rem; }
-  .console-station-icon svg { width: 0.95rem; height: 0.95rem; }
-  .console-station-name { font-size: 0.95rem; }
-  .console-station-time { font-size: 0.75rem; }
-  .console-station-weekday { font-size: 0.68rem; }
-  .compass-rose-box {
-    width: min(24rem, 41.5vh);
-    height: min(24rem, 41.5vh);
+/* Portrait tablets / large portrait phones: single column with scroll. */
+@media (orientation: portrait) and (min-width: 768px) and (max-width: 1023px) {
+  .console-grid {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
   }
-  .compass-rose-speed {
-    font-size: clamp(4.8rem, 6.4vw, 5.9rem);
-    font-weight: 700;
-    line-height: 0.96;
-  }
-  .compass-rose-abbrev { font-size: 1.3rem; }
-  .compass-rose-unit { font-size: 1rem; }
-  .console-sunarc-track { width: 6.5rem; }
-  .console-sunarc-times { width: 8.5rem; margin-top: 0.2rem; }
-  .console-sunarc-time { font-size: 0.68rem; }
 }
 
 /* Kiosk / big-screen projection
    NOTE: rem units follow the ROOT (html) font-size, not .tv-scaled.
    TvPage drives documentElement.fontSize from the viewport; this container
    size is only a fallback for no-JS / first paint. */
-.tv-scaled { font-size: clamp(16px, 1.05vw + 0.9vh, 30px); }
+.tv-scaled {
+  font-size: clamp(16px, 1.05vw + 0.9vh, 30px);
+}
+
 /* TV wall display: tighter center column so station + rose + badges
    always fit 100dvh with no clipping behind the taskbar. */
-.tv-scaled .console-grid { grid-template-columns: 1fr 15rem 1fr; }
-.tv-scaled .compass-rose-box { width: 18rem; height: 18rem; }
-.tv-scaled .console-tile-value { font-size: 3rem; }
-.tv-scaled .console-tile-label { font-size: 1rem; }
-.tv-scaled .console-bubble { width: 4rem; height: 4rem; }
-.tv-scaled .console-bubbles { gap: 0.45rem; }
-.tv-scaled .console-board, .tv-scaled .console-grid { gap: 0.5rem; }
-.tv-scaled .console-center { gap: 0.4rem; }
-.tv-scaled .console-station { padding: 0.35rem 0.75rem 0.3rem; }
-.tv-scaled .console-station-name { font-size: 0.95rem; }
-.tv-scaled .console-sunarc-track { width: 6.5rem; }
-.tv-scaled .console-sunarc-times { margin-top: 0.4rem; }
+.tv-scaled .console-grid {
+  grid-template-columns: 1fr 15rem 1fr;
+}
+
+.tv-scaled .compass-rose-box {
+  width: 18rem;
+  height: 18rem;
+}
+
+.tv-scaled .console-tile-value {
+  font-size: 3rem;
+}
+
+.tv-scaled .console-tile-label {
+  font-size: 1rem;
+}
+
+.tv-scaled .console-bubble {
+  width: 4rem;
+  height: 4rem;
+}
+
+.tv-scaled .console-bubbles {
+  gap: 0.45rem;
+}
+
+.tv-scaled .console-board,
+.tv-scaled .console-grid {
+  gap: 0.5rem;
+}
+
+.tv-scaled .console-center {
+  gap: 0.4rem;
+}
+
+.tv-scaled .console-station {
+  padding: 0.35rem 0.75rem 0.3rem;
+}
+
+.tv-scaled .console-station-name {
+  font-size: 0.95rem;
+}
+
+.tv-scaled .console-sunarc-track {
+  width: 6.5rem;
+}
+
+.tv-scaled .console-sunarc-times {
+  margin-top: 0.4rem;
+}
 
 /* Portrait wall signage (e.g. 1080×1920): single column that scrolls —
    orbit badges would hang off the viewport edges, so fall back to in-flow.
    Placed after the landscape TV rules so it wins at equal specificity. */
 @media (orientation: portrait) {
-  .tv-scaled { overflow-y: auto; }
-  .tv-scaled .console-board { overflow: visible; }
-  .tv-scaled .console-grid { grid-template-columns: 1fr; flex: none; }
-  .tv-scaled .corner-badge { display: none; }
-  .tv-scaled .console-bubbles > .desktop-hidden { display: flex; }
-  .tv-scaled .console-bubbles { flex-wrap: wrap; }
-  .tv-scaled .console-bubbles > .console-sunarc { flex: 1 1 100%; order: 0; }
+  .tv-scaled {
+    overflow-y: auto;
+  }
+
+  .tv-scaled .console-board {
+    overflow: visible;
+  }
+
+  .tv-scaled .console-grid {
+    grid-template-columns: 1fr;
+    flex: none;
+  }
+
+  .tv-scaled .corner-badge {
+    display: none;
+  }
+
+  .tv-scaled .console-bubbles>.desktop-hidden {
+    display: flex;
+  }
+
+  .tv-scaled .console-bubbles {
+    flex-wrap: wrap;
+  }
+
+  .tv-scaled .console-bubbles>.console-sunarc {
+    flex: 1 1 100%;
+    order: 0;
+  }
 }
 
 /* Small / portrait TVs: let the board scroll instead of clipping tiles. */
 @media (max-width: 767px) {
-  .tv-scaled { overflow-y: auto; }
+  .tv-scaled {
+    overflow-y: auto;
+  }
 }
-.kiosk, .kiosk * { cursor: none !important; }
+
+.kiosk,
+.kiosk * {
+  cursor: none !important;
+}
+
 /* OLED burn-in protection: slow large drift of the whole board. Offsets are
    big enough to move static pixels (~12px) but slow enough to ignore. */
 @keyframes kiosk-drift {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(12px, 8px); }
-  50% { transform: translate(-10px, 12px); }
-  75% { transform: translate(8px, -10px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  25% {
+    transform: translate(12px, 8px);
+  }
+
+  50% {
+    transform: translate(-10px, 12px);
+  }
+
+  75% {
+    transform: translate(8px, -10px);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
 }
+
 @media (prefers-reduced-motion: no-preference) {
-  .kiosk-drift { animation: kiosk-drift 300s ease-in-out infinite; }
+  .kiosk-drift {
+    animation: kiosk-drift 300s ease-in-out infinite;
+  }
 }
