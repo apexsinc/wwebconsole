@@ -139,19 +139,26 @@ body {
     gap: 0.6rem;
   }
 
+  :fullscreen .console-center {
+    z-index: 5;
+    overflow: visible;
+  }
+
   :fullscreen .compass-rose-wrap {
     padding: 0.25rem;
+    overflow: visible;
   }
 
   :fullscreen .compass-rose-box {
-    max-width: min(25rem, 42vh);
-    max-height: min(25rem, 42vh);
-    width: min(25rem, 42vh);
-    height: min(25rem, 42vh);
+    max-width: min(29.5rem, 64vh);
+    max-height: min(29.5rem, 64vh);
+    width: min(29.5rem, 64vh);
+    height: min(29.5rem, 64vh);
+    overflow: visible;
   }
 
   :fullscreen .compass-rose-zoom {
-    transform: scale(1.17);
+    transform: scale(1.22);
   }
 
   :fullscreen .compass-rose-speed {
