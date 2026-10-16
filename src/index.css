@@ -281,12 +281,10 @@ body {
 }
 
 /* Rose zoom: grows the rendered rose to touch the four tile corners
-   without changing layout footprint. Restrained on standard heights to protect
-   the station header and sun arc from overlap. */
+   without changing layout footprint (transforms never overflow or scroll).
+   Uniform 1.15x on wide screens (measured corner distances); small screens
+   keep 1:1 since every pixel is budgeted there. */
 @media (min-width: 1024px) {
-  .compass-rose-zoom { transform: scale(1.16); }
-}
-@media (min-width: 1024px) and (min-height: 850px) {
   .compass-rose-zoom { transform: scale(1.17); }
 }
 /* 6313 station header: transparent text block, no panel — the center
@@ -513,8 +511,8 @@ body {
 }
 @media (min-width: 1024px) {
   .compass-rose-box {
-    width: min(23.5rem, 41vh);
-    height: min(23.5rem, 41vh);
+    width: min(24.5rem, 42vh);
+    height: min(24.5rem, 42vh);
   }
 }
 @media (min-width: 1024px) and (min-height: 850px) {
@@ -528,7 +526,7 @@ body {
   letter-spacing: 0.02em;
 }
 @media (min-width: 1024px) {
-  .compass-rose-point { font-size: 0.72rem; font-weight: 700; }
+  .compass-rose-point { font-size: 0.65rem; }
 }
 .compass-rose-disc {
   inset: 7.5%;
@@ -538,18 +536,9 @@ body {
 .compass-rose-speed { font-size: 3.4rem; font-family: var(--font-digit); font-weight: 700; letter-spacing: -0.03em; }
 .compass-rose-unit { font-size: 0.72rem; margin-top: 0.15rem; font-family: var(--font-digit); font-weight: 600; }
 @media (min-width: 1024px) {
-  .compass-rose-abbrev { font-size: clamp(1.15rem, 1.3vw, 1.3rem); }
-  .compass-rose-speed {
-    font-size: clamp(4.8rem, 6.5vw, 5.9rem);
-    font-family: var(--font-digit);
-    font-weight: 750;
-    line-height: 0.95;
-    letter-spacing: -0.035em;
-  }
-  .compass-rose-unit { font-size: clamp(0.9rem, 1.05vw, 1rem); }
-}
-@media (min-width: 1024px) and (min-height: 850px) {
+  .compass-rose-abbrev { font-size: 1.3rem; }
   .compass-rose-speed { font-size: 5.9rem; }
+  .compass-rose-unit { font-size: 1rem; }
 }
 
 /* Corner medallions: badges ride the tile edges at row mid-height on wide
@@ -793,16 +782,16 @@ footer button:focus-visible {
   .console-station-time { font-size: 0.75rem; }
   .console-station-weekday { font-size: 0.68rem; }
   .compass-rose-box {
-    width: min(23rem, 40.5vh);
-    height: min(23rem, 40.5vh);
+    width: min(24rem, 41.5vh);
+    height: min(24rem, 41.5vh);
   }
   .compass-rose-speed {
-    font-size: clamp(4.6rem, 6.2vw, 5.8rem);
-    font-weight: 750;
-    line-height: 0.95;
+    font-size: clamp(4.8rem, 6.4vw, 5.9rem);
+    font-weight: 700;
+    line-height: 0.96;
   }
-  .compass-rose-abbrev { font-size: 1.25rem; }
-  .compass-rose-unit { font-size: 0.95rem; }
+  .compass-rose-abbrev { font-size: 1.3rem; }
+  .compass-rose-unit { font-size: 1rem; }
   .console-sunarc-track { width: 6.5rem; }
   .console-sunarc-times { width: 8.5rem; margin-top: 0.2rem; }
   .console-sunarc-time { font-size: 0.68rem; }
