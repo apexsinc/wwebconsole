@@ -315,9 +315,9 @@ export function useWeatherQuery(enabled = true) {
 
   const isV2 = config.cloudApiVersion !== 'v1';
   // Live console polling interval depends on the API being used:
-  // V2: 6s for fast real-time wind and telemetry updates
+  // V2: 10s (matches WeatherLink Live cloud upload cadence & respects rate limits)
   // V1: 60s
-  const effectivePollSec = isV2 ? 6 : 60;
+  const effectivePollSec = isV2 ? 10 : 60;
 
   const query = useQuery({
     queryKey: ['weatherCurrent'],

@@ -54,7 +54,7 @@ export function toPublicConfig(row: StationRow, creds: StationCredentials): Publ
     wlPlan: row.wl_plan || 'unknown',
     subscriptionStatus: row.subscription_status || 'trial',
     subscriptionExpiresAt: row.subscription_expires_at ?? null,
-    pollIntervalSec: (row.cloud_api_version === 'v1' ? 60 : 6),
+    pollIntervalSec: (row.cloud_api_version === 'v1' ? 60 : 10),
   };
 }
 
