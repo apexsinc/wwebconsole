@@ -54,7 +54,7 @@ export function toPublicConfig(row: StationRow, creds: StationCredentials): Publ
     wlPlan: row.wl_plan || 'unknown',
     subscriptionStatus: row.subscription_status || 'trial',
     subscriptionExpiresAt: row.subscription_expires_at ?? null,
-    pollIntervalSec: row.poll_interval_sec ?? 900,
+    pollIntervalSec: (row.cloud_api_version === 'v1' ? 60 : 6),
   };
 }
 
@@ -159,7 +159,10 @@ function applyStationMeta(row: StationRow, station: any) {
   }
 }
 
-/** Always refresh lat/lon/timezone from WeatherLink /stations (source of truth). */
+// In-memory cache for stations meta so rapid polls don't exhaust the WeatherLink API rate limit
+const stationsMetaCache = new Map<string, { stations: any[]; expiresAt: number }>();
+
+/** Refresh lat/lon/timezone from WeatherLink /stations with 10-minute caching. */
 async function syncV2StationMeta(row: StationRow, creds: StationCredentials): Promise<any[]> {
   if (!creds.apiToken || !creds.apiSecret) return [];
   const ts = Math.floor(Date.now() / 1000);
@@ -180,6 +183,19 @@ async function syncV2StationMeta(row: StationRow, creds: StationCredentials): Pr
   if (!target) target = pickStationFromList(stData.stations, row.cloud_did);
   applyStationMeta(row, target);
   return stData.stations;
+}
+
+async function getOrSyncV2StationMeta(row: StationRow, creds: StationCredentials): Promise<any[]> {
+  const cacheKey = creds.apiToken || row.id;
+  const cached = stationsMetaCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.stations;
+  }
+  const stations = await syncV2StationMeta(row, creds);
+  if (stations.length > 0) {
+    stationsMetaCache.set(cacheKey, { stations, expiresAt: Date.now() + 10 * 60 * 1000 });
+  }
+  return stations;
 }
 
 async function getCredentials(env: Env, row: StationRow): Promise<StationCredentials> {
@@ -223,8 +239,8 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
     throw new Error('Cloud API V2 requires API Key and API Secret');
   }
 
-  // Always sync lat/lon/time_zone from /stations so sunrise/sunset stay accurate
-  const stationsList = await syncV2StationMeta(row, creds);
+  // Use cached station metadata so rapid telemetry polls only query /current
+  const stationsList = await getOrSyncV2StationMeta(row, creds);
 
   if (!stationsList || !stationsList.length) {
     throw new Error('Missing Station ID and auto-lookup failed');

@@ -312,23 +312,20 @@ export async function cancelAccountDeletion() {
 export function useWeatherQuery(enabled = true) {
   const setAll = useWeatherStore((state) => state.setAll);
   const config = useWeatherStore((state) => state.config);
-  const billing = useWeatherStore((state) => state.billing);
 
   const isV2 = config.cloudApiVersion !== 'v1';
-  const plan = billing?.wlPlan || 'unknown';
-  const defaultPollSec = isV2 ? (plan === 'pro' ? 10 : 15) : 60;
-  const pollSec = billing?.pollIntervalSec || config.pollIntervalSec || defaultPollSec;
   // Live console polling interval depends on the API being used:
-  // V2: 10s (or 15s) for real-time wind and telemetry updates
+  // V2: 6s for fast real-time wind and telemetry updates
   // V1: 60s
-  const effectivePollSec = Math.max(isV2 ? 10 : 30, pollSec);
+  const effectivePollSec = isV2 ? 6 : 60;
 
   const query = useQuery({
     queryKey: ['weatherCurrent'],
     queryFn: fetchCurrentWeather,
     refetchInterval: effectivePollSec * 1000,
+    refetchIntervalInBackground: false,
     retry: 2,
-    staleTime: Math.max(2000, (effectivePollSec - 2) * 1000),
+    staleTime: 2000,
     enabled,
   });
 
