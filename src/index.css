@@ -144,10 +144,14 @@ body {
   }
 
   :fullscreen .compass-rose-box {
-    max-width: min(25rem, 42vh);
-    max-height: min(25rem, 42vh);
-    width: min(25rem, 42vh);
-    height: min(25rem, 42vh);
+    max-width: min(24rem, 40vh);
+    max-height: min(24rem, 40vh);
+    width: min(24rem, 40vh);
+    height: min(24rem, 40vh);
+  }
+
+  :fullscreen .compass-rose-zoom {
+    transform: scale(1.15);
   }
 
   :fullscreen .console-tile {
@@ -254,13 +258,15 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.6rem;
+  justify-content: space-between;
+  gap: 0.35rem;
   background: transparent;
   border: none;
   padding: 0;
   min-height: 0;
+  height: 100%;
   position: relative;
+  overflow: visible;
 }
 /* On wide screens the center column paints above the side cards so the
    corner medallions straddle cleanly. */
@@ -271,17 +277,22 @@ body {
 }
 
 /* Rose zoom: grows the rendered rose to touch the four tile corners
-   without changing layout footprint (transforms never overflow or scroll).
-   Uniform 1.15x on wide screens (measured corner distances); small screens
-   keep 1:1 since every pixel is budgeted there. */
+   without changing layout footprint. Restrained on standard heights to protect
+   the station header and sun arc from overlap. */
 @media (min-width: 1024px) {
-  .compass-rose-zoom { transform: scale(1.17); }
+  .compass-rose-zoom { transform: scale(1.08); }
+}
+@media (min-width: 1024px) and (min-height: 850px) {
+  .compass-rose-zoom { transform: scale(1.15); }
 }
 /* 6313 station header: transparent text block, no panel — the center
    column reads as open screen from top to bottom (both themes). */
 .console-station {
-  gap: 0.2rem;
-  padding: 0.45rem 1rem 0.4rem;
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
+  gap: 0.15rem;
+  padding: 0.3rem 0.75rem 0.2rem;
   width: 100%;
   background: transparent;
   border: none;
@@ -476,20 +487,37 @@ body {
   min-height: 0;
   min-width: 0;
   width: 100%;
+  position: relative;
+  overflow: visible;
 }
-/* 6313 wind rose sizing: rem-based (TV root scaling), stepped by width,
-   compressed for short landscape screens (phones turned sideways, short
-   windows) so the board never clips vertically. */
+/* 6313 wind rose sizing: responsive to both width and viewport height
+   so the center column never overflows or overlaps header/sun arc in windowed mode. */
 .compass-rose-box {
-  width: 13.75rem;
-  height: 13.75rem;
-  flex-shrink: 0;
+  width: min(13.75rem, 30vh);
+  height: min(13.75rem, 30vh);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 1;
+  position: relative;
 }
 @media (min-width: 768px) {
-  .compass-rose-box { width: 17rem; height: 17rem; }
+  .compass-rose-box {
+    width: min(16.5rem, 32vh);
+    height: min(16.5rem, 32vh);
+  }
 }
 @media (min-width: 1024px) {
-  .compass-rose-box { width: 25rem; height: 25rem; }
+  .compass-rose-box {
+    width: min(19.5rem, 34vh);
+    height: min(19.5rem, 34vh);
+  }
+}
+@media (min-width: 1024px) and (min-height: 850px) {
+  .compass-rose-box {
+    width: min(23rem, 38vh);
+    height: min(23rem, 38vh);
+  }
 }
 .compass-rose-point {
   font-size: 0.55rem;
@@ -506,9 +534,12 @@ body {
 .compass-rose-speed { font-size: 3.4rem; font-family: var(--font-digit); font-weight: 700; letter-spacing: -0.03em; }
 .compass-rose-unit { font-size: 0.72rem; margin-top: 0.15rem; font-family: var(--font-digit); font-weight: 600; }
 @media (min-width: 1024px) {
-  .compass-rose-abbrev { font-size: 1.3rem; }
-  .compass-rose-speed { font-size: 5.9rem; }
-  .compass-rose-unit { font-size: 1rem; }
+  .compass-rose-abbrev { font-size: clamp(0.95rem, 1.1vw, 1.25rem); }
+  .compass-rose-speed { font-size: clamp(3.2rem, 5vw, 5rem); }
+  .compass-rose-unit { font-size: clamp(0.75rem, 0.9vw, 0.95rem); }
+}
+@media (min-width: 1024px) and (min-height: 850px) {
+  .compass-rose-speed { font-size: 5.6rem; }
 }
 
 /* Corner medallions: badges ride the tile edges at row mid-height on wide
@@ -529,6 +560,9 @@ body {
 
 /* Supplementary badges: circular medallions straddling the rose (6313) */
 .console-bubbles {
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -602,7 +636,9 @@ body {
 
 /* Sun arc: thin arc with sun at apex, sunrise/sunset times beneath (6313) */
 .console-sunarc {
-  flex: 1 1 100%;
+  flex: 0 0 auto;
+  z-index: 10;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -731,6 +767,24 @@ footer button:focus-visible {
 /* Portrait tablets / large portrait phones: single column with scroll. */
 @media (orientation: portrait) and (min-width: 768px) and (max-width: 1023px) {
   .console-grid { grid-template-columns: 1fr; overflow-y: auto; }
+}
+
+/* Medium-short screens (typical laptops in windowed browser, e.g. 600px - 820px window height):
+   guarantee that center column station header and sun arc never collide with the compass rose */
+@media (max-height: 820px) {
+  .console-board { gap: 0.5rem; padding: 0.5rem 0.6rem 0.35rem; }
+  .console-grid { gap: 0.5rem; }
+  .console-col { gap: 0.5rem; }
+  .console-center { gap: 0.25rem; }
+  .console-station { padding: 0.2rem 0.5rem 0.15rem; gap: 0.1rem; }
+  .console-station-icon { width: 1.25rem; height: 1.25rem; }
+  .console-station-icon svg { width: 0.95rem; height: 0.95rem; }
+  .console-station-name { font-size: 0.95rem; }
+  .console-station-time { font-size: 0.75rem; }
+  .console-station-weekday { font-size: 0.68rem; }
+  .console-sunarc-track { width: 6.5rem; }
+  .console-sunarc-times { width: 8.5rem; margin-top: 0.25rem; }
+  .console-sunarc-time { font-size: 0.68rem; }
 }
 
 /* Kiosk / big-screen projection

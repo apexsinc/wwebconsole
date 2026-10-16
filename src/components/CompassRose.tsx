@@ -59,7 +59,7 @@ export default function CompassRose() {
   ];
 
   return (
-    <div className="compass-rose-wrap flex flex-col items-center justify-center p-2 md:p-4">
+    <div className="compass-rose-wrap flex flex-col items-center justify-center p-1 md:py-1 md:px-2">
       <div
         className="compass-rose-box relative flex items-center justify-center"
         role="img"
