@@ -89,17 +89,16 @@ export default function CompassRose() {
             const rad = (pt.angle * Math.PI) / 180;
             const x = 50 + r * Math.sin(rad);
             const y = 50 - r * Math.cos(rad);
+            const isCardinal = ['N', 'S', 'E', 'W'].includes(pt.label);
 
             return (
               <div
                 key={pt.label}
-                className="absolute compass-rose-point select-none"
+                className={`absolute compass-rose-point select-none ${isCardinal ? 'compass-rose-point-cardinal' : ''}`}
                 style={{
                   left: `${x}%`,
                   top: `${y}%`,
                   transform: 'translate(-50%, -50%)',
-                  color: 'rgba(71,85,105,0.85)',
-                  fontWeight: 600,
                 }}
               >
                 {pt.label}

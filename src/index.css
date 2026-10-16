@@ -173,6 +173,58 @@ body {
     font-size: 5.6rem;
   }
 
+  :fullscreen .compass-rose-point {
+    font-size: 1.15rem;
+    font-weight: 800;
+  }
+
+  :fullscreen .compass-rose-point-cardinal {
+    font-size: 1.35rem;
+    font-weight: 900;
+  }
+
+  :fullscreen .compass-rose-abbrev {
+    font-size: 1.65rem;
+  }
+
+  :fullscreen .compass-rose-unit {
+    font-size: 1.18rem;
+  }
+
+  :fullscreen .console-station-name {
+    font-size: clamp(1.4rem, 1.7vw, 1.85rem);
+  }
+
+  :fullscreen .console-station-time {
+    font-size: clamp(1.05rem, 1.25vw, 1.3rem);
+  }
+
+  :fullscreen .console-station-weekday {
+    font-size: clamp(0.92rem, 1.1vw, 1.15rem);
+  }
+
+  :fullscreen .console-station-icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  :fullscreen .console-sunarc-track {
+    width: 8.5rem;
+  }
+
+  :fullscreen .console-sunarc-times {
+    width: 11.5rem;
+  }
+
+  :fullscreen .console-sunarc-time {
+    font-size: 0.95rem;
+  }
+
+  :fullscreen .console-sunarc-time svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
   :fullscreen .console-tile {
     padding: 0.45rem 0.85rem 0.55rem;
   }
@@ -364,8 +416,8 @@ body {
 }
 
 .console-station-icon {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.8rem;
+  height: 1.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -373,32 +425,32 @@ body {
 }
 
 .console-station-icon svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.35rem;
+  height: 1.35rem;
 }
 
 .console-station-name {
   font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  font-size: clamp(1.15rem, 1.35vw, 1.55rem);
+  letter-spacing: -0.015em;
   color: var(--con-text);
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .console-station-time {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: clamp(0.92rem, 1.05vw, 1.18rem);
+  font-weight: 650;
   color: var(--con-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .console-station-weekday {
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: clamp(0.82rem, 0.95vw, 1.05rem);
+  font-weight: 600;
   color: var(--con-muted);
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .console-station-sep {
@@ -638,13 +690,27 @@ body {
 }
 
 .compass-rose-point {
-  font-size: 0.55rem;
+  font-size: clamp(0.72rem, 0.9vw, 0.88rem);
+  font-weight: 750;
   letter-spacing: 0.02em;
+  color: #334155;
+}
+
+.compass-rose-point-cardinal {
+  font-size: 1.18em;
+  font-weight: 900;
+  color: #0f172a;
 }
 
 @media (min-width: 1024px) {
   .compass-rose-point {
-    font-size: 0.65rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+
+  .compass-rose-point-cardinal {
+    font-size: 1.18rem;
+    font-weight: 900;
   }
 }
 
@@ -895,16 +961,16 @@ body {
 .console-sunarc-times {
   display: flex;
   justify-content: space-between;
-  width: 9.5rem;
+  width: 10.5rem;
   max-width: 100%;
-  margin-top: 0.45rem;
+  margin-top: 0.35rem;
 }
 
 .console-sunarc-time {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.72rem;
+  font-size: clamp(0.78rem, 0.95vw, 0.95rem);
   font-weight: 700;
   color: var(--con-text);
   font-variant-numeric: tabular-nums;
@@ -912,8 +978,8 @@ body {
 }
 
 .console-sunarc-time svg {
-  width: 0.85rem;
-  height: 0.85rem;
+  width: 0.95rem;
+  height: 0.95rem;
   color: var(--con-glyph);
 }
 
