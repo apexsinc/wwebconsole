@@ -140,15 +140,37 @@ body {
     gap: 0.6rem;
   }
 
+  :fullscreen .console-center {
+    z-index: 5;
+    overflow: visible;
+    height: 100%;
+    justify-content: space-between;
+  }
+
   :fullscreen .compass-rose-wrap {
     padding: 0.25rem;
+    overflow: visible;
   }
 
   :fullscreen .compass-rose-box {
-    max-width: min(25rem, 42vh);
-    max-height: min(25rem, 42vh);
-    width: min(25rem, 42vh);
-    height: min(25rem, 42vh);
+    width: clamp(19rem, 44vh, 24rem);
+    height: clamp(19rem, 44vh, 24rem);
+    min-width: clamp(19rem, 44vh, 24rem);
+    min-height: clamp(19rem, 44vh, 24rem);
+    max-width: clamp(19rem, 44vh, 24rem);
+    max-height: clamp(19rem, 44vh, 24rem);
+    aspect-ratio: 1 / 1 !important;
+    flex-shrink: 0;
+    overflow: visible;
+  }
+
+  :fullscreen .compass-rose-zoom {
+    transform: scale(1.24);
+    transform-origin: center center;
+  }
+
+  :fullscreen .compass-rose-speed {
+    font-size: 5.6rem;
   }
 
   :fullscreen .console-tile {
@@ -297,13 +319,15 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.6rem;
+  justify-content: space-between;
+  gap: 0.35rem;
   background: transparent;
   border: none;
   padding: 0;
   min-height: 0;
+  height: 100%;
   position: relative;
+  overflow: visible;
 }
 
 /* On wide screens the center column paints above the side cards so the
@@ -327,8 +351,11 @@ body {
 /* 6313 station header: transparent text block, no panel — the center
    column reads as open screen from top to bottom (both themes). */
 .console-station {
-  gap: 0.2rem;
-  padding: 0.45rem 1rem 0.4rem;
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
+  gap: 0.15rem;
+  padding: 0.25rem 0.75rem 0.15rem;
   width: 100%;
   background: transparent;
   border: none;
@@ -587,22 +614,26 @@ body {
    compressed for short landscape screens (phones turned sideways, short
    windows) so the board never clips vertically. */
 .compass-rose-box {
-  width: 13.75rem;
-  height: 13.75rem;
-  flex-shrink: 0;
+  width: min(13.75rem, 28vh);
+  height: min(13.75rem, 28vh);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 1;
+  position: relative;
 }
 
 @media (min-width: 768px) {
   .compass-rose-box {
-    width: 17rem;
-    height: 17rem;
+    width: min(17rem, 32vh);
+    height: min(17rem, 32vh);
   }
 }
 
 @media (min-width: 1024px) {
   .compass-rose-box {
-    width: 25rem;
-    height: 25rem;
+    width: min(19rem, 34vh);
+    height: min(19rem, 34vh);
   }
 }
 
@@ -829,7 +860,9 @@ body {
 
 /* Sun arc: thin arc with sun at apex, sunrise/sunset times beneath (6313) */
 .console-sunarc {
-  flex: 1 1 100%;
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
