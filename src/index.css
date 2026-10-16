@@ -113,35 +113,49 @@ body {
     display: none !important;
   }
 
-  /* Phase 0: use transform scale instead of non-standard `zoom`
-     (zoom is unsupported in Firefox/Safari and breaks fullscreen TV layout). */
+  /* Fullscreen: ensure console shell fits 100% of viewport without overflow or scaling blowout */
   :fullscreen .tablet-screen-shell {
-    transform: scale(1.15);
-    transform-origin: top center;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
   }
 
-  @media (min-width: 1400px) {
-    :fullscreen .tablet-screen-shell {
-      transform: scale(1.3);
-    }
+  :fullscreen .console-board {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    padding: 0.5rem 1rem 0.25rem;
+    gap: 0.5rem;
+    overflow: hidden;
   }
 
-  @media (min-width: 1920px) {
-    :fullscreen .tablet-screen-shell {
-      transform: scale(1.5);
-    }
+  :fullscreen .console-grid {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    gap: 0.6rem;
   }
 
-  @media (min-width: 2560px) {
-    :fullscreen .tablet-screen-shell {
-      transform: scale(1.8);
-    }
+  :fullscreen .compass-rose-wrap {
+    padding: 0.25rem;
   }
 
-  @media (min-width: 3840px) {
-    :fullscreen .tablet-screen-shell {
-      transform: scale(2.4);
-    }
+  :fullscreen .compass-rose-box {
+    max-width: min(25rem, 42vh);
+    max-height: min(25rem, 42vh);
+    width: min(25rem, 42vh);
+    height: min(25rem, 42vh);
+  }
+
+  :fullscreen .console-tile {
+    padding: 0.45rem 0.85rem 0.55rem;
+  }
+
+  :fullscreen .console-tile-value {
+    font-size: clamp(2rem, 3.2vw, 3.3rem);
   }
 }
 
@@ -576,6 +590,7 @@ body {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 

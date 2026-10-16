@@ -42,20 +42,22 @@ export default function TvPage() {
     if (query.data?.weather && query.data?.config) {
       const stationName =
         query.data.weather.stationName || query.data.config.stationName || '';
+      const currentConfig = useWeatherStore.getState().config;
       setAll({
         // Merge units/name over the existing config instead of replacing it,
         // so unrelated keys (poll interval, coords, etc.) survive.
         weather: { ...query.data.weather, stationName },
         connection: query.data.connection,
         config: {
-          ...existingConfig,
-          unitTemp: query.data.config.unitTemp || existingConfig.unitTemp,
-          unitWind: query.data.config.unitWind || existingConfig.unitWind,
-          unitBaro: query.data.config.unitBaro || existingConfig.unitBaro,
-          unitRain: query.data.config.unitRain || existingConfig.unitRain,
-          stationName: stationName || existingConfig.stationName,
+          ...currentConfig,
+          unitTemp: query.data.config.unitTemp || currentConfig.unitTemp,
+          unitWind: query.data.config.unitWind || currentConfig.unitWind,
+          unitBaro: query.data.config.unitBaro || currentConfig.unitBaro,
+          unitRain: query.data.config.unitRain || currentConfig.unitRain,
+          stationName: stationName || currentConfig.stationName,
           cloudStationName:
-            query.data.config.cloudStationName || existingConfig.cloudStationName,
+            query.data.config.cloudStationName || currentConfig.cloudStationName,
+          pollIntervalSec: query.data.config.pollIntervalSec || 120,
         },
       });
       // Owner's display prefs win over this browser's last choice; explicit
@@ -231,10 +233,10 @@ export default function TvPage() {
           </div>
         )}
       </div>
-      {!kiosk && <BottomBar onOpenSettings={() => undefined} hideSettings bare />}
+      {!kiosk && <BottomBar onOpenSettings={() => undefined} hideSettings />}
       {!kiosk && !isFullscreen && (
         <p className="text-center text-[11px] text-gray-400 py-1 select-none" title={`wwebconsole.com/tv/${slug}`}>
-          F fullscreen · ←/→ stations · R retry · wwebconsole.com/tv/{slug}
+          F or ⛶ fullscreen · ←/→ stations · R retry · wwebconsole.com/tv/{slug}
         </p>
       )}
     </main>

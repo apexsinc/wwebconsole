@@ -6,6 +6,7 @@
  * trap while open, focus return to the trigger on close, overlay click.
  */
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 const FOCUSABLE =
@@ -65,20 +66,23 @@ export default function Modal({
       const el = panelRef.current?.querySelector<HTMLElement>(FOCUSABLE);
       el?.focus();
     }, 30);
-    // Hide the app behind the modal from assistive tech.
+
+    // Ensure #root is never inert (clean up any stale inert attribute)
     const root = document.getElementById('root');
-    const prevInert = root?.getAttribute('inert');
-    root?.setAttribute('inert', '');
+    if (root?.hasAttribute('inert')) {
+      root.removeAttribute('inert');
+    }
+
     return () => {
       window.removeEventListener('keydown', onKey, true);
       window.clearTimeout(t);
-      if (prevInert === null) root?.removeAttribute('inert');
-      else if (root && prevInert !== undefined) root.setAttribute('inert', prevInert);
       if (prevFocus.current instanceof HTMLElement) prevFocus.current.focus();
     };
   }, [onClose]);
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  const modalContent = (
     <div
       className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
       onMouseDown={(e) => {
@@ -103,7 +107,7 @@ export default function Modal({
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="p-2.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -117,4 +121,6 @@ export default function Modal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

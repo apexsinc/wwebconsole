@@ -23,15 +23,15 @@ export default function TabletFrame({ children }: TabletFrameProps) {
   }, []);
 
   return (
-    <div className={`w-full mx-auto flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden ${
+    <div className={`w-full mx-auto flex flex-col items-center justify-center ${
       isFullscreen 
-        ? 'max-w-full h-screen max-h-screen p-0' 
-        : 'max-w-[1200px] xl:max-w-[1400px] h-auto min-h-[calc(100dvh-80px)] md:h-[calc(100vh-80px)] md:max-h-[calc(100vh-80px)] px-2 sm:px-4 py-2'
+        ? 'max-w-full h-screen max-h-screen p-0 overflow-hidden' 
+        : 'max-w-[1200px] xl:max-w-[1400px] h-auto min-h-[calc(100dvh-80px)] md:h-[calc(100vh-80px)] md:max-h-[calc(100vh-80px)] px-2 sm:px-4 py-2 overflow-y-auto md:overflow-hidden'
     }`}>
       {/* Outer console bezel (black rim like the 6313 hardware) */}
       <div className={`relative w-full shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] flex flex-col ${
         isFullscreen
-          ? 'bg-transparent rounded-none p-0 border-0 h-full'
+          ? 'bg-transparent rounded-none p-0 border-0 h-full overflow-hidden'
           : 'bg-[#0b0d12] rounded-2xl md:rounded-[2.2rem] p-2 sm:p-3 md:p-4 border-2 md:border-[5px] border-black'
       }`}>
 
@@ -49,10 +49,10 @@ export default function TabletFrame({ children }: TabletFrameProps) {
         )}
 
         {/* Inner Screen Shell */}
-        <div className={`relative w-full tablet-screen-shell screen-bg overflow-y-auto md:overflow-hidden flex flex-col justify-between ${
+        <div className={`relative w-full tablet-screen-shell screen-bg flex flex-col justify-between ${
           isFullscreen
-            ? 'rounded-none border-0 h-full max-h-full flex-1'
-            : 'rounded-xl md:rounded-[1.5rem] border border-white/10 h-auto min-h-[calc(100dvh-170px)] md:h-[calc(100vh-162px)] md:max-h-[calc(100vh-162px)]'
+            ? 'rounded-none border-0 h-full max-h-full flex-1 overflow-hidden'
+            : 'rounded-xl md:rounded-[1.5rem] border border-white/10 h-auto min-h-[calc(100dvh-170px)] md:h-[calc(100vh-162px)] md:max-h-[calc(100vh-162px)] overflow-y-auto md:overflow-hidden'
         }`}>
 
           {/* Main Weather Console Content */}

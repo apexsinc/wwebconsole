@@ -1189,7 +1189,7 @@ api.get('/public/tv/:slug', async (c) => {
   if (!link) return c.json({ error: 'Display not found' }, 404);
 
   const owner = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(link.user_id).first<UserRow>();
-  const station = await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?')
+  let station = await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?')
     .bind(link.station_id)
     .first<StationRow>();
   if (!owner || !station) return c.json({ error: 'Display not found' }, 404);
@@ -1198,7 +1198,20 @@ api.get('/public/tv/:slug', async (c) => {
   const access = hasAccountAccess(owner, station);
   if (!access.ok) return c.json({ error: 'Display unavailable', code: 'ACCESS_DENIED' }, 402);
 
-  // Public endpoint serves cached weather only — never triggers WeatherLink refresh (abuse amplification)
+  // Refresh from WeatherLink if station data is older than polling interval (mirrors /weather/current)
+  const pollMs = (station.poll_interval_sec || 900) * 1000;
+  const stale = !station.last_http_at || Date.now() - station.last_http_at > pollMs;
+  if (stale && station.credentials_enc) {
+    try {
+      await refreshStation(c.env, station);
+      station =
+        (await c.env.DB.prepare('SELECT * FROM stations WHERE id = ?').bind(link.station_id).first<StationRow>()) ||
+        station;
+    } catch (err: any) {
+      console.error('Public TV station refresh error:', err?.message || err);
+    }
+  }
+
   const weather = parseStoredWeather(station);
   const hasData = Boolean(weather && weather.ts > 0);
   return c.json(
@@ -1219,6 +1232,7 @@ api.get('/public/tv/:slug', async (c) => {
         cloudStationName: station.cloud_station_name,
         tileLayout: station.tile_layout === 'room' ? 'room' : 'dense',
         highContrast: station.contrast === 'high',
+        pollIntervalSec: station.poll_interval_sec || 900,
       },
       label: link.label,
     },
