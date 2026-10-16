@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useWeatherStore } from '../store';
 import { triggerWeatherRefresh } from '../services/api';
@@ -28,14 +28,19 @@ export function RefreshCountdown({ variant = 'bezel', className = '' }: RefreshC
   const pollIntervalSec = config.pollIntervalSec || defaultPollSec;
 
   const [secondsRemaining, setSecondsRemaining] = useState<number>(pollIntervalSec);
+  const lastTriggeredRef = useRef<number>(0);
 
   const calculateRemaining = useCallback(() => {
     const now = Date.now();
-    const anchor = lastFetchedAt || now;
+    // Anchor to connection.lastHttpReceived (exact timestamp when server called Davis WeatherLink Cloud API)
+    const anchor =
+      connection?.lastHttpReceived && connection.lastHttpReceived > 0
+        ? connection.lastHttpReceived
+        : (lastFetchedAt || now);
     const elapsedSec = Math.floor((now - anchor) / 1000);
     const left = pollIntervalSec - elapsedSec;
     return Math.max(0, left);
-  }, [lastFetchedAt, pollIntervalSec]);
+  }, [connection?.lastHttpReceived, lastFetchedAt, pollIntervalSec]);
 
   // Tick countdown every second
   useEffect(() => {
@@ -46,10 +51,24 @@ export function RefreshCountdown({ variant = 'bezel', className = '' }: RefreshC
     return () => clearInterval(interval);
   }, [calculateRemaining]);
 
+  // When countdown hits 0, execute real API call to Davis WeatherLink Cloud
+  useEffect(() => {
+    if (secondsRemaining <= 0 && !isRefreshing) {
+      const now = Date.now();
+      if (now - lastTriggeredRef.current > 15_000) {
+        lastTriggeredRef.current = now;
+        triggerWeatherRefresh(true).catch((err) => {
+          console.error('Scheduled WeatherLink cloud refresh failed:', err);
+        });
+      }
+    }
+  }, [secondsRemaining, isRefreshing]);
+
   const handleManualRefresh = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (isRefreshing) return;
+    lastTriggeredRef.current = Date.now();
     try {
       await triggerWeatherRefresh(true);
     } catch (err) {
