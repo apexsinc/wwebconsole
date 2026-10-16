@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Settings, Volume2, VolumeX, Maximize, Minimi
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useWeatherStore } from '../store.js';
 import { toast } from './Toaster.js';
+import { RefreshCountdown } from './RefreshCountdown.js';
 import {
   convertTemp, getTempUnit,
   convertWind, getWindUnit,
@@ -291,6 +292,10 @@ export default function BottomBar({ onOpenSettings, hideSettings, bare }: Bottom
           <Settings className="w-[16px] h-[16px]" aria-hidden="true" />
         </button>
         )}
+
+        {/* Live WeatherLink Cloud Refresh Countdown */}
+        <RefreshCountdown variant="taskbar" className={isFullscreen ? 'flex' : 'hidden xl:flex'} />
+
         {wifiCluster}
       </div>
 

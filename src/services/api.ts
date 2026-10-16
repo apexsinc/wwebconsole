@@ -174,8 +174,20 @@ export async function logout() {
   return api<{ ok: boolean }>('/auth/logout', { method: 'POST' });
 }
 
-export async function fetchCurrentWeather() {
-  return api<any>('/weather/current');
+export async function fetchCurrentWeather(force = false) {
+  return api<any>(`/weather/current${force ? '?refresh=1' : ''}`);
+}
+
+export async function triggerWeatherRefresh(force = true) {
+  const store = useWeatherStore.getState();
+  store.setIsRefreshing(true);
+  try {
+    const data = await fetchCurrentWeather(force);
+    store.setAll(data);
+    return data;
+  } finally {
+    store.setIsRefreshing(false);
+  }
 }
 
 export async function updateStationConfig(patch: Record<string, unknown>) {
@@ -314,14 +326,16 @@ export function useWeatherQuery(enabled = true) {
   const config = useWeatherStore((state) => state.config);
 
   const isV2 = config.cloudApiVersion !== 'v1';
-  // Live console polling interval depends on the API being used:
-  // V2: 10s (matches WeatherLink Live cloud upload cadence & respects rate limits)
+  // Davis WeatherLink Cloud API Data Permissions (https://weatherlink.github.io/v2-api/data-permissions):
+  // Pro: publishes every 5 minutes (300s)
+  // Basic: publishes every 15 minutes (900s)
   // V1: 60s
-  const effectivePollSec = isV2 ? 10 : 60;
+  const defaultPollSec = isV2 ? (config.wlPlan === 'basic' ? 900 : 300) : 60;
+  const effectivePollSec = config.pollIntervalSec || defaultPollSec;
 
   const query = useQuery({
     queryKey: ['weatherCurrent'],
-    queryFn: fetchCurrentWeather,
+    queryFn: () => fetchCurrentWeather(false),
     refetchInterval: effectivePollSec * 1000,
     refetchIntervalInBackground: false,
     retry: 2,

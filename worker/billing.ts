@@ -16,8 +16,10 @@ export async function getPollIntervalSec(env: Env, wlPlan: WlPlan, apiVersion: s
     const basicV1 = Number(await getSetting(env, 'poll_basic_sec')) || 60;
     return Math.max(30, basicV1);
   }
-  // WeatherLink Cloud V2: 10 req/min per key allows 10s for Pro and 15s for Basic
-  return wlPlan === 'pro' ? 10 : 15;
+  // Davis WeatherLink Cloud V2 data publishing permissions (https://weatherlink.github.io/v2-api/data-permissions):
+  // Pro: 5-minute archive records (300s)
+  // Basic: 15-minute archive records (900s)
+  return wlPlan === 'basic' ? 900 : 300;
 }
 
 export function isUserSuspended(user: UserRow): boolean {
@@ -126,8 +128,8 @@ export function publicBilling(user: UserRow, station?: StationRow | null) {
   const access = hasAccountAccess(user, station);
   const isV2 = station?.cloud_api_version !== 'v1';
   const plan = normalizeWlPlan(station?.wl_plan);
-  const liveTargetSec = isV2 ? (plan === 'pro' ? 10 : 15) : 60;
-  const pollSec = station?.poll_interval_sec ? Math.min(station.poll_interval_sec, liveTargetSec) : liveTargetSec;
+  const liveTargetSec = isV2 ? (plan === 'basic' ? 900 : 300) : 60;
+  const pollSec = station?.poll_interval_sec || liveTargetSec;
   return {
     role: user.role || 'user',
     suspended: Boolean(user.suspended),

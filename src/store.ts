@@ -42,6 +42,10 @@ interface WeatherStore {
   highContrast: boolean;
   /** Custom tile metric selection per position slot (persisted to localStorage & synced with station config). */
   customTiles: Record<string, TileConfig>;
+  /** Timestamp (ms) when weather telemetry was last fetched from the API */
+  lastFetchedAt: number;
+  /** Whether a background/manual refresh is currently in progress */
+  isRefreshing: boolean;
   /** Trailing wind-direction readings (oldest first, max 5) for the rose trail. */
   windDirHistory: number[];
 
@@ -56,6 +60,8 @@ interface WeatherStore {
   setTileConfig: (tileKey: string, config: TileConfig) => void;
   setAllTileConfigs: (configs: Record<string, TileConfig>) => void;
   resetTileConfigs: () => void;
+  setLastFetchedAt: (ts: number) => void;
+  setIsRefreshing: (v: boolean) => void;
   setAuthChecked: (v: boolean) => void;
   setStationIndex: (index: number) => void;
   nextStation: () => void;
@@ -123,6 +129,8 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   tileLayout: (typeof localStorage !== 'undefined' && localStorage.getItem('wwc_layout') === 'room' ? 'room' : 'dense') as 'dense' | 'room',
   highContrast: typeof localStorage !== 'undefined' && localStorage.getItem('wwc_contrast') === 'high',
   customTiles: loadLocalCustomTiles(),
+  lastFetchedAt: Date.now(),
+  isRefreshing: false,
   windDirHistory: [],
 
   updateWeather: (data) => set((state) => ({ weather: { ...state.weather, ...data } })),
@@ -131,6 +139,8 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   setUser: (user) => set({ user }),
   setBilling: (billing) => set({ billing }),
   setTrialDays: (trialDays) => set({ trialDays }),
+  setLastFetchedAt: (lastFetchedAt) => set({ lastFetchedAt }),
+  setIsRefreshing: (isRefreshing) => set({ isRefreshing }),
   setTileLayout: (tileLayout) => {
     try {
       localStorage.setItem('wwc_layout', tileLayout);
@@ -224,6 +234,8 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
         stationId: payload.stationId ?? null,
         windDirHistory,
         customTiles,
+        lastFetchedAt: Date.now(),
+        isRefreshing: false,
       };
     }),
 }));

@@ -901,8 +901,9 @@ api.get('/weather/current', requireAuth, async (c) => {
 
   const force = c.req.query('refresh') === '1';
   const isV2 = station.cloud_api_version !== 'v1';
-  // V2 cloud telemetry polls at 10s (matching WeatherLink Live upload packet frequency and 1,000 req/hr rate limits), V1 uses 60s
-  const liveTargetSec = isV2 ? 10 : 60;
+  // Davis WeatherLink Cloud V2 permissions: Pro publishes every 5 min (300s), Basic every 15 min (900s), V1 60s
+  const defaultPollSec = isV2 ? (normalizeWlPlan(station.wl_plan) === 'basic' ? 900 : 300) : 60;
+  const liveTargetSec = station.poll_interval_sec || defaultPollSec;
   const pollMs = liveTargetSec * 1000;
   const stale = !station.last_http_at || Date.now() - station.last_http_at >= (pollMs - 1000);
   if (force || stale) {
@@ -1207,7 +1208,8 @@ api.get('/public/tv/:slug', async (c) => {
 
   // Refresh from WeatherLink if station data is older than polling interval (mirrors /weather/current)
   const isV2 = station.cloud_api_version !== 'v1';
-  const liveTargetSec = isV2 ? 10 : 60;
+  const defaultPollSec = isV2 ? (normalizeWlPlan(station.wl_plan) === 'basic' ? 900 : 300) : 60;
+  const liveTargetSec = station.poll_interval_sec || defaultPollSec;
   const pollMs = liveTargetSec * 1000;
   const stale = !station.last_http_at || Date.now() - station.last_http_at >= (pollMs - 1000);
   if (stale && station.credentials_enc) {

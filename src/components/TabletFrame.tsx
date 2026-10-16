@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useWeatherStore } from '../store.js';
+import { RefreshCountdown } from './RefreshCountdown.js';
 
 interface TabletFrameProps {
   children: React.ReactNode;
@@ -67,18 +68,21 @@ export default function TabletFrame({ children }: TabletFrameProps) {
         {/* Bottom Bezel brand plate and Status light */}
         {!isFullscreen && (
           <div className="relative mt-1.5 md:mt-3 flex items-center justify-between px-4 md:px-6 pointer-events-none shrink-0">
-          {/* Status Indicator */}
-          <div className="flex items-center gap-2" role="status" aria-live="polite">
-            <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${status === 'online'
-                ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
-                : status === 'connecting'
-                  ? 'bg-amber-500 animate-pulse'
-                  : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'
-              }`} />
-            <span className="sr-only">Console link: {status}</span>
-            <span aria-hidden="true" className="text-[10px] text-slate-400 font-mono font-bold tracking-wider uppercase hidden md:inline">
-              CONSOLE LINK: {status}
-            </span>
+          {/* Status Indicator & Cloud Sync Countdown */}
+          <div className="flex items-center gap-2.5" role="status" aria-live="polite">
+            <div className="flex items-center gap-2">
+              <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${status === 'online'
+                  ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+                  : status === 'connecting'
+                    ? 'bg-amber-500 animate-pulse'
+                    : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'
+                }`} />
+              <span className="sr-only">Console link: {status}</span>
+              <span aria-hidden="true" className="text-[10px] text-slate-400 font-mono font-bold tracking-wider uppercase hidden md:inline">
+                CONSOLE LINK: {status}
+              </span>
+            </div>
+            <RefreshCountdown variant="bezel" />
           </div>
 
           {/* APEXS Brand Logo */}
