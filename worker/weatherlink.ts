@@ -168,9 +168,10 @@ async function syncV2StationMeta(row: StationRow, creds: StationCredentials): Pr
   const ts = Math.floor(Date.now() / 1000);
   const sigStr = `api-key${creds.apiToken}t${ts}`;
   const sig = await hmacSha256Hex(creds.apiSecret, sigStr);
+  const headers: Record<string, string> = { 'X-Api-Secret': creds.apiSecret };
   const stRes = await fetch(
     `https://api.weatherlink.com/v2/stations?api-key=${encodeURIComponent(creds.apiToken)}&t=${ts}&api-signature=${sig}`,
-    { signal: AbortSignal.timeout(8000) }
+    { headers, signal: AbortSignal.timeout(8000) }
   );
   if (!stRes.ok) throw new Error(`Station lookup failed (${stRes.status})`);
   const stData = (await stRes.json()) as { stations?: any[] };
@@ -278,9 +279,10 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
     const stId = String(stMeta.station_id);
     const stringToHash = `api-key${creds.apiToken}station-id${stId}t${timestamp}`;
     const signature = await hmacSha256Hex(creds.apiSecret, stringToHash);
+    const headers: Record<string, string> = { 'X-Api-Secret': creds.apiSecret };
     const response = await fetch(
       `https://api.weatherlink.com/v2/current/${stId}?api-key=${encodeURIComponent(creds.apiToken)}&t=${timestamp}&api-signature=${signature}`,
-      { signal: AbortSignal.timeout(8000) }
+      { headers, signal: AbortSignal.timeout(8000) }
     );
     if (!response.ok) continue;
     const data = (await response.json()) as { sensors?: any[]; generated_at?: number };
