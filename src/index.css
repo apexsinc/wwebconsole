@@ -484,6 +484,43 @@ body {
   padding: 1.2rem;
 }
 
+.console-tile-edit-btn {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--con-card-border);
+  color: var(--con-muted);
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  z-index: 7;
+  cursor: pointer;
+  border: none;
+}
+
+.console-tile:hover .console-tile-edit-btn,
+.console-tile:focus-within .console-tile-edit-btn {
+  opacity: 0.75;
+}
+
+.console-tile-edit-btn:hover {
+  opacity: 1 !important;
+  background: var(--wwc-accent);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+@media (hover: none) {
+  .console-tile-edit-btn {
+    opacity: 0.35;
+  }
+}
+
 /* Hairline divider with centered icon at card top (6313) */
 .console-tile-top {
   display: flex;
@@ -1030,6 +1067,12 @@ html[data-contrast="high"] .console-tile-glyph {
 
 html[data-contrast="high"] .console-tile-alarm {
   color: #fff;
+}
+
+html[data-contrast="high"] .console-tile-edit-btn {
+  background: #222;
+  color: #fff;
+  border: 1px solid #fff;
 }
 
 html[data-contrast="high"] .console-sunarc,

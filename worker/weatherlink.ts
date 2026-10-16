@@ -29,10 +29,34 @@ export function emptyWeather(): WeatherData {
     ts: 0,
     stationName: 'Offline Console',
     stationDid: 'Unconfigured',
+    solar_rad: 0,
+    uv_index: 0,
+    thsw_index: 0,
+    wet_bulb: 0,
+    rainfall_monthly: 0,
+    rainfall_year: 0,
+    rain_storm: 0,
+    temp_hi: 0,
+    temp_low: 0,
+    wind_speed_hi_day: 0,
+    dew_point_in: 0,
+    heat_index_in: 0,
+    pm_2p5: 0,
+    pm_10: 0,
+    aqi: 0,
   };
 }
 
 export function toPublicConfig(row: StationRow, creds: StationCredentials): PublicConfig {
+  let customTiles: Record<string, any> | undefined = undefined;
+  if (row.custom_tiles) {
+    try {
+      customTiles = JSON.parse(row.custom_tiles);
+    } catch {
+      /* ignore */
+    }
+  }
+
   return {
     cloudApiVersion: (row.cloud_api_version === 'v1' ? 'v1' : 'v2') as 'v1' | 'v2',
     cloudDid: row.cloud_did,
@@ -55,6 +79,7 @@ export function toPublicConfig(row: StationRow, creds: StationCredentials): Publ
     subscriptionStatus: row.subscription_status || 'trial',
     subscriptionExpiresAt: row.subscription_expires_at ?? null,
     pollIntervalSec: (row.cloud_api_version === 'v1' ? 60 : 10),
+    customTiles,
   };
 }
 
@@ -303,6 +328,8 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
       if (dst === 21 || dst === 22) {
         if (cond.temp_in !== undefined) itemWeather.temp_in = Number(cond.temp_in);
         if (cond.hum_in !== undefined) itemWeather.hum_in = Number(cond.hum_in);
+        if (cond.dew_point_in !== undefined) itemWeather.dew_point_in = Number(cond.dew_point_in);
+        if (cond.heat_index_in !== undefined) itemWeather.heat_index_in = Number(cond.heat_index_in);
       }
       if (dst === 19 || dst === 20) {
         if (cond.bar_sea_level !== undefined) itemWeather.bar_sea_level = Number(cond.bar_sea_level);
@@ -320,19 +347,61 @@ async function fetchV2(row: StationRow, creds: StationCredentials, weather: Weat
         } else if (cond.temp !== undefined) {
           itemWeather.feels_like = Number(cond.temp);
         }
+        if (cond.thsw_index !== undefined) itemWeather.thsw_index = Number(cond.thsw_index);
+        if (cond.wet_bulb !== undefined) itemWeather.wet_bulb = Number(cond.wet_bulb);
+
         if (cond.wind_speed_last !== undefined) itemWeather.wind_speed_last = Number(cond.wind_speed_last);
         if (cond.wind_dir_last !== undefined) itemWeather.wind_dir_last = Number(cond.wind_dir_last);
         if (cond.wind_speed_avg_last_2_min !== undefined) itemWeather.wind_speed_avg_2_min = Number(cond.wind_speed_avg_last_2_min);
         if (cond.wind_speed_avg_last_10_min !== undefined) itemWeather.wind_speed_avg_10_min = Number(cond.wind_speed_avg_last_10_min);
         if (cond.wind_dir_scalar_avg_last_10_min !== undefined) itemWeather.wind_dir_10_min = Number(cond.wind_dir_scalar_avg_last_10_min);
         if (cond.wind_speed_hi_last_10_min !== undefined) itemWeather.wind_gust_10_min = Number(cond.wind_speed_hi_last_10_min);
+        if (cond.wind_speed_hi_day !== undefined) itemWeather.wind_speed_hi_day = Number(cond.wind_speed_hi_day);
+
         if (cond.rain_rate_last_in !== undefined) itemWeather.rain_rate_last = Number(cond.rain_rate_last_in);
         else if (cond.rain_rate_last !== undefined) itemWeather.rain_rate_last = Number(cond.rain_rate_last);
         if (cond.rainfall_day_in !== undefined) itemWeather.rainfall_daily = Number(cond.rainfall_day_in);
         else if (cond.rainfall_daily_in !== undefined) itemWeather.rainfall_daily = Number(cond.rainfall_daily_in);
         else if (cond.rainfall_daily !== undefined) itemWeather.rainfall_daily = Number(cond.rainfall_daily);
         if (cond.rain_rate_hi_in !== undefined) itemWeather.high_rain_rate_today = Number(cond.rain_rate_hi_in);
+
+        if (cond.rainfall_month_in !== undefined) itemWeather.rainfall_monthly = Number(cond.rainfall_month_in);
+        else if (cond.rainfall_monthly_in !== undefined) itemWeather.rainfall_monthly = Number(cond.rainfall_monthly_in);
+        else if (cond.rainfall_monthly !== undefined) itemWeather.rainfall_monthly = Number(cond.rainfall_monthly);
+
+        if (cond.rainfall_year_in !== undefined) itemWeather.rainfall_year = Number(cond.rainfall_year_in);
+        else if (cond.rainfall_year !== undefined) itemWeather.rainfall_year = Number(cond.rainfall_year);
+
+        if (cond.rain_storm_in !== undefined) itemWeather.rain_storm = Number(cond.rain_storm_in);
+        else if (cond.rain_storm !== undefined) itemWeather.rain_storm = Number(cond.rain_storm);
+
+        if (cond.temp_hi !== undefined) itemWeather.temp_hi = Number(cond.temp_hi);
+        else if (cond.temp_day_high_f !== undefined) itemWeather.temp_hi = Number(cond.temp_day_high_f);
+
+        if (cond.temp_lo !== undefined) itemWeather.temp_low = Number(cond.temp_lo);
+        else if (cond.temp_low !== undefined) itemWeather.temp_low = Number(cond.temp_low);
+        else if (cond.temp_day_low_f !== undefined) itemWeather.temp_low = Number(cond.temp_day_low_f);
+
+        if (cond.solar_rad !== undefined) itemWeather.solar_rad = Number(cond.solar_rad);
+        else if (cond.solar_radiation !== undefined) itemWeather.solar_rad = Number(cond.solar_radiation);
+
+        if (cond.uv_index !== undefined) itemWeather.uv_index = Number(cond.uv_index);
+        else if (cond.uv !== undefined) itemWeather.uv_index = Number(cond.uv);
       }
+
+      // Air quality & standalone solar/UV transmitters
+      if (cond.pm_2p5 !== undefined) itemWeather.pm_2p5 = Number(cond.pm_2p5);
+      else if (cond.pm_2_5 !== undefined) itemWeather.pm_2p5 = Number(cond.pm_2_5);
+      if (cond.pm_10 !== undefined) itemWeather.pm_10 = Number(cond.pm_10);
+      if (cond.aqi_val !== undefined) itemWeather.aqi = Number(cond.aqi_val);
+      else if (cond.aqi_nowcast_val !== undefined) itemWeather.aqi = Number(cond.aqi_nowcast_val);
+      else if (cond.aqi !== undefined) itemWeather.aqi = Number(cond.aqi);
+
+      if (cond.solar_rad !== undefined && itemWeather.solar_rad === 0) itemWeather.solar_rad = Number(cond.solar_rad);
+      else if (cond.solar_radiation !== undefined && itemWeather.solar_rad === 0) itemWeather.solar_rad = Number(cond.solar_radiation);
+
+      if (cond.uv_index !== undefined && itemWeather.uv_index === 0) itemWeather.uv_index = Number(cond.uv_index);
+      else if (cond.uv !== undefined && itemWeather.uv_index === 0) itemWeather.uv_index = Number(cond.uv);
     }
 
     itemWeather.ts = data.generated_at || Math.floor(Date.now() / 1000);
@@ -499,6 +568,55 @@ async function fetchV1(row: StationRow, creds: StationCredentials, weather: Weat
         : data.rain_rate_day_high_in_per_hr !== undefined
         ? Number(data.rain_rate_day_high_in_per_hr)
         : itemWeather.high_rain_rate_today;
+
+    itemWeather.solar_rad =
+      davis.solar_radiation !== undefined
+        ? Number(davis.solar_radiation)
+        : data.solar_radiation !== undefined
+        ? Number(data.solar_radiation)
+        : itemWeather.solar_rad;
+
+    itemWeather.uv_index =
+      davis.uv_index !== undefined
+        ? Number(davis.uv_index)
+        : data.uv_index !== undefined
+        ? Number(data.uv_index)
+        : itemWeather.uv_index;
+
+    itemWeather.thsw_index =
+      davis.thsw_index_f !== undefined
+        ? Number(davis.thsw_index_f)
+        : itemWeather.thsw_index;
+
+    itemWeather.rainfall_monthly =
+      davis.rain_month_in !== undefined
+        ? Number(davis.rain_month_in)
+        : itemWeather.rainfall_monthly;
+
+    itemWeather.rainfall_year =
+      davis.rain_year_in !== undefined
+        ? Number(davis.rain_year_in)
+        : itemWeather.rainfall_year;
+
+    itemWeather.rain_storm =
+      davis.rain_storm_in !== undefined
+        ? Number(davis.rain_storm_in)
+        : itemWeather.rain_storm;
+
+    itemWeather.temp_hi =
+      davis.temp_day_high_f !== undefined
+        ? Number(davis.temp_day_high_f)
+        : itemWeather.temp_hi;
+
+    itemWeather.temp_low =
+      davis.temp_day_low_f !== undefined
+        ? Number(davis.temp_day_low_f)
+        : itemWeather.temp_low;
+
+    itemWeather.wind_speed_hi_day =
+      davis.wind_day_high_mph !== undefined
+        ? Number(davis.wind_day_high_mph)
+        : itemWeather.wind_speed_hi_day;
 
     itemWeather.ts = data.observation_time_rfc822
       ? Math.floor(new Date(data.observation_time_rfc822).getTime() / 1000)

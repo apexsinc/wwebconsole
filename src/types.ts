@@ -30,6 +30,29 @@ export interface WeatherData {
   stationName?: string;
   stationDid?: string;
   weatherList?: WeatherData[];
+  solar_rad?: number;
+  uv_index?: number;
+  thsw_index?: number;
+  wet_bulb?: number;
+  rainfall_monthly?: number;
+  rainfall_year?: number;
+  rain_storm?: number;
+  temp_hi?: number;
+  temp_low?: number;
+  wind_speed_hi_day?: number;
+  dew_point_in?: number;
+  heat_index_in?: number;
+  pm_2p5?: number;
+  pm_10?: number;
+  aqi?: number;
+}
+
+export interface TileConfig {
+  single?: boolean;
+  primaryMetric: string;
+  secondaryMetric?: string;
+  customLabel?: string;
+  customSubLabel?: string;
 }
 
 /** Public station config returned by API (secrets never included) */
@@ -56,6 +79,7 @@ export interface WLLConfig {
   subscriptionStatus?: string;
   subscriptionExpiresAt?: number | null;
   pollIntervalSec?: number;
+  customTiles?: Record<string, TileConfig>;
   /** @deprecated LAN mode is not available on Cloudflare Workers */
   wllIpAddress?: string;
   useCloudApi?: boolean;

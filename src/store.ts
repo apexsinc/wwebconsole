@@ -4,7 +4,26 @@
  */
 
 import { create } from 'zustand';
-import { WeatherData, WLLConfig, ConnectionState, AuthUser, BillingInfo } from './types.js';
+import { WeatherData, WLLConfig, ConnectionState, AuthUser, BillingInfo, TileConfig } from './types.js';
+
+function loadLocalCustomTiles(): Record<string, TileConfig> {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('wwc_custom_tiles');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalCustomTiles(tiles: Record<string, TileConfig>) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem('wwc_custom_tiles', JSON.stringify(tiles));
+  } catch {
+    /* ignore */
+  }
+}
 
 interface WeatherStore {
   weather: WeatherData;
@@ -21,6 +40,8 @@ interface WeatherStore {
   /** 6313-style display prefs (persisted to localStorage). */
   tileLayout: 'dense' | 'room';
   highContrast: boolean;
+  /** Custom tile metric selection per position slot (persisted to localStorage & synced with station config). */
+  customTiles: Record<string, TileConfig>;
   /** Trailing wind-direction readings (oldest first, max 5) for the rose trail. */
   windDirHistory: number[];
 
@@ -32,6 +53,9 @@ interface WeatherStore {
   setTrialDays: (v: number | null) => void;
   setTileLayout: (v: 'dense' | 'room') => void;
   setHighContrast: (v: boolean) => void;
+  setTileConfig: (tileKey: string, config: TileConfig) => void;
+  setAllTileConfigs: (configs: Record<string, TileConfig>) => void;
+  resetTileConfigs: () => void;
   setAuthChecked: (v: boolean) => void;
   setStationIndex: (index: number) => void;
   nextStation: () => void;
@@ -98,6 +122,7 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
   trialDays: null,
   tileLayout: (typeof localStorage !== 'undefined' && localStorage.getItem('wwc_layout') === 'room' ? 'room' : 'dense') as 'dense' | 'room',
   highContrast: typeof localStorage !== 'undefined' && localStorage.getItem('wwc_contrast') === 'high',
+  customTiles: loadLocalCustomTiles(),
   windDirHistory: [],
 
   updateWeather: (data) => set((state) => ({ weather: { ...state.weather, ...data } })),
@@ -118,6 +143,20 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
       document.documentElement.dataset.contrast = highContrast ? 'high' : 'standard';
     } catch { /* ignore */ }
     set({ highContrast });
+  },
+  setTileConfig: (tileKey, tileConfig) =>
+    set((state) => {
+      const next = { ...state.customTiles, [tileKey]: tileConfig };
+      saveLocalCustomTiles(next);
+      return { customTiles: next };
+    }),
+  setAllTileConfigs: (configs) => {
+    saveLocalCustomTiles(configs);
+    set({ customTiles: configs });
+  },
+  resetTileConfigs: () => {
+    saveLocalCustomTiles({});
+    set({ customTiles: {} });
   },
   setAuthChecked: (authChecked) => set({ authChecked }),
   setStationIndex: (index) =>
@@ -166,6 +205,16 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
         isFresh && typeof activeWeather.wind_dir_last === 'number'
           ? [...state.windDirHistory, activeWeather.wind_dir_last].slice(-5)
           : state.windDirHistory;
+      let customTiles = state.customTiles;
+      if (
+        Object.keys(customTiles).length === 0 &&
+        payload.config?.customTiles &&
+        Object.keys(payload.config.customTiles).length > 0
+      ) {
+        customTiles = payload.config.customTiles;
+        saveLocalCustomTiles(customTiles);
+      }
+
       return {
         weather: activeWeather,
         weatherList: list,
@@ -174,6 +223,7 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
         config: payload.config,
         stationId: payload.stationId ?? null,
         windDirHistory,
+        customTiles,
       };
     }),
 }));

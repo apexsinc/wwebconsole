@@ -777,6 +777,7 @@ api.patch('/station', requireAuth, async (c) => {
       unitRain: z.enum(['in', 'mm']).optional(),
       tileLayout: z.enum(['dense', 'room']).optional(),
       highContrast: z.boolean().optional(),
+      customTiles: z.record(z.string(), z.any()).optional().nullable(),
       cloudPassword: z.string().max(200).optional(),
       cloudApiToken: z.string().max(200).optional(),
       cloudApiSecret: z.string().max(200).optional(),
@@ -838,6 +839,7 @@ api.patch('/station', requireAuth, async (c) => {
       unit_rain = COALESCE(?, unit_rain),
       tile_layout = COALESCE(?, tile_layout),
       contrast = COALESCE(?, contrast),
+      custom_tiles = CASE WHEN ? THEN ? ELSE custom_tiles END,
       updated_at = ?
      WHERE id = ?`
   )
@@ -859,6 +861,8 @@ api.patch('/station', requireAuth, async (c) => {
       d.unitRain ?? null,
       d.tileLayout ?? null,
       d.highContrast === undefined ? null : (d.highContrast ? 'high' : 'standard'),
+      d.customTiles !== undefined ? 1 : 0,
+      d.customTiles ? JSON.stringify(d.customTiles) : null,
       now,
       station.id
     )

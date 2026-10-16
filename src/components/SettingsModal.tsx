@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Save, Settings, Network, Tv, CheckCircle2 } from 'lucide-react';
+import { Save, Settings, Network, Tv, SlidersHorizontal } from 'lucide-react';
 import { useWeatherStore } from '../store.js';
 import { useConfigMutation } from '../services/api.js';
 import { toast } from './Toaster.js';
 import Modal from './ui/Modal.js';
 import { Button, Select, FieldLabel, FieldGroupLabel } from './ui/controls.js';
+import TileCustomizeModal from './TileCustomizeModal.js';
+import {
+  METRIC_REGISTRY,
+  TILE_POSITIONS_DENSE,
+  TILE_POSITIONS_ROOM,
+} from './tileRegistry.js';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -17,7 +23,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const setTileLayout = useWeatherStore((s) => s.setTileLayout);
   const highContrast = useWeatherStore((s) => s.highContrast);
   const setHighContrast = useWeatherStore((s) => s.setHighContrast);
+  const customTiles = useWeatherStore((s) => s.customTiles);
+  const resetTileConfigs = useWeatherStore((s) => s.resetTileConfigs);
 
+  const [customizingTileKey, setCustomizingTileKey] = useState<string | null>(null);
   const [unitTemp, setUnitTemp] = useState(config.unitTemp ?? 'F');
   const [unitWind, setUnitWind] = useState(config.unitWind ?? 'mph');
   const [unitBaro, setUnitBaro] = useState(config.unitBaro ?? 'inHg');
@@ -212,6 +221,61 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </button>
         </div>
       </div>
+
+      {/* Tile Customization Section */}
+      <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 flex flex-col gap-3 mt-4">
+        <div className="flex items-center justify-between">
+          <FieldGroupLabel>Customize Console Tiles</FieldGroupLabel>
+          <button
+            type="button"
+            onClick={() => {
+              resetTileConfigs();
+              toast('All tiles reset to defaults!', 'info');
+            }}
+            className="text-xs text-rose-500 hover:text-rose-600 font-semibold cursor-pointer"
+          >
+            Reset All Tiles
+          </button>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Click any tile slot below or use the sliders icon on the live console tiles to select data (Solar, UV, Temperature, Rain, Wind, Air Quality).
+        </p>
+
+        {/* Mini Grid Representation */}
+        <div className="grid grid-cols-2 gap-2 mt-1">
+          {(tileLayout === 'room' ? TILE_POSITIONS_ROOM : TILE_POSITIONS_DENSE).map((pos) => {
+            const current = customTiles[pos.key];
+            const activeTitle = current?.customLabel ||
+              (current ? `${METRIC_REGISTRY[current.primaryMetric]?.shortLabel || current.primaryMetric}${current.secondaryMetric ? ` & ${METRIC_REGISTRY[current.secondaryMetric]?.shortLabel || current.secondaryMetric}` : ''}` : pos.defaultName);
+
+            return (
+              <button
+                key={pos.key}
+                type="button"
+                onClick={() => setCustomizingTileKey(pos.key)}
+                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-left hover:border-sky-500 transition-all cursor-pointer group"
+              >
+                <div className="min-w-0 pr-2">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-sky-500">
+                    {pos.label}
+                  </span>
+                  <span className="block text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                    {activeTitle}
+                  </span>
+                </div>
+                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400 group-hover:text-sky-500 shrink-0" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <TileCustomizeModal
+        isOpen={Boolean(customizingTileKey)}
+        onClose={() => setCustomizingTileKey(null)}
+        tileKey={customizingTileKey}
+        isRoomMode={tileLayout === 'room'}
+      />
     </Modal>
   );
 }

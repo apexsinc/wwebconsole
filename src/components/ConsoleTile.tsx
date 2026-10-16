@@ -10,7 +10,7 @@
  * stay side-by-side without clipping.
  */
 import type { LucideIcon } from 'lucide-react';
-import { AlarmClock } from 'lucide-react';
+import { AlarmClock, SlidersHorizontal } from 'lucide-react';
 
 /** Split a unit into superscript stack lines: 'in Hg' → ['in','Hg'], 'mph' → ['mi','hr']. */
 function stackUnit(unit?: string): string[] {
@@ -75,6 +75,7 @@ export default function ConsoleTile({
   icon: Icon,
   single,
   badge,
+  onCustomize,
 }: {
   label: string;
   value: string;
@@ -94,13 +95,28 @@ export default function ConsoleTile({
     side: 'left' | 'right';
     iconOnly?: boolean;
   };
+  onCustomize?: () => void;
 }) {
   if (single) {
     return (
       <section
         aria-label={label}
-        className="console-tile console-tile-single flex-1 flex min-h-0 flex-col justify-center items-center text-center py-[1.2rem]"
+        className="console-tile console-tile-single flex-1 flex min-h-0 flex-col justify-center items-center text-center py-[1.2rem] relative group"
       >
+        {onCustomize && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCustomize();
+            }}
+            title={`Customize ${label} tile`}
+            aria-label={`Customize ${label} tile`}
+            className="console-tile-edit-btn"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        )}
         <Value value={value} unit={unit} xl />
         <span className="console-tile-label">{label}</span>
       </section>
@@ -110,8 +126,22 @@ export default function ConsoleTile({
   return (
     <section
       aria-label={subValue !== undefined ? `${label}, ${subLabel}` : label}
-      className="console-tile flex-1 flex min-h-0 flex-col"
+      className="console-tile flex-1 flex min-h-0 flex-col relative group"
     >
+      {onCustomize && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCustomize();
+          }}
+          title={`Customize ${label} tile`}
+          aria-label={`Customize ${label} tile`}
+          className="console-tile-edit-btn"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+        </button>
+      )}
       <div className="console-tile-top" aria-hidden="true">
         <span className="console-tile-rule" />
         {Icon && <Icon className="console-tile-glyph" />}

@@ -25,6 +25,21 @@ export interface WeatherData {
   stationName?: string;
   stationDid?: string;
   weatherList?: WeatherData[];
+  solar_rad?: number;
+  uv_index?: number;
+  thsw_index?: number;
+  wet_bulb?: number;
+  rainfall_monthly?: number;
+  rainfall_year?: number;
+  rain_storm?: number;
+  temp_hi?: number;
+  temp_low?: number;
+  wind_speed_hi_day?: number;
+  dew_point_in?: number;
+  heat_index_in?: number;
+  pm_2p5?: number;
+  pm_10?: number;
+  aqi?: number;
 }
 
 export interface PublicConfig {
@@ -50,6 +65,7 @@ export interface PublicConfig {
   subscriptionStatus?: string;
   subscriptionExpiresAt?: number | null;
   pollIntervalSec?: number;
+  customTiles?: Record<string, any>;
 }
 
 export interface StationCredentials {
@@ -136,6 +152,7 @@ export interface StationRow {
   subscription_status?: string;
   subscription_expires_at?: number | null;
   poll_interval_sec?: number;
+  custom_tiles?: string | null;
   created_at: number;
   updated_at: number;
 }
