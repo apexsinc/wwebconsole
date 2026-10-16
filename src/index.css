@@ -155,7 +155,11 @@ body {
   }
 
   :fullscreen .console-tile-value {
-    font-size: clamp(2rem, 3.2vw, 3.3rem);
+    font-size: clamp(3.2rem, 4.4vw, 4.8rem);
+  }
+
+  :fullscreen .console-tile-label {
+    font-size: clamp(1rem, 1.25vw, 1.3rem);
   }
 }
 
@@ -320,11 +324,11 @@ body {
 .console-tile {
   background: var(--con-card);
   border: 1px solid var(--con-card-border);
-  border-radius: 0.65rem;
+  border-radius: 0.75rem;
   box-shadow: var(--con-card-shadow);
   color: var(--con-text);
   position: relative;
-  padding: 0.55rem 1rem 0.7rem;
+  padding: 0.5rem 0.85rem 0.65rem;
 }
 .console-tile-single { padding: 1.2rem; }
 /* Hairline divider with centered icon at card top (6313) */
@@ -356,23 +360,25 @@ body {
   text-align: center;
 }
 .console-tile-half + .console-tile-half {
-  padding-left: 1rem;
+  padding-left: 0.75rem;
   margin-left: 0.25rem;
 }
 .console-tile-label {
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  font-size: clamp(0.85rem, 0.95vw, 1.05rem);
+  font-weight: 650;
+  letter-spacing: 0.015em;
   color: var(--con-text);
-  margin-top: 0.15rem;
+  margin-top: 0.25rem;
+  line-height: 1.25;
   white-space: normal;
+  opacity: 0.95;
 }
 .console-tile-value {
   font-family: var(--font-digit);
-  font-weight: 600;
-  font-size: 3rem;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-size: clamp(3rem, 3.8vw, 4.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
   color: var(--con-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -383,7 +389,7 @@ body {
   display: block;
 }
 .console-tile-value-xl {
-  font-size: 4.5rem;
+  font-size: clamp(4.4rem, 5.5vw, 5.8rem);
 }
 /* Superscript unit at the top-right of the digits (6313): single small
    unit raised, or two stacked lines (in/Hg, mi/hr). */
@@ -394,14 +400,14 @@ body {
   vertical-align: top;
   flex-direction: column;
   align-items: flex-start;
-  margin-left: 0.3rem;
-  margin-top: 0.3rem;
+  margin-left: 0.35rem;
+  margin-top: 0.2rem;
   align-self: flex-start;
   line-height: 1.1;
 }
 .console-tile-alarm {
-  width: 0.72rem;
-  height: 0.72rem;
+  width: 0.85rem;
+  height: 0.85rem;
   color: var(--con-glyph);
   opacity: 0.85;
   margin-bottom: 0.15rem;
@@ -415,8 +421,8 @@ body {
 .console-tile-unit {
   display: inline-flex;
   vertical-align: top;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: clamp(0.95rem, 1.2vw, 1.25rem);
+  font-weight: 650;
   color: var(--con-unit);
   font-family: var(--font-sans);
   line-height: 1.1;
@@ -426,8 +432,8 @@ body {
   display: inline-flex;
   vertical-align: top;
   flex-direction: column;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: clamp(0.85rem, 1.05vw, 1.1rem);
+  font-weight: 650;
   color: var(--con-unit);
   font-family: var(--font-sans);
   line-height: 1.15;
@@ -435,7 +441,7 @@ body {
   white-space: normal;
 }
 .console-tile-value-xl + .console-tile-unit, .console-tile-value-xl .console-tile-unit,
-.console-tile-value-xl .console-tile-unit-stack { font-size: 1.25rem; }
+.console-tile-value-xl .console-tile-unit-stack { font-size: 1.4rem; }
 .console-tile-sub {
   font-size: 0.8rem;
   color: var(--con-bubble-sub);
@@ -517,8 +523,8 @@ body {
   .corner-badge .console-bubble-value { font-size: 0.62rem; }
   /* Clear digit space where medallions straddle and the rose overlaps
      (inner halves on all rows). */
-  .console-grid > .console-col:first-child .console-tile .console-tile-half:last-child { padding-right: 2.2rem; }
-  .console-grid > .console-col:last-child .console-tile .console-tile-half:first-child { padding-left: 2.2rem; }
+  .console-grid > .console-col:first-child .console-tile .console-tile-half:last-child { padding-right: 1.5rem; }
+  .console-grid > .console-col:last-child .console-tile .console-tile-half:first-child { padding-left: 1.5rem; }
 }
 
 /* Supplementary badges: circular medallions straddling the rose (6313) */
@@ -692,8 +698,9 @@ footer button:focus-visible {
 /* ── Responsive matrix: portrait + landscape, small + big ── */
 /* Narrow portrait phones: pairs stay side-by-side, type steps down. */
 @media (max-width: 480px) {
-  .console-tile-value { font-size: 1.9rem; }
-  .console-tile-value-xl { font-size: 3rem; }
+  .console-tile-value { font-size: 2.2rem; }
+  .console-tile-value-xl { font-size: 3.2rem; }
+  .console-tile-label { font-size: 0.8rem; }
   .console-tile-half + .console-tile-half { padding-left: 0.6rem; }
   .console-tile { padding: 0.45rem 0.6rem 0.6rem; }
   .console-bubble { width: 4rem; height: 4rem; }
@@ -709,8 +716,9 @@ footer button:focus-visible {
   .compass-rose-speed { font-size: 2.6rem; }
   .compass-rose-abbrev { font-size: 0.72rem; }
   .compass-rose-unit { font-size: 0.6rem; }
-  .console-tile-value { font-size: 1.8rem; }
-  .console-tile-value-xl { font-size: 2.8rem; }
+  .console-tile-value { font-size: 2.1rem; }
+  .console-tile-value-xl { font-size: 3rem; }
+  .console-tile-label { font-size: 0.78rem; }
   .console-tile { padding: 0.4rem 0.6rem 0.5rem; }
   .console-tile-top { margin-bottom: 0.15rem; }
   .console-station { padding: 0.3rem 0.75rem; }
@@ -734,7 +742,8 @@ footer button:focus-visible {
    always fit 100dvh with no clipping behind the taskbar. */
 .tv-scaled .console-grid { grid-template-columns: 1fr 15rem 1fr; }
 .tv-scaled .compass-rose-box { width: 18rem; height: 18rem; }
-.tv-scaled .console-tile-value { font-size: 2.1rem; }
+.tv-scaled .console-tile-value { font-size: 3rem; }
+.tv-scaled .console-tile-label { font-size: 1rem; }
 .tv-scaled .console-bubble { width: 4rem; height: 4rem; }
 .tv-scaled .console-bubbles { gap: 0.45rem; }
 .tv-scaled .console-board, .tv-scaled .console-grid { gap: 0.5rem; }

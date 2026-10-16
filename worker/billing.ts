@@ -11,10 +11,13 @@ export function normalizeWlPlan(raw?: string | null): WlPlan {
   return 'unknown';
 }
 
-export async function getPollIntervalSec(env: Env, wlPlan: WlPlan): Promise<number> {
-  const basic = Number(await getSetting(env, 'poll_basic_sec')) || 900;
-  const pro = Number(await getSetting(env, 'poll_pro_sec')) || 120;
-  return wlPlan === 'pro' ? pro : basic;
+export async function getPollIntervalSec(env: Env, wlPlan: WlPlan, apiVersion: string = 'v2'): Promise<number> {
+  if (apiVersion === 'v1') {
+    const basicV1 = Number(await getSetting(env, 'poll_basic_sec')) || 60;
+    return Math.max(30, basicV1);
+  }
+  // WeatherLink Cloud V2: 10 req/min per key allows 10s for Pro and 15s for Basic
+  return wlPlan === 'pro' ? 10 : 15;
 }
 
 export function isUserSuspended(user: UserRow): boolean {
@@ -98,8 +101,8 @@ export async function activateYearlySubscription(env: Env, stationId: string, wl
   await statement.run();
 }
 
-export async function setStationWlPlan(env: Env, stationId: string, wlPlan: WlPlan) {
-  const poll = await getPollIntervalSec(env, wlPlan);
+export async function setStationWlPlan(env: Env, stationId: string, wlPlan: WlPlan, apiVersion: string = 'v2') {
+  const poll = await getPollIntervalSec(env, wlPlan, apiVersion);
   await env.DB.prepare(
     `UPDATE stations SET wl_plan = ?, poll_interval_sec = ?, updated_at = ? WHERE id = ?`
   )
@@ -109,7 +112,7 @@ export async function setStationWlPlan(env: Env, stationId: string, wlPlan: WlPl
 
 export async function syncPollInterval(env: Env, station: StationRow) {
   const plan = normalizeWlPlan(station.wl_plan);
-  const poll = await getPollIntervalSec(env, plan);
+  const poll = await getPollIntervalSec(env, plan, station.cloud_api_version);
   if ((station.poll_interval_sec || 0) !== poll) {
     await env.DB.prepare('UPDATE stations SET poll_interval_sec = ?, updated_at = ? WHERE id = ?')
       .bind(poll, Date.now(), station.id)
@@ -121,6 +124,10 @@ export async function syncPollInterval(env: Env, station: StationRow) {
 
 export function publicBilling(user: UserRow, station?: StationRow | null) {
   const access = hasAccountAccess(user, station);
+  const isV2 = station?.cloud_api_version !== 'v1';
+  const plan = normalizeWlPlan(station?.wl_plan);
+  const liveTargetSec = isV2 ? (plan === 'pro' ? 10 : 15) : 60;
+  const pollSec = station?.poll_interval_sec ? Math.min(station.poll_interval_sec, liveTargetSec) : liveTargetSec;
   return {
     role: user.role || 'user',
     suspended: Boolean(user.suspended),
@@ -131,7 +138,7 @@ export function publicBilling(user: UserRow, station?: StationRow | null) {
     subscriptionStatus: access.status,
     wlPlan: station?.wl_plan || 'unknown',
     subscriptionExpiresAt: station?.subscription_expires_at ?? null,
-    pollIntervalSec: station?.poll_interval_sec ?? 900,
+    pollIntervalSec: pollSec,
     deviceLabel: station?.device_label || station?.name || 'Device 1',
   };
 }

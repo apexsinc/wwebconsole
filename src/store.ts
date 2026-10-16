@@ -157,8 +157,13 @@ export const useWeatherStore = create<WeatherStore>((set) => ({
       const activeWeather = list[validIdx] || payload.weather;
       // Roll the wind-direction trail on fresh data (max 5, oldest first).
       const incomingTs = activeWeather.ts || 0;
+      const isFresh = incomingTs > 0 && (
+        incomingTs !== state.weather.ts ||
+        activeWeather.wind_dir_last !== state.weather.wind_dir_last ||
+        activeWeather.wind_speed_last !== state.weather.wind_speed_last
+      );
       const windDirHistory =
-        incomingTs > 0 && incomingTs !== state.weather.ts
+        isFresh && typeof activeWeather.wind_dir_last === 'number'
           ? [...state.windDirHistory, activeWeather.wind_dir_last].slice(-5)
           : state.windDirHistory;
       return {

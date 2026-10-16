@@ -896,8 +896,17 @@ api.get('/weather/current', requireAuth, async (c) => {
   if (!station) return c.json({ error: 'Station not found' }, 404);
 
   const force = c.req.query('refresh') === '1';
-  const pollMs = (station.poll_interval_sec || 900) * 1000;
-  const stale = !station.last_http_at || Date.now() - station.last_http_at > pollMs;
+  const isV2 = station.cloud_api_version !== 'v1';
+  const plan = normalizeWlPlan(station.wl_plan);
+  // Real-time telemetry responsiveness depends on the API being used:
+  // WeatherLink V2 supports up to 10 req/min per key -> 10s on Pro, 15s on Basic.
+  // WeatherLink V1 updates on a slower 60s cycle.
+  const liveTargetSec = isV2 ? (plan === 'pro' ? 10 : 15) : 60;
+  const pollSec = station.poll_interval_sec && station.poll_interval_sec < liveTargetSec
+    ? station.poll_interval_sec
+    : liveTargetSec;
+  const pollMs = Math.max(10, pollSec) * 1000;
+  const stale = !station.last_http_at || Date.now() - station.last_http_at >= (pollMs - 1500);
   if (force || stale) {
     await refreshStation(c.env, station);
     station = (await getStationForUser(c.env, gate.user.id))!;
@@ -1199,8 +1208,14 @@ api.get('/public/tv/:slug', async (c) => {
   if (!access.ok) return c.json({ error: 'Display unavailable', code: 'ACCESS_DENIED' }, 402);
 
   // Refresh from WeatherLink if station data is older than polling interval (mirrors /weather/current)
-  const pollMs = (station.poll_interval_sec || 900) * 1000;
-  const stale = !station.last_http_at || Date.now() - station.last_http_at > pollMs;
+  const isV2 = station.cloud_api_version !== 'v1';
+  const plan = normalizeWlPlan(station.wl_plan);
+  const liveTargetSec = isV2 ? (plan === 'pro' ? 10 : 15) : 60;
+  const pollSec = station.poll_interval_sec && station.poll_interval_sec < liveTargetSec
+    ? station.poll_interval_sec
+    : liveTargetSec;
+  const pollMs = Math.max(10, pollSec) * 1000;
+  const stale = !station.last_http_at || Date.now() - station.last_http_at >= (pollMs - 1500);
   if (stale && station.credentials_enc) {
     try {
       await refreshStation(c.env, station);
@@ -1232,11 +1247,11 @@ api.get('/public/tv/:slug', async (c) => {
         cloudStationName: station.cloud_station_name,
         tileLayout: station.tile_layout === 'room' ? 'room' : 'dense',
         highContrast: station.contrast === 'high',
-        pollIntervalSec: station.poll_interval_sec || 900,
+        pollIntervalSec: pollSec,
       },
       label: link.label,
     },
-    { status: 200, headers: { 'Cache-Control': 'public, max-age=30' } }
+    { status: 200, headers: { 'Cache-Control': isV2 ? 'public, max-age=10' : 'public, max-age=30' } }
   );
 });
 

@@ -29,12 +29,14 @@ export default function TvPage() {
   // Wall display follows station daylight unless the viewer pinned a theme.
   useTheme({ sunrise: weather.sunrise, sunset: weather.sunset, timeZone: existingConfig.timezone });
 
+  const isV2 = existingConfig.cloudApiVersion !== 'v1';
+  const tvPollSec = isV2 ? 10 : 30;
+
   const query = useQuery({
     queryKey: ['tv', slug],
     queryFn: () => fetchPublicTv(slug!),
     enabled: Boolean(slug),
-    // Server caches this endpoint for 30s — polling faster only re-reads cache.
-    refetchInterval: 30000,
+    refetchInterval: tvPollSec * 1000,
     retry: 2,
   });
 

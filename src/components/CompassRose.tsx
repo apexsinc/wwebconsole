@@ -10,6 +10,7 @@
  * font-size scaling and the short-landscape rules resize it with the
  * board on any screen, portrait or landscape.
  */
+import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useWeatherStore } from '../store.js';
 import { convertWind, getWindUnit } from './units.js';
@@ -28,8 +29,20 @@ export default function CompassRose() {
   const hasFix = weather.ts > 0;
   const trail = useWeatherStore((s) => s.windDirHistory);
 
-  // No-data state (before the first poll): hold still, no fabricated bearing.
-  const shownDir = hasFix ? dirDeg : 0;
+  // Shortest-path continuous angle rotation tracking:
+  // When wind crosses 0°/360° (e.g. 355° -> 5°), rotates +10° rather than -350°.
+  const angleRef = useRef<number>(hasFix ? dirDeg : 0);
+  const [targetAngle, setTargetAngle] = useState<number>(hasFix ? dirDeg : 0);
+
+  useEffect(() => {
+    if (!hasFix) return;
+    const current = angleRef.current;
+    // Calculate shortest angular distance (-180 to +180)
+    const diff = ((((dirDeg - (current % 360)) + 540) % 360) - 180);
+    const next = current + diff;
+    angleRef.current = next;
+    setTargetAngle(next);
+  }, [dirDeg, hasFix]);
 
   // Compass layout configurations
   const points = [
@@ -123,12 +136,12 @@ export default function CompassRose() {
         {hasFix && (
           <motion.div
             className="absolute inset-0 pointer-events-none"
-            initial={{ rotate: shownDir }}
-            animate={{ rotate: shownDir }}
+            initial={false}
+            animate={{ rotate: targetAngle }}
             transition={
               reduceMotion
                 ? { duration: 0 }
-                : { type: 'tween', duration: 0.35, ease: 'easeOut' }
+                : { type: 'spring', stiffness: 90, damping: 15, mass: 0.8 }
             }
           >
             <svg
@@ -150,13 +163,25 @@ export default function CompassRose() {
 
         {/* Flat center disc readout */}
         <div className="absolute compass-rose-disc rounded-full flex flex-col items-center justify-center select-none">
-          <span className="compass-rose-abbrev text-[var(--con-disc-sub)] font-bold tracking-widest uppercase">
+          <motion.span
+            key={directionText}
+            initial={{ opacity: 0.75, y: -2 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="compass-rose-abbrev text-[var(--con-disc-sub)] font-bold tracking-widest uppercase"
+          >
             {hasFix ? directionText : '--'}
-          </span>
+          </motion.span>
 
-          <span className="compass-rose-speed font-bold text-[var(--con-disc-num)] tracking-tighter leading-none">
+          <motion.span
+            key={convertedSpeed.toFixed(1)}
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="compass-rose-speed font-bold text-[var(--con-disc-num)] tracking-tighter leading-none"
+          >
             {convertedSpeed.toFixed(1)}
-          </span>
+          </motion.span>
 
           <span className="compass-rose-unit text-[var(--con-disc-sub)] font-bold tracking-widest">
             {windUnitLabel}
